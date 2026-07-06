@@ -1,0 +1,47 @@
+{
+  "name": "veil-shine-backend",
+  "version": "1.0.0",
+  "description": "Backend for Veil Shine anonymous AI social platform",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "build": "prisma generate",
+    "test": "jest",
+    "seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "mongodb",
+    "ai",
+    "social-platform"
+  ],
+  "author": "Manus AI",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "axios": "^1.7.2",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.4.4",
+    "morgan": "^1.10.0",
+    "multer": "^2.2.0",
+    "openai": "^6.45.0",
+    "prisma": "^5.22.0",
+    "rss-parser": "^3.13.0",
+    "xai": "^0.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.4"
+  }
+}
