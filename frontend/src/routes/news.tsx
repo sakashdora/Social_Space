@@ -101,13 +101,11 @@ function NewsComponent() {
                 layoutId={`card-container-${article.id}`}
                 transition={springTransition}
                 onClick={() => handleOpenArticle(article)}
-                className={cn(
-                  "relative block cursor-pointer rounded-2xl p-5 overflow-hidden transition-shadow border",
-                  isSelected ? "opacity-0" : "opacity-100"
-                )}
+                className="relative block cursor-pointer rounded-2xl p-5 overflow-hidden transition-shadow border"
                 style={{ 
                   background: "var(--surface-bg)", 
-                  borderColor: "var(--surface-border)"
+                  borderColor: "var(--surface-border)",
+                  opacity: selectedArticle && !isSelected ? 0.35 : 1,
                 }}
                 whileHover={{ 
                   y: -3, 
@@ -161,13 +159,20 @@ function NewsComponent() {
       {/* Premium In-App News Reader Modal with Shared Element Transition */}
       <AnimatePresence>
         {selectedArticle && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop with heavy blur and dimming */}
+          <motion.div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+          >
+            {/* Backdrop with heavy blur and dimmed opacity */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/75 backdrop-blur-2xl"
+              transition={{ duration: 0.25 }}
+              className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xl"
               onClick={handleCloseArticle}
             />
 
@@ -316,7 +321,10 @@ function NewsComponent() {
                     
                     <div className="relative flex-1 rounded-2xl overflow-hidden border bg-white min-h-[450px]" style={{ borderColor: "var(--surface-border)" }}>
                       {iframeLoading && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/90 text-center gap-3">
+                        <div 
+                          className="absolute inset-0 flex flex-col items-center justify-center text-center gap-3 z-10"
+                          style={{ background: "var(--dialog-bg)" }}
+                        >
                           <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--veil-glow)] border-t-transparent" />
                           <span className="text-xs text-muted-foreground font-mono">Securing sandbox connection…</span>
                         </div>
@@ -324,7 +332,7 @@ function NewsComponent() {
                       <iframe
                         src={selectedArticle.link}
                         title={selectedArticle.title}
-                        className="w-full h-full min-h-[450px] bg-white"
+                        className="w-full h-full min-h-[450px] bg-white relative z-0"
                         onLoad={() => setIframeLoading(false)}
                         sandbox="allow-scripts allow-same-origin allow-popups"
                       />
@@ -358,7 +366,7 @@ function NewsComponent() {
                 </a>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
