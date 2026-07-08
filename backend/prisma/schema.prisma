@@ -21,6 +21,8 @@ model User {
   tokenVersion      Int                 @default(0)
   totpEnabled       Boolean             @default(false)
   totpSecret        String?
+  chatPublicKey     String?
+  chatPublicKeyAlgo String?
   comments          Comment[]
   messages          Message[]
   passkeys          Passkey[]

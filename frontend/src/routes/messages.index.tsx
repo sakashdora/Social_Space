@@ -35,9 +35,9 @@ function EmptyThread() {
               <KeyRound className="h-3.5 w-3.5" />
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-foreground">Transit Encryption</h3>
+              <h3 className="text-xs font-semibold text-foreground">Local Encryption</h3>
               <p className="mt-0.5 text-[11px] text-muted-foreground leading-normal">
-                Messages are protected in transit. Client-side end-to-end encryption is rolling out soon.
+                Messages are encrypted locally before leaving your device. Only the recipient can read them.
               </p>
             </div>
           </div>

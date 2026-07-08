@@ -57,6 +57,7 @@ export async function getChats(req, res) {
       return {
         id: t.id,
         handle: otherParticipant.handle,
+        recipientId: otherParticipant.id,
         avatarUrl: otherParticipant.avatarUrl,
         color,
         time: lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "New",

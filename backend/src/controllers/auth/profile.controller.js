@@ -144,6 +144,8 @@ export async function getSecurityEvents(req, res) {
   }
 }
 
+import crypto from "crypto";
+
 /**
  * GET /v1/auth/me
  * Returns the authenticated user's public profile including pendingDeletionAt
@@ -158,6 +160,8 @@ export async function getMe(req, res) {
         handle: true,
         createdAt: true,
         pendingDeletionAt: true,
+        chatPublicKey: true,
+        chatPublicKeyAlgo: true,
       },
     });
 
@@ -172,6 +176,70 @@ export async function getMe(req, res) {
     console.error("getMe error:", error);
     return res.status(500).json({
       error: { message: "Failed to fetch profile.", code: "INTERNAL_SERVER_ERROR" },
+    });
+  }
+}
+
+/**
+ * PATCH /v1/auth/chat-public-key
+ * Body: { chatPublicKey }
+ * Saves the user's base64 SPKI ECDH public key.
+ */
+export async function updateChatPublicKey(req, res) {
+  try {
+    const { chatPublicKey } = req.body;
+    if (!chatPublicKey || typeof chatPublicKey !== "string") {
+      return res.status(400).json({
+        error: { message: "chatPublicKey is required and must be a string.", code: "BAD_REQUEST" }
+      });
+    }
+
+    // Validate base64 structure
+    const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
+    if (!base64Regex.test(chatPublicKey)) {
+      return res.status(400).json({
+        error: { message: "chatPublicKey must be a valid base64 string.", code: "BAD_REQUEST" }
+      });
+    }
+
+    try {
+      const pubKeyBuffer = Buffer.from(chatPublicKey, "base64");
+      const keyObj = crypto.createPublicKey({
+        key: pubKeyBuffer,
+        format: "der",
+        type: "spki"
+      });
+      if (keyObj.asymmetricKeyType !== "ec") {
+        return res.status(400).json({
+          error: { message: "Only Elliptic Curve (EC) public keys are allowed.", code: "BAD_REQUEST" }
+        });
+      }
+    } catch (err) {
+      return res.status(400).json({
+        error: { message: "Invalid SPKI public key structure.", code: "BAD_REQUEST" }
+      });
+    }
+
+    // Save to DB
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        chatPublicKey,
+        chatPublicKeyAlgo: "ECDH-P256"
+      }
+    });
+
+    await logSecurityEvent(req.user.id, "CHAT_KEY_UPDATED", req);
+
+    return res.status(200).json({
+      message: "Chat public key updated successfully.",
+      chatPublicKey,
+      chatPublicKeyAlgo: "ECDH-P256"
+    });
+  } catch (error) {
+    console.error("updateChatPublicKey error:", error);
+    return res.status(500).json({
+      error: { message: "Failed to update chat public key.", code: "INTERNAL_SERVER_ERROR" }
     });
   }
 }

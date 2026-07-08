@@ -290,11 +290,47 @@ export async function createChat(targetHandle: string) {
   return handleResponse(res);
 }
 
-export async function sendChatMessage(threadId: string, body: string, mediaUrl: string | null = null) {
+export const threadKeyCache: Record<string, CryptoKey> = {};
+
+export function clearThreadKeyCache() {
+  for (const k in threadKeyCache) {
+    delete threadKeyCache[k];
+  }
+}
+
+export async function sendChatMessage(threadId: string, body: string, recipientId: string, mediaUrl: string | null = null) {
+  let aesKey = threadKeyCache[threadId];
+  if (!aesKey) {
+    const sender = getCurrentUser();
+    if (!sender) throw new Error("User not authenticated.");
+
+    const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey } = await import("./crypto");
+    const record = await getKeyRecord(sender.id);
+    if (!record) {
+      throw new Error("Secure chat keys missing locally. Reset your keys in the messaging side panel.");
+    }
+
+    const recipientKeyData = await getUserPublicKey(recipientId);
+    if (!recipientKeyData || !recipientKeyData.chatPublicKey) {
+      throw new Error("Recipient has not set up secure chat keys yet.");
+    }
+
+    const recipientPubKey = await importPublicKeyBase64(recipientKeyData.chatPublicKey);
+    aesKey = await deriveSharedAesKey(record.privateKey, recipientPubKey);
+    threadKeyCache[threadId] = aesKey;
+  }
+
+  const { encryptText } = await import("./crypto");
+  const encrypted = await encryptText(body, aesKey);
+  const ciphertextPayload = JSON.stringify({
+    ciphertext: encrypted.ciphertext,
+    iv: encrypted.iv
+  });
+
   const res = await fetch(`${API_BASE}/v1/chats/${threadId}/messages`, {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({ body, mediaUrl }),
+    body: JSON.stringify({ body: ciphertextPayload, mediaUrl }),
   });
   return handleResponse(res);
 }
@@ -465,7 +501,14 @@ export async function removePasskey(id: string, currentPassphrase: string) {
 }
 
 /** Current user profile (includes pendingDeletionAt) */
-export async function getMe(): Promise<{ id: string; handle: string; createdAt: string; pendingDeletionAt: string | null }> {
+export async function getMe(): Promise<{ 
+  id: string; 
+  handle: string; 
+  createdAt: string; 
+  pendingDeletionAt: string | null;
+  chatPublicKey: string | null;
+  chatPublicKeyAlgo: string | null;
+}> {
   const res = await fetch(`${API_BASE}/v1/auth/me`, { headers: getHeaders() });
   return handleResponse(res);
 }
@@ -490,4 +533,22 @@ export async function loginVerifyTotp(challengeToken: string, totpCode: string) 
   }
   return data;
 }
+
+/** Chat key management */
+export async function updateChatPublicKey(chatPublicKey: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/chat-public-key`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ chatPublicKey }),
+  });
+  return handleResponse(res);
+}
+
+export async function getUserPublicKey(userId: string): Promise<{ id: string; chatPublicKey: string | null; chatPublicKeyAlgo: string | null }> {
+  const res = await fetch(`${API_BASE}/v1/users/${userId}/chat-public-key`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
 

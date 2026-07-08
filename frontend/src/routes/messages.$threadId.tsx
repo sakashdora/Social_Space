@@ -6,6 +6,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchChats, fetchChatMessages, sendChatMessage, updateChatTimer, uploadMedia,
+  getCurrentUser, getUserPublicKey, threadKeyCache,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,6 +47,88 @@ function Thread() {
     refetchInterval: 2500,
   });
 
+  const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      setDecryptedMessages([]);
+      return;
+    }
+
+    let active = true;
+
+    async function decryptAll() {
+      const sender = getCurrentUser();
+      if (!sender) return;
+
+      const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey, decryptText } = await import("@/lib/crypto");
+      
+      const record = await getKeyRecord(sender.id);
+      if (!record) {
+        console.warn("Secure key record missing.");
+        if (active) {
+          setDecryptedMessages(messages.map((m: any) => ({ 
+            ...m, 
+            body: m.sending ? m.body : "Unable to decrypt (Keys out of sync)" 
+          })));
+        }
+        return;
+      }
+
+      let aesKey = threadKeyCache[threadId];
+      if (!aesKey && thread.recipientId) {
+        try {
+          const recipientKeyData = await getUserPublicKey(thread.recipientId);
+          if (recipientKeyData && recipientKeyData.chatPublicKey) {
+            const recipientPubKey = await importPublicKeyBase64(recipientKeyData.chatPublicKey);
+            aesKey = await deriveSharedAesKey(record.privateKey, recipientPubKey);
+            threadKeyCache[threadId] = aesKey;
+          }
+        } catch (err) {
+          console.error("Failed to load recipient key for decryption:", err);
+        }
+      }
+
+      if (!aesKey) {
+        if (active) {
+          setDecryptedMessages(messages.map((m: any) => ({ 
+            ...m, 
+            body: m.sending ? m.body : "Unable to decrypt (Recipient has no keys)" 
+          })));
+        }
+        return;
+      }
+
+      const decrypted = await Promise.all(
+        messages.map(async (m: any) => {
+          if (m.sending) return m;
+          if (!m.body) return m;
+
+          try {
+            const parsed = JSON.parse(m.body);
+            if (parsed && parsed.ciphertext && parsed.iv) {
+              const decryptedBody = await decryptText(parsed.ciphertext, parsed.iv, aesKey);
+              return { ...m, body: decryptedBody };
+            }
+          } catch (err) {
+            return { ...m, body: "Unable to decrypt" };
+          }
+          return { ...m, body: "Unable to decrypt" };
+        })
+      );
+
+      if (active) {
+        setDecryptedMessages(decrypted);
+      }
+    }
+
+    decryptAll();
+
+    return () => {
+      active = false;
+    };
+  }, [messages, thread.recipientId, threadId]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -61,11 +144,11 @@ function Thread() {
   // Smooth scroll when message list length updates
   useEffect(() => {
     scrollToBottom();
-  }, [messages.length]);
+  }, [decryptedMessages.length]);
 
   const sendMessageMutation = useMutation({
     mutationFn: ({ body, mediaUrl }: { body: string; mediaUrl: string | null }) =>
-      sendChatMessage(threadId, body, mediaUrl),
+      sendChatMessage(threadId, body, thread.recipientId, mediaUrl),
     onMutate: async ({ body, mediaUrl }) => {
       // Cancel outgoing refetches so they don't overwrite our optimistic state
       await queryClient.cancelQueries({ queryKey: ["chatMessages", threadId] });
@@ -270,7 +353,7 @@ function Thread() {
           className="mx-auto mb-3 w-fit max-w-[85%] rounded-full px-4 py-1.5 text-center text-[11px] text-muted-foreground"
           style={{ background: "var(--tag-bg)", border: "1px solid var(--tag-border)" }}
         >
-          Transit Secured · auto-deleted after {thread.disappearing || "7d"}
+          Encrypted · auto-deleted after {thread.disappearing || "7d"}
         </div>
 
         {/* Loading skeletons */}
@@ -298,7 +381,7 @@ function Thread() {
         {/* Message bubbles */}
         <AnimatePresence initial={false}>
           {!isLoading &&
-            messages.map((m: any) => (
+            decryptedMessages.map((m: any) => (
               <motion.div
                 key={m.id}
                 layout

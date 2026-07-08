@@ -47,7 +47,7 @@ To create the world's most trusted and engaging anonymous social network, empowe
 *   **FR1.1**: Users MUST be able to create an account and interact with the platform without providing any personally identifiable information (PII) such as email, phone number, or real name.
 *   **FR1.2**: User-generated content (posts, comments, reactions) MUST be disassociated from any persistent identifier that could link back to a real-world identity.
 *   **FR1.3**: The platform MUST implement architectural safeguards (e.g., zero-knowledge proofs, secure multi-party computation, or similar) to ensure that even platform administrators cannot link user activity to real identities.
-*   **FR1.4**: All user communications (e.g., direct messages, if implemented) MUST be end-to-end encrypted.
+*   **FR1.4**: All user communications (direct messages) MUST be end-to-end encrypted using WebCrypto ECDH P-256 key agreement, HKDF derivation, and AES-256-GCM symmetric encryption. Key pairs are generated client-side with private keys stored non-extractably in IndexedDB. Mismatched or lost keys trigger a key-reset warning dialog, allowing key regeneration while older historical messages stay securely locked.
 *   **FR1.5**: AI-modified media (e.g., image filters, voice modulation) MUST be clearly labeled as such to maintain transparency and prevent misinformation.
 *   **FR1.6**: Users MUST have the option to generate a recovery passphrase for their account, which is stored client-side only and never transmitted to the server.
 

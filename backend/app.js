@@ -16,6 +16,7 @@ import rssRoutes from "./src/routes/rss.routes.js";
 import uploadRoutes from "./src/routes/upload.routes.js";
 import { startRetentionCron } from "./src/services/cron.service.js";
 import chatsRoutes from "./src/routes/chats.routes.js";
+import usersRoutes from "./src/routes/users.routes.js";
 
 const app = express();
 
@@ -68,6 +69,7 @@ app.use("/v1/auth/passkeys", passkeyRoutes);
 app.use("/v1/posts", postsRoutes);
 app.use("/v1/reactions", reactionsRoutes);
 app.use("/v1/chats", chatsRoutes);
+app.use("/v1/users", usersRoutes);
 app.use("/api", aiRoutes);
 app.use("/api/rss", rssRoutes);
 app.use("/api/upload", uploadRoutes);

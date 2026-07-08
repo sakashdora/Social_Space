@@ -2,7 +2,7 @@ import { Router } from "express";
 import { register } from "../controllers/auth/register.controller.js";
 import { login, loginVerifyTotp } from "../controllers/auth/login.controller.js";
 import { redeemRecoveryCode, regenerateRecoveryCodes } from "../controllers/auth/recovery.controller.js";
-import { logoutAll, changePassphrase, deleteAccount, getSecurityEvents, updateSecurityKey, getMe } from "../controllers/auth/profile.controller.js";
+import { logoutAll, changePassphrase, deleteAccount, getSecurityEvents, updateSecurityKey, getMe, updateChatPublicKey } from "../controllers/auth/profile.controller.js";
 
 import { requireAuth, requireStepUp } from "../middleware/auth.middleware.js";
 import { validateBody } from "../middleware/validation.middleware.js";
@@ -57,6 +57,7 @@ router.post(
 
 // ─── Current user profile (includes pendingDeletionAt for inactivity warning) ──
 router.get("/me", requireAuth, getMe);
+router.patch("/chat-public-key", requireAuth, updateChatPublicKey);
 
 // ─── Security event timeline (anonymity-preserving substitute for email alerts)
 router.get("/security-events", requireAuth, getSecurityEvents);
