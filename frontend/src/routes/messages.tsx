@@ -37,20 +37,19 @@ function MessagesLayout() {
   });
 
   React.useEffect(() => {
-    const currentMe = me;
-    if (!currentMe) return;
+    if (!me) return;
 
-    async function checkKeys() {
+    async function checkKeys(activeUser: NonNullable<typeof me>) {
       try {
         const { getKeyRecord, generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } = await import("@/lib/crypto");
-        const record = await getKeyRecord(currentMe.id);
+        const record = await getKeyRecord(activeUser.id);
 
         if (!record) {
-          if (!currentMe.chatPublicKey) {
+          if (!activeUser.chatPublicKey) {
             console.log("Generating new chat keypair...");
             const keyPair = await generateChatKeyPair();
             const pubKeyB64 = await exportPublicKeyBase64(keyPair.publicKey);
-            await saveKeyRecord(currentMe.id, {
+            await saveKeyRecord(activeUser.id, {
               privateKey: keyPair.privateKey,
               publicKeyBase64: pubKeyB64
             });
@@ -61,11 +60,11 @@ function MessagesLayout() {
             setShowKeyResetDialog(true);
           }
         } else {
-          if (!currentMe.chatPublicKey) {
+          if (!activeUser.chatPublicKey) {
             console.log("Re-uploading chat public key to server...");
             await updateChatPublicKey(record.publicKeyBase64);
             queryClient.invalidateQueries({ queryKey: ["me"] });
-          } else if (record.publicKeyBase64 !== currentMe.chatPublicKey) {
+          } else if (record.publicKeyBase64 !== activeUser.chatPublicKey) {
             console.warn("Key mismatch detected between local key and server key.");
             setShowKeyResetDialog(true);
           }
@@ -75,7 +74,7 @@ function MessagesLayout() {
       }
     }
 
-    checkKeys();
+    checkKeys(me);
   }, [me, queryClient]);
 
   const handleKeyReset = async () => {
