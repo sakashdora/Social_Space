@@ -83,7 +83,7 @@ function PassphraseModal({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 mb-3">
+        <div className="flex items-center gap-2 px-3 py-2.5 mb-3 input-surface">
           <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
           <input
             autoFocus
@@ -461,7 +461,7 @@ function Profile() {
             value={passkeyNickname}
             onChange={(e) => setPasskeyNickname(e.target.value)}
             placeholder='Nickname (e.g. "MacBook")'
-            className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/50"
+            className="flex-1 px-3 py-2 text-sm input-surface"
           />
           <button
             id="add-passkey-btn"
@@ -523,7 +523,7 @@ function Profile() {
                 value={totpSetupCode}
                 onChange={(e) => setTotpSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="000000"
-                className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-center font-mono text-lg tracking-widest outline-none placeholder:text-muted-foreground/50"
+                className="flex-1 px-3 py-2.5 text-center font-mono text-lg tracking-widest input-surface"
               />
               <button
                 onClick={() => enableTotpMut.mutate(totpSetupCode)}
@@ -558,7 +558,7 @@ function Profile() {
           Changing your passphrase invalidates all other active sessions. Must be ≥60 bits of entropy and not found in known breaches.
         </p>
         <div className="space-y-3">
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
+          <div className="flex items-center gap-2 px-3 py-2.5 input-surface">
             <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
             <label htmlFor="current-passphrase-change" className="sr-only">Current passphrase</label>
             <input
@@ -573,7 +573,7 @@ function Profile() {
               {showCurPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </button>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
+          <div className="flex items-center gap-2 px-3 py-2.5 input-surface">
             <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
             <label htmlFor="new-passphrase-change" className="sr-only">New passphrase</label>
             <input

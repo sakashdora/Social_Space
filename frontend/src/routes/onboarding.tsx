@@ -68,7 +68,7 @@ function TotpInput({ onSubmit, isLoading, error }: {
   const [code, setCode] = useState("");
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+      <div className="flex items-center gap-2 px-4 py-3 input-surface">
         <KeyRound className="h-4 w-4 text-muted-foreground" />
         <input
           autoFocus
@@ -407,8 +407,8 @@ function Onboarding() {
 
                 <div>
                   <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Handle</label>
-                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-4 py-3">
-                    <span className="text-muted-foreground">@</span>
+                  <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
+                    <span className="text-muted-foreground select-none">@</span>
                     <input
                       autoFocus
                       id="login-handle"
@@ -422,7 +422,7 @@ function Onboarding() {
 
                 <div>
                   <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Passphrase</label>
-                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+                  <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <KeyRound className="h-4 w-4 text-muted-foreground" />
                     <input
                       id="login-passphrase"
@@ -495,7 +495,7 @@ function Onboarding() {
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <div>
                   <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Recovery code</label>
-                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+                  <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <input
                       id="recovery-code-input"
                       value={recoveryCode}
@@ -507,7 +507,7 @@ function Onboarding() {
                 </div>
                 <div>
                   <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">New passphrase</label>
-                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+                  <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <input
                       id="recovery-new-pass"
                       type="password"
@@ -550,8 +550,8 @@ function Onboarding() {
               </p>
               <FrostedPanel className="mt-8 p-5">
                 <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Handle</label>
-                <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-4 py-3">
-                  <span className="text-muted-foreground">@</span>
+                <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
+                  <span className="text-muted-foreground select-none">@</span>
                   <input
                     autoFocus
                     id="register-handle"
@@ -645,7 +645,7 @@ function Onboarding() {
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <div>
                   <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Passphrase</label>
-                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+                  <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <KeyRound className="h-4 w-4 text-muted-foreground" />
                     <input
                       id="register-passphrase"

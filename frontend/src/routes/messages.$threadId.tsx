@@ -307,13 +307,7 @@ function Thread() {
         )}
 
         {/* Input row */}
-        <div
-          className="flex items-end gap-2 rounded-2xl px-3 py-2"
-          style={{
-            background: "var(--input-bg)",
-            border: "1px solid var(--input-border)",
-          }}
-        >
+        <div className="flex items-end gap-2 px-3 py-2.5 input-surface !rounded-2xl">
           {/* Hidden file input */}
           <input
             type="file"

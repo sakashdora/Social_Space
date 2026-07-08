@@ -159,7 +159,7 @@ function Compose() {
         </div>
 
         {mode === "standard" ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+          <div className="p-6 input-surface !rounded-2xl">
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}

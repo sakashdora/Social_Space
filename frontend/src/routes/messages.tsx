@@ -91,13 +91,7 @@ function MessagesLayout() {
           className="shrink-0 px-4 py-3"
           style={{ borderBottom: "1px solid var(--surface-border)" }}
         >
-          <div
-            className="flex items-center gap-2 rounded-xl px-3 py-2.5 transition-shadow"
-            style={{
-              background: "var(--input-bg)",
-              border: "1px solid var(--input-border)",
-            }}
-          >
+          <div className="flex items-center gap-2 px-3 py-2.5 input-surface">
             <span className="text-xs text-muted-foreground select-none">@</span>
             <input
               type="text"
@@ -142,7 +136,7 @@ function MessagesLayout() {
               No active conversations. Start one above.
             </div>
           ) : (
-            <ul>
+            <ul className="space-y-1.5 p-2">
               {threads.map((t: any) => {
                 const isActive = active === t.id;
                 return (
@@ -150,9 +144,8 @@ function MessagesLayout() {
                     <Link
                       to="/messages/$threadId"
                       params={{ threadId: t.id }}
-                      className="flex items-start gap-3 px-4 py-3.5 transition-colors"
+                      className="relative flex items-start gap-3 px-3.5 py-3 rounded-2xl transition-all duration-200 hover:scale-[0.99]"
                       style={{
-                        borderBottom: "1px solid var(--surface-border)",
                         backgroundColor: isActive ? "var(--nav-active-bg)" : undefined,
                       }}
                       onMouseEnter={(e) => {
@@ -164,8 +157,19 @@ function MessagesLayout() {
                           (e.currentTarget as HTMLElement).style.backgroundColor = "";
                       }}
                     >
+                      {/* Left accent vertical indicator for active thread */}
+                      {isActive && (
+                        <div 
+                          className="absolute left-0 top-3.5 bottom-3.5 w-1 rounded-r-full"
+                          style={{
+                            background: "var(--veil-glow)",
+                            boxShadow: "0 0 10px var(--veil-glow)",
+                          }}
+                        />
+                      )}
+
                       <span
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white shadow-inner"
                         style={{
                           background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 40%, black))`,
                         }}
@@ -174,17 +178,17 @@ function MessagesLayout() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="truncate text-sm font-medium text-foreground">
+                          <p className="truncate text-sm font-semibold text-foreground">
                             @{t.handle}
                           </p>
-                          <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                          <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                             {t.time}
                           </span>
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{t.preview}</p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground/80">{t.preview}</p>
                         {t.disappearing && t.disappearing !== "Off" && (
                           <span
-                            className="mt-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                            className="mt-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground"
                             style={{ background: "var(--tag-bg)", border: "1px solid var(--tag-border)" }}
                           >
                             <Timer className="h-2.5 w-2.5" />
@@ -197,6 +201,7 @@ function MessagesLayout() {
                 );
               })}
             </ul>
+
           )}
         </div>
       </aside>
