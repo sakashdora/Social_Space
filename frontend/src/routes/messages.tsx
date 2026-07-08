@@ -1,8 +1,8 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Timer, Plus, AlertCircle } from "lucide-react";
+import { Timer, Plus, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchChats, createChat, getMe, updateChatPublicKey } from "@/lib/api";
+import { fetchChats, createChat, getMe, updateChatPublicKey, getCurrentUser, threadKeyCache } from "@/lib/api";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -37,19 +37,20 @@ function MessagesLayout() {
   });
 
   React.useEffect(() => {
-    if (!me) return;
+    const currentMe = me;
+    if (!currentMe) return;
 
     async function checkKeys() {
       try {
         const { getKeyRecord, generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } = await import("@/lib/crypto");
-        const record = await getKeyRecord(me.id);
+        const record = await getKeyRecord(currentMe.id);
 
         if (!record) {
-          if (!me.chatPublicKey) {
+          if (!currentMe.chatPublicKey) {
             console.log("Generating new chat keypair...");
             const keyPair = await generateChatKeyPair();
             const pubKeyB64 = await exportPublicKeyBase64(keyPair.publicKey);
-            await saveKeyRecord(me.id, {
+            await saveKeyRecord(currentMe.id, {
               privateKey: keyPair.privateKey,
               publicKeyBase64: pubKeyB64
             });
@@ -60,11 +61,11 @@ function MessagesLayout() {
             setShowKeyResetDialog(true);
           }
         } else {
-          if (!me.chatPublicKey) {
+          if (!currentMe.chatPublicKey) {
             console.log("Re-uploading chat public key to server...");
             await updateChatPublicKey(record.publicKeyBase64);
             queryClient.invalidateQueries({ queryKey: ["me"] });
-          } else if (record.publicKeyBase64 !== me.chatPublicKey) {
+          } else if (record.publicKeyBase64 !== currentMe.chatPublicKey) {
             console.warn("Key mismatch detected between local key and server key.");
             setShowKeyResetDialog(true);
           }
@@ -78,13 +79,14 @@ function MessagesLayout() {
   }, [me, queryClient]);
 
   const handleKeyReset = async () => {
-    if (!me) return;
+    const currentMe = me;
+    if (!currentMe) return;
     try {
       const { generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } = await import("@/lib/crypto");
       console.log("Resetting chat keys...");
       const keyPair = await generateChatKeyPair();
       const pubKeyB64 = await exportPublicKeyBase64(keyPair.publicKey);
-      await saveKeyRecord(me.id, {
+      await saveKeyRecord(currentMe.id, {
         privateKey: keyPair.privateKey,
         publicKeyBase64: pubKeyB64
       });
