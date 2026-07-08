@@ -1,77 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id                String              @id @default(uuid())
+  handle            String              @unique
+  recoveryHash      String
+  isBanned          Boolean             @default(false)
+  avatarUrl         String?
+  lastActiveAt      DateTime            @default(now())
+  pendingDeletionAt DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  tokenVersion      Int                 @default(0)
+  totpEnabled       Boolean             @default(false)
+  totpSecret        String?
+  comments          Comment[]
+  messages          Message[]
+  passkeys          Passkey[]
+  posts             Post[]
+  reactions         Reaction[]
+  recoveryCodes     RecoveryCode[]
+  securityEvents    SecurityEvent[]
+  threads           ThreadParticipant[]
 }
 
-model User {
-  id           String              @id @default(uuid())
-  handle       String              @unique
-  recoveryHash String
-  isBanned     Boolean             @default(false)
-  avatarUrl    String?
-  lastActiveAt DateTime            @default(now())
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  posts        Post[]
-  comments     Comment[]
-  reactions    Reaction[]
-  threads      ThreadParticipant[]
-  messages     Message[]
+model Passkey {
+  id           String    @id @default(uuid())
+  userId       String
+  credentialID String    @unique
+  publicKey    String
+  counter      BigInt
+  transports   String?
+  nickname     String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  isRevoked    Boolean   @default(false)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecoveryCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SecurityEvent {
+  id                    String   @id @default(uuid())
+  userId                String
+  type                  String
+  metadata              String?
+  deviceFingerprintHash String?
+  createdAt             DateTime @default(now())
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LoginAttempt {
+  id          String    @id @default(uuid())
+  handle      String    @unique
+  failCount   Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
 }
 
 model Post {
   id                String          @id @default(uuid())
   userId            String?
-  user              User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   content           String
   category          String
-  aiLabels          String?         // Storing JSON string of AI safety scores
+  aiLabels          String?
   mediaUrl          String?
-  sentimentAnalysis String?         // Storing JSON string of sentiment score
+  sentimentAnalysis String?
   isDeleted         Boolean         @default(false)
-  
-  // For sharing other posts or chat messages
   sharedPostId      String?
-  sharedPost        Post?           @relation("SharedPosts", fields: [sharedPostId], references: [id], onDelete: SetNull)
-  shares            Post[]          @relation("SharedPosts")
-  
   createdAt         DateTime        @default(now())
   comments          Comment[]
-  reactions         Reaction[]
   moderationLogs    ModerationLog[]
+  sharedPost        Post?           @relation("SharedPosts", fields: [sharedPostId], references: [id])
+  shares            Post[]          @relation("SharedPosts")
+  user              User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions         Reaction[]
 }
 
 model Comment {
   id              String          @id @default(uuid())
   postId          String
-  post            Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId          String?
-  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   parentCommentId String?
-  parentComment   Comment?        @relation("ThreadReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
-  replies         Comment[]       @relation("ThreadReplies")
   content         String
   isDeleted       Boolean         @default(false)
   createdAt       DateTime        @default(now())
-  reactions       Reaction[]
+  parentComment   Comment?        @relation("ThreadReplies", fields: [parentCommentId], references: [id])
+  replies         Comment[]       @relation("ThreadReplies")
+  post            Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   moderationLogs  ModerationLog[]
+  reactions       Reaction[]
 }
 
 model Reaction {
   id           String   @id @default(uuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   postId       String?
-  post         Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   commentId    String?
-  comment      Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   reactionType String
   createdAt    DateTime @default(now())
+  comment      Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  post         Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId, commentId, reactionType])
 }
@@ -79,33 +124,33 @@ model Reaction {
 model ModerationLog {
   id                      String   @id @default(uuid())
   targetPostId            String?
-  targetPost              Post?    @relation(fields: [targetPostId], references: [id], onDelete: Cascade)
   targetCommentId         String?
-  targetComment           Comment? @relation(fields: [targetCommentId], references: [id], onDelete: Cascade)
   adminUserId             String?
   actionTaken             String
   reason                  String
-  aiFlags                 String?  // Storing JSON string of AI flags
+  aiFlags                 String?
   originalContentSnapshot String
   createdAt               DateTime @default(now())
+  targetComment           Comment? @relation(fields: [targetCommentId], references: [id], onDelete: Cascade)
+  targetPost              Post?    @relation(fields: [targetPostId], references: [id], onDelete: Cascade)
 }
 
 model Thread {
   id                 String              @id @default(uuid())
-  deleteAfterSeconds Int                 @default(604800) // default 7 days = 604800
+  deleteAfterSeconds Int                 @default(604800)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
-  participants       ThreadParticipant[]
   messages           Message[]
+  participants       ThreadParticipant[]
 }
 
 model ThreadParticipant {
   id        String   @id @default(uuid())
   threadId  String
-  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([threadId, userId])
 }
@@ -113,11 +158,11 @@ model ThreadParticipant {
 model Message {
   id        String   @id @default(uuid())
   threadId  String
-  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
   senderId  String
-  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
   body      String
   mediaUrl  String?
   createdAt DateTime @default(now())
   expiresAt DateTime
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
 }
