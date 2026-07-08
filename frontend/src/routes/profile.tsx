@@ -66,13 +66,13 @@ function PassphraseModal({
   const [pass, setPass] = useState("");
   const [show, setShow] = useState(false);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overlay">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-sm rounded-2xl border border-white/10 bg-[color:var(--ink)] p-6 shadow-2xl"
+        className="w-full max-w-sm dialog-panel p-6"
       >
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -217,6 +217,16 @@ function Profile() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const user = getCurrentUser() || { handle: "anonymous" };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      qc.clear();
+      navigate({ to: "/" });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // ── Passkey state ──
   const [passkeyNickname, setPasskeyNickname] = useState("");
@@ -409,17 +419,26 @@ function Profile() {
       )}
 
       {/* Avatar Card */}
-      <FrostedPanel className="flex items-center gap-5 p-6 mb-6">
-        <div
-          className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl"
-          style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--veil) 60%, black), color-mix(in oklab, var(--veil-glow) 30%, black))" }}
+      <FrostedPanel className="flex items-center justify-between gap-5 p-6 mb-6">
+        <div className="flex items-center gap-5 min-w-0">
+          <div
+            className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl shadow-lg"
+            style={{ background: "linear-gradient(135deg, var(--veil), var(--veil-glow))" }}
+          >
+            <VeilGlyph className="h-8 w-8 text-ink-raised" />
+          </div>
+          <div className="min-w-0">
+            <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Your handle</label>
+            <p className="text-xl font-semibold text-foreground mt-1 truncate">@{user.handle}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-semibold text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95 shrink-0"
         >
-          <VeilGlyph className="h-8 w-8 text-white/85" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Your handle</label>
-          <p className="text-xl font-semibold text-foreground mt-1">@{user.handle}</p>
-        </div>
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
       </FrostedPanel>
 
       {/* ── Passkeys ──────────────────────────────────────────────────── */}
@@ -652,27 +671,43 @@ function Profile() {
         <p className="text-xs text-muted-foreground mb-4">
           All security-relevant actions on your account — the anonymity-preserving substitute for email alerts.
         </p>
-        {securityEvents.length === 0 ? (
+         {securityEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground">No events recorded yet.</p>
         ) : (
-          <ul className="space-y-px">
-            {securityEvents.slice(0, 20).map((ev: any) => (
-              <li key={ev.id} className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0">
-                <span className="mt-0.5 shrink-0">{EVENT_ICONS[ev.type] ?? <Info className="h-4 w-4 text-muted-foreground" />}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm">{EVENT_LABELS[ev.type] ?? ev.type}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {formatTs(ev.createdAt)}
-                    {ev.deviceFingerprintHash && (
-                      <span className="ml-2 font-mono opacity-50" title="Anonymised device fingerprint">
-                        #{ev.deviceFingerprintHash.slice(0, 8)}
-                      </span>
-                    )}
-                  </p>
+          <div className="relative border-l pl-6 ml-2 my-2 space-y-6" style={{ borderColor: "var(--surface-border)" }}>
+            {securityEvents.slice(0, 15).map((ev: any) => (
+              <div key={ev.id} className="relative">
+                {/* Visual marker dot centered on line */}
+                <div 
+                  className="absolute -left-[30px] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[color:var(--ink)]"
+                  style={{
+                    border: "2px solid var(--surface-border)",
+                  }}
+                >
+                  <div className="h-1 w-1 rounded-full bg-[color:var(--veil-glow)] animate-pulse" />
                 </div>
-              </li>
+                
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 shrink-0 bg-white/[0.03] p-1.5 rounded-lg border border-white/[0.05]">
+                    {EVENT_ICONS[ev.type] ?? <Info className="h-4 w-4 text-muted-foreground" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      {EVENT_LABELS[ev.type] ?? ev.type}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {formatTs(ev.createdAt)}
+                      {ev.deviceFingerprintHash && (
+                        <span className="ml-2 font-mono opacity-40 select-all" title="Anonymised device fingerprint">
+                          #{ev.deviceFingerprintHash.slice(0, 8)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </FrostedPanel>
 
@@ -697,21 +732,26 @@ function Profile() {
       </FrostedPanel>
 
       {/* ── Privacy data list ─────────────────────────────────────────── */}
-      <section>
+      <section className="mb-12">
         <div className="mb-4">
           <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--veil-glow)]">Data & Privacy</p>
           <h2 className="mt-2 font-serif text-3xl">What Social Space never collects.</h2>
         </div>
-        <FrostedPanel>
-          <ul className="grid gap-px overflow-hidden rounded-2xl sm:grid-cols-2">
-            {neverCollected.map((n) => (
-              <li key={n} className="flex items-center gap-3 bg-white/[0.02] px-4 py-3 text-sm">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-[color:var(--danger)]/70" />
-                {n}
-              </li>
-            ))}
-          </ul>
-        </FrostedPanel>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {neverCollected.map((n) => (
+            <div 
+              key={n} 
+              className="flex items-center gap-3 rounded-2xl p-4 transition-all duration-200 hover:scale-[1.01]"
+              style={{ background: "var(--surface-bg)", border: "1px solid var(--surface-border)" }}
+            >
+              <div 
+                className="h-2 w-2 shrink-0 rounded-full bg-[color:var(--danger)]"
+                style={{ boxShadow: "0 0 8px var(--danger)" }}
+              />
+              <span className="text-sm font-semibold text-foreground">{n}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ─── Modals ─────────────────────────────────────────────────────── */}
@@ -754,12 +794,12 @@ function Profile() {
 
         {/* Logout all modal */}
         {logoutAllModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overlay">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm rounded-2xl border border-white/10 bg-[color:var(--ink)] p-6 shadow-2xl"
+              className="w-full max-w-sm dialog-panel p-6"
             >
               <h3 className="font-serif text-xl mb-2">Sign out all devices?</h3>
               <p className="text-xs text-muted-foreground mb-4">
