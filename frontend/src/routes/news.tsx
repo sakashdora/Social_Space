@@ -6,6 +6,8 @@ import { ExternalLink, X, Sparkles, Share2, Globe, FileText, Info } from "lucide
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { createPortal } from "react-dom";
+
 export const Route = createFileRoute("/news")({
   component: NewsComponent,
 });
@@ -158,7 +160,7 @@ function NewsComponent() {
 
       {/* Premium In-App News Reader Modal with Shared Element Transition */}
       <AnimatePresence>
-        {selectedArticle && (
+        {selectedArticle && typeof document !== "undefined" && createPortal(
           <motion.div 
             className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
             initial={{ opacity: 0 }}
@@ -366,7 +368,8 @@ function NewsComponent() {
                 </a>
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
     </div>
