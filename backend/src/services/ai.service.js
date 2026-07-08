@@ -1,10 +1,11 @@
 import axios from "axios";
+import { env } from "../config/env.js";
 
-const getAiApiKey = () => process.env.AI_API_KEY;
-const getAiApiUrl = () => process.env.AI_API_URL || "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions";
-const getAiModel = () => process.env.AI_MODEL || "gemini-2.5-flash";
+const getAiApiKey = () => env.AI_API_KEY;
+const getAiApiUrl = () => env.AI_API_URL;
+const getAiModel = () => env.AI_MODEL;
 
-const getGrokApiKey = () => process.env.GROK_API_KEY;
+const getGrokApiKey = () => env.GROK_API_KEY;
 
 // Auto-detect if it's a Groq (gsk_...) or Grok (xai-...) key
 function getGrokEndpointConfig() {
