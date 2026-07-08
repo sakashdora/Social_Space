@@ -67,7 +67,15 @@ function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, s
 async function handleResponse(response: Response) {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    let msg = `HTTP error! status: ${response.status}`;
+    if (errorData.error) {
+      if (typeof errorData.error === "string") {
+        msg = errorData.error;
+      } else if (typeof errorData.error === "object" && errorData.error.message) {
+        msg = errorData.error.message;
+      }
+    }
+    throw new Error(msg);
   }
   return response.json();
 }
