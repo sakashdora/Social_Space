@@ -11,7 +11,12 @@ export async function createComment(req, res) {
     const { content, parentCommentId, mode } = req.body;
 
     if (!content) {
-      return res.status(400).json({ error: "Comment content cannot be empty." });
+      return res.status(400).json({
+        error: {
+          message: "Comment content cannot be empty.",
+          code: "BAD_REQUEST",
+        },
+      });
     }
 
     // Verify post exists
@@ -20,7 +25,12 @@ export async function createComment(req, res) {
     });
 
     if (!post || post.isDeleted) {
-      return res.status(404).json({ error: "Post not found or has been deleted." });
+      return res.status(404).json({
+        error: {
+          message: "Post not found or has been deleted.",
+          code: "NOT_FOUND",
+        },
+      });
     }
 
     // Run AI content moderation on comment
@@ -38,7 +48,10 @@ export async function createComment(req, res) {
       });
 
       return res.status(400).json({
-        error: "Comment blocked by content moderation policy.",
+        error: {
+          message: "Comment blocked by content moderation policy.",
+          code: "MODERATION_BLOCKED",
+        },
         moderation: aiResult
       });
     }
@@ -49,7 +62,12 @@ export async function createComment(req, res) {
         where: { id: parentCommentId }
       });
       if (!parentComment || parentComment.isDeleted) {
-        return res.status(404).json({ error: "Parent comment not found." });
+        return res.status(404).json({
+          error: {
+            message: "Parent comment not found.",
+            code: "NOT_FOUND",
+          },
+        });
       }
     }
 
@@ -77,7 +95,12 @@ export async function createComment(req, res) {
     return res.status(201).json(comment);
   } catch (error) {
     console.error("Create comment error:", error);
-    return res.status(500).json({ error: "Failed to create comment." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to create comment.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
 
@@ -122,6 +145,11 @@ export async function getComments(req, res) {
     return res.status(200).json(formattedComments);
   } catch (error) {
     console.error("Get comments error:", error);
-    return res.status(500).json({ error: "Failed to retrieve comments." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to retrieve comments.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }

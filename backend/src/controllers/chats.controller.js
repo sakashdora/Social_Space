@@ -70,7 +70,12 @@ export async function getChats(req, res) {
     return res.status(200).json(formatted);
   } catch (error) {
     console.error("Fetch chats error:", error);
-    return res.status(500).json({ error: "Failed to load chats." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to load chats.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
 
@@ -87,7 +92,12 @@ export async function getChatMessages(req, res) {
       where: { threadId, userId: req.user.id }
     });
     if (!isParticipant) {
-      return res.status(403).json({ error: "Access denied. You are not a participant in this conversation." });
+      return res.status(403).json({
+        error: {
+          message: "Access denied. You are not a participant in this conversation.",
+          code: "ACCESS_DENIED",
+        },
+      });
     }
 
     const messages = await prisma.message.findMany({
@@ -106,7 +116,12 @@ export async function getChatMessages(req, res) {
     return res.status(200).json(formatted);
   } catch (error) {
     console.error("Fetch chat messages error:", error);
-    return res.status(500).json({ error: "Failed to load chat history." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to load chat history.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
 
@@ -118,18 +133,34 @@ export async function startChat(req, res) {
   try {
     const { targetHandle } = req.body;
     if (!targetHandle) {
-      return res.status(400).json({ error: "Recipient username handle is required." });
+      return res.status(400).json({
+        error: {
+          message: "Recipient username handle is required.",
+          code: "BAD_REQUEST",
+        },
+      });
     }
 
     const targetUser = await prisma.user.findUnique({
       where: { handle: targetHandle.trim().toLowerCase() }
     });
+    // Phase 3 Fix #11: Generic error — do NOT reveal whether the handle exists.
     if (!targetUser) {
-      return res.status(404).json({ error: `User @${targetHandle} does not exist.` });
+      return res.status(400).json({
+        error: {
+          message: "Unable to start conversation.",
+          code: "INVALID_USER",
+        },
+      });
     }
 
     if (targetUser.id === req.user.id) {
-      return res.status(400).json({ error: "You cannot message yourself." });
+      return res.status(400).json({
+        error: {
+          message: "You cannot message yourself.",
+          code: "BAD_REQUEST",
+        },
+      });
     }
 
     // Check if 1:1 room already exists
@@ -167,7 +198,12 @@ export async function startChat(req, res) {
     return res.status(201).json({ threadId: newThread.id });
   } catch (error) {
     console.error("Start chat error:", error);
-    return res.status(500).json({ error: "Failed to open conversation." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to open conversation.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
 
@@ -181,7 +217,12 @@ export async function sendChatMessage(req, res) {
     const { body, mediaUrl } = req.body;
 
     if (!body && !mediaUrl) {
-      return res.status(400).json({ error: "Message content or attachment is required." });
+      return res.status(400).json({
+        error: {
+          message: "Message content or attachment is required.",
+          code: "BAD_REQUEST",
+        },
+      });
     }
 
     // Confirm participant
@@ -193,12 +234,22 @@ export async function sendChatMessage(req, res) {
     });
 
     if (!thread) {
-      return res.status(404).json({ error: "Chat thread not found." });
+      return res.status(404).json({
+        error: {
+          message: "Chat thread not found.",
+          code: "NOT_FOUND",
+        },
+      });
     }
 
     const isPart = thread.participants.some((p) => p.userId === req.user.id);
     if (!isPart) {
-      return res.status(403).json({ error: "Access denied." });
+      return res.status(403).json({
+        error: {
+          message: "Access denied.",
+          code: "ACCESS_DENIED",
+        },
+      });
     }
 
     // Calculate strict expiration bounds
@@ -223,7 +274,12 @@ export async function sendChatMessage(req, res) {
     });
   } catch (error) {
     console.error("Send message error:", error);
-    return res.status(500).json({ error: "Failed to send message." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to send message.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
 
@@ -237,12 +293,22 @@ export async function updateChatTimer(req, res) {
     const { seconds } = req.body;
 
     if (typeof seconds !== "number" || seconds <= 0) {
-      return res.status(400).json({ error: "Expiration limit must be a positive integer in seconds." });
+      return res.status(400).json({
+        error: {
+          message: "Expiration limit must be a positive integer in seconds.",
+          code: "BAD_REQUEST",
+        },
+      });
     }
 
     // Deletion cap: 7 days = 604800 seconds
     if (seconds > 604800) {
-      return res.status(400).json({ error: "Timer cannot exceed the maximum 7-day policy limit (604,800 seconds)." });
+      return res.status(400).json({
+        error: {
+          message: "Timer cannot exceed the maximum 7-day policy limit (604,800 seconds).",
+          code: "BAD_REQUEST",
+        },
+      });
     }
 
     // Confirm participant
@@ -250,7 +316,12 @@ export async function updateChatTimer(req, res) {
       where: { threadId, userId: req.user.id }
     });
     if (!isParticipant) {
-      return res.status(403).json({ error: "Access denied." });
+      return res.status(403).json({
+        error: {
+          message: "Access denied.",
+          code: "ACCESS_DENIED",
+        },
+      });
     }
 
     await prisma.thread.update({
@@ -261,6 +332,11 @@ export async function updateChatTimer(req, res) {
     return res.status(200).json({ message: "Retention timer updated successfully." });
   } catch (error) {
     console.error("Update chat timer error:", error);
-    return res.status(500).json({ error: "Failed to configure message deletion settings." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to configure message deletion settings.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }

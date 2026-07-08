@@ -7,6 +7,12 @@ import {
   sendChatMessage,
   updateChatTimer
 } from "../controllers/chats.controller.js";
+import { validateBody } from "../middleware/validation.middleware.js";
+import {
+  startChatSchema,
+  sendChatMessageSchema,
+  updateChatTimerSchema
+} from "../schemas/chats.schema.js";
 
 const router = Router();
 
@@ -14,9 +20,9 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", getChats);
-router.post("/", startChat);
+router.post("/", validateBody(startChatSchema), startChat);
 router.get("/:threadId", getChatMessages);
-router.post("/:threadId/messages", sendChatMessage);
-router.patch("/:threadId/timer", updateChatTimer);
+router.post("/:threadId/messages", validateBody(sendChatMessageSchema), sendChatMessage);
+router.patch("/:threadId/timer", validateBody(updateChatTimerSchema), updateChatTimer);
 
 export default router;

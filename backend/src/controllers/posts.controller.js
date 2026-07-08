@@ -1,5 +1,11 @@
 import prisma from "../config/prisma.js";
 import { analyzeContent } from "../services/ai.service.js";
+import sanitizeHtml from "sanitize-html";
+
+// Phase 3 Fix #13: Strip-all HTML sanitisation.
+function sanitizeContent(raw) {
+  return sanitizeHtml(raw, { allowedTags: [], allowedAttributes: {} });
+}
 
 /**
  * Create a new post.
@@ -7,14 +13,27 @@ import { analyzeContent } from "../services/ai.service.js";
  */
 export async function createPost(req, res) {
   try {
-    const { content, category, mode, mediaUrl } = req.body;
+    const { content: rawContent, category, mode, mediaUrl } = req.body;
 
-    if (!content || !category) {
-      return res.status(400).json({ error: "Content and category are required." });
+    if (!rawContent || !category) {
+      return res.status(400).json({
+        error: {
+          message: "Content and category are required.",
+          code: "BAD_REQUEST",
+        },
+      });
     }
 
+    // Sanitize before any further processing
+    const content = sanitizeContent(rawContent);
+
     if (content.length > 500) {
-      return res.status(400).json({ error: "Content exceeds 500 characters limit." });
+      return res.status(400).json({
+        error: {
+          message: "Content exceeds 500 characters limit.",
+          code: "CONTENT_TOO_LONG",
+        },
+      });
     }
 
     // Call AI service for moderation, sentiment and tagging
@@ -32,14 +51,15 @@ export async function createPost(req, res) {
       });
 
       return res.status(400).json({
-        error: "Post blocked by content moderation policy.",
+        error: {
+          message: "Post blocked by content moderation policy.",
+          code: "MODERATION_BLOCKED",
+        },
         moderation: aiResult
       });
     }
 
     // Handle anonymity mode:
-    // If mode is 'full' (Full Anonymity), we store NULL for userId in database
-    // If mode is 'pseudo' (Pseudonymous), we store req.user.id
     const postUserId = mode === "full" ? null : req.user.id;
 
     const post = await prisma.post.create({
@@ -65,7 +85,12 @@ export async function createPost(req, res) {
     return res.status(201).json(post);
   } catch (error) {
     console.error("Create post error:", error);
-    return res.status(500).json({ error: "Failed to create post." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to create post.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
 
@@ -77,8 +102,8 @@ export async function getFeed(req, res) {
   try {
     const { category, page = 1, limit = 10 } = req.query;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = parseInt(limit);
+    const skip = (parseInt(page) - 1) * Math.min(parseInt(limit) || 10, 50);
+    const take = Math.min(parseInt(limit) || 10, 50);
 
     const where = {
       isDeleted: false
@@ -112,7 +137,6 @@ export async function getFeed(req, res) {
       }
     });
 
-    // Format posts to make them frontend-friendly (e.g. include reaction counts)
     const formattedPosts = posts.map(p => ({
       ...p,
       aiLabels: p.aiLabels ? JSON.parse(p.aiLabels) : null,
@@ -125,7 +149,12 @@ export async function getFeed(req, res) {
     return res.status(200).json(formattedPosts);
   } catch (error) {
     console.error("Get feed error:", error);
-    return res.status(500).json({ error: "Failed to retrieve feed posts." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to retrieve feed posts.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
 
@@ -165,7 +194,12 @@ export async function getPostDetails(req, res) {
     });
 
     if (!post || post.isDeleted) {
-      return res.status(404).json({ error: "Post not found or has been deleted." });
+      return res.status(404).json({
+        error: {
+          message: "Post not found or has been deleted.",
+          code: "NOT_FOUND",
+        },
+      });
     }
 
     const formattedPost = {
@@ -179,6 +213,11 @@ export async function getPostDetails(req, res) {
     return res.status(200).json(formattedPost);
   } catch (error) {
     console.error("Get post details error:", error);
-    return res.status(500).json({ error: "Failed to retrieve post details." });
+    return res.status(500).json({
+      error: {
+        message: "Failed to retrieve post details.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
   }
 }
