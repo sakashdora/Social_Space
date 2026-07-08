@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchChats, createChat } from "@/lib/api";
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/messages")({
   head: () => ({
@@ -101,14 +102,16 @@ function MessagesLayout() {
               className="flex-1 bg-transparent text-xs outline-none"
               style={{ color: "var(--input-text)" }}
             />
-            <button
+            <motion.button
               type="submit"
               disabled={createChatMutation.isPending}
+              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.04 }}
               className="rounded-lg p-1.5 text-ink transition hover:brightness-110 disabled:opacity-40"
               style={{ background: "var(--veil-glow)" }}
             >
               <Plus className="h-3.5 w-3.5" />
-            </button>
+            </motion.button>
           </div>
           {errorMsg && (
             <p className="mt-1.5 flex items-center gap-1 text-[10px] text-[color:var(--danger)]">
@@ -137,34 +140,35 @@ function MessagesLayout() {
             </div>
           ) : (
             <ul className="space-y-1.5 p-2">
-              {threads.map((t: any) => {
+              {threads.map((t: any, index: number) => {
                 const isActive = active === t.id;
                 return (
-                  <li key={t.id}>
+                  <motion.li
+                    key={t.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: Math.min(index * 0.05, 0.3) }}
+                  >
                     <Link
                       to="/messages/$threadId"
                       params={{ threadId: t.id }}
-                      className="relative flex items-start gap-3 px-3.5 py-3 rounded-2xl transition-all duration-200 hover:scale-[0.99]"
-                      style={{
-                        backgroundColor: isActive ? "var(--nav-active-bg)" : undefined,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive)
-                          (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-hover)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive)
-                          (e.currentTarget as HTMLElement).style.backgroundColor = "";
-                      }}
+                      className={cn(
+                        "relative flex items-start gap-3 px-3.5 py-3 rounded-2xl transition-all duration-200",
+                        isActive
+                          ? "bg-[var(--nav-active-bg)]"
+                          : "hover:bg-[var(--surface-hover)] active:scale-[0.98]"
+                      )}
                     >
                       {/* Left accent vertical indicator for active thread */}
                       {isActive && (
-                        <div 
+                        <motion.div
+                          layoutId="active-thread-indicator"
                           className="absolute left-0 top-3.5 bottom-3.5 w-1 rounded-r-full"
                           style={{
                             background: "var(--veil-glow)",
                             boxShadow: "0 0 10px var(--veil-glow)",
                           }}
+                          transition={{ type: "spring", stiffness: 350, damping: 30 }}
                         />
                       )}
 
@@ -197,7 +201,7 @@ function MessagesLayout() {
                         )}
                       </div>
                     </Link>
-                  </li>
+                  </motion.li>
                 );
               })}
             </ul>

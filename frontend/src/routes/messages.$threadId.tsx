@@ -8,6 +8,7 @@ import {
   fetchChats, fetchChatMessages, sendChatMessage, updateChatTimer, uploadMedia,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/messages/$threadId")({
   component: Thread,
@@ -45,21 +46,75 @@ function Thread() {
     refetchInterval: 2500,
   });
 
-  // Auto-scroll on new messages
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Scroll immediately when opening a new thread
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [threadId]);
+
+  // Smooth scroll when message list length updates
+  useEffect(() => {
+    scrollToBottom();
   }, [messages.length]);
 
   const sendMessageMutation = useMutation({
     mutationFn: ({ body, mediaUrl }: { body: string; mediaUrl: string | null }) =>
       sendChatMessage(threadId, body, mediaUrl),
-    onSuccess: () => {
+    onMutate: async ({ body, mediaUrl }) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic state
+      await queryClient.cancelQueries({ queryKey: ["chatMessages", threadId] });
+
+      // Snapshot previous messages list
+      const previousMessages = queryClient.getQueryData<any[]>(["chatMessages", threadId]);
+
+      // Cache input states for potential rollback
+      const currentDraft = draft;
+      const currentMedia = attachedMedia;
+
+      // Clear compose bar inputs instantly
       setDraft("");
       setAttachedMedia(null);
-      // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = "24px";
       }
+
+      // Optimistically append the sending message
+      const optimisticMsg = {
+        id: `optimistic-${Date.now()}`,
+        body: body || "",
+        mediaUrl: mediaUrl || null,
+        mine: true,
+        sending: true, // Styling hint for "pending" state
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      queryClient.setQueryData<any[]>(["chatMessages", threadId], (old) => {
+        return old ? [...old, optimisticMsg] : [optimisticMsg];
+      });
+
+      return { previousMessages, currentDraft, currentMedia };
+    },
+    onError: (err, variables, context) => {
+      // Rollback to previous message history on failure
+      if (context?.previousMessages) {
+        queryClient.setQueryData(["chatMessages", threadId], context.previousMessages);
+      }
+      // Restore inputs so user does not lose draft content
+      if (context?.currentDraft) {
+        setDraft(context.currentDraft);
+      }
+      if (context?.currentMedia) {
+        setAttachedMedia(context.currentMedia);
+      }
+    },
+    onSettled: () => {
+      // Re-fetch to align with true DB state
       queryClient.invalidateQueries({ queryKey: ["chatMessages", threadId] });
       queryClient.invalidateQueries({ queryKey: ["chats"] });
     },
@@ -100,23 +155,11 @@ function Thread() {
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDraft(e.target.value);
-    // Auto-grow: reset then expand to fit
+    // Auto-grow height handling
     e.target.style.height = "24px";
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
   };
 
-  /*
-   * Layout: 3-row flex column that fills the parent section 100%
-   *  ┌──────────────────────────────────┐  ← shrink-0 header
-   *  │  @handle  [timer dropdown]       │
-   *  ├──────────────────────────────────┤
-   *  │                                  │  ← flex-1 overflow-y-auto messages
-   *  │        messages go here          │
-   *  │                                  │
-   *  ├──────────────────────────────────┤
-   *  │  📎  Type a message…    [Send]   │  ← shrink-0 compose bar
-   *  └──────────────────────────────────┘
-   */
   return (
     <div className="flex h-full flex-col overflow-hidden">
 
@@ -128,13 +171,7 @@ function Thread() {
         {/* Back to list (mobile only) */}
         <Link
           to="/messages"
-          className="mr-1 rounded-full p-1.5 text-muted-foreground hover:text-foreground transition lg:hidden"
-          onMouseEnter={(e) =>
-            (e.currentTarget as HTMLElement).style.background = "var(--surface-hover)"
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget as HTMLElement).style.background = "transparent"
-          }
+          className="mr-1 rounded-full p-1.5 text-muted-foreground hover:text-foreground transition hover:bg-[var(--surface-hover)] active:scale-90 lg:hidden"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
@@ -160,7 +197,8 @@ function Thread() {
 
         {/* Timer dropdown */}
         <div className="relative shrink-0">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => setShowTimerMenu(!showTimerMenu)}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
             style={{ background: "var(--tag-bg)", border: "1px solid var(--tag-border)" }}
@@ -171,51 +209,57 @@ function Thread() {
             <ChevronDown
               className={cn("h-3 w-3 transition-transform duration-200", showTimerMenu && "rotate-180")}
             />
-          </button>
+          </motion.button>
 
-          {showTimerMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowTimerMenu(false)} />
-              <div
-                className="absolute right-0 z-50 mt-2 w-44 rounded-xl p-1"
-                style={{
-                  background: "var(--dialog-bg)",
-                  border: "1px solid var(--surface-border)",
-                  boxShadow: "0 8px 32px oklch(0 0 0 / 22%), 0 2px 8px oklch(0 0 0 / 12%)",
-                }}
-              >
-                {timerOptions.map((opt) => {
-                  const isCurrent = thread.deleteAfterSeconds === opt.seconds;
-                  return (
-                    <button
-                      key={opt.seconds}
-                      onClick={() => {
-                        updateTimerMutation.mutate(opt.seconds);
-                        setShowTimerMenu(false);
-                      }}
-                      className={cn(
-                        "w-full text-left rounded-lg px-3 py-2 text-xs transition-colors",
-                        isCurrent ? "font-semibold text-foreground" : "text-muted-foreground",
-                      )}
-                      style={{
-                        backgroundColor: isCurrent ? "var(--nav-active-bg)" : undefined,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isCurrent)
-                          (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-hover)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isCurrent)
-                          (e.currentTarget as HTMLElement).style.backgroundColor = "";
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          <AnimatePresence>
+            {showTimerMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowTimerMenu(false)} />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                  transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                  className="absolute right-0 z-50 mt-2 w-44 rounded-xl p-1"
+                  style={{
+                    background: "var(--dialog-bg)",
+                    border: "1px solid var(--surface-border)",
+                    boxShadow: "0 8px 32px oklch(0 0 0 / 22%), 0 2px 8px oklch(0 0 0 / 12%)",
+                  }}
+                >
+                  {timerOptions.map((opt) => {
+                    const isCurrent = thread.deleteAfterSeconds === opt.seconds;
+                    return (
+                      <button
+                        key={opt.seconds}
+                        onClick={() => {
+                          updateTimerMutation.mutate(opt.seconds);
+                          setShowTimerMenu(false);
+                        }}
+                        className={cn(
+                          "w-full text-left rounded-lg px-3 py-2 text-xs transition-colors active:bg-[var(--surface-hover)]",
+                          isCurrent ? "font-semibold text-foreground" : "text-muted-foreground",
+                        )}
+                        style={{
+                          backgroundColor: isCurrent ? "var(--nav-active-bg)" : undefined,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isCurrent)
+                            (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-hover)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isCurrent)
+                            (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
@@ -252,29 +296,64 @@ function Thread() {
         )}
 
         {/* Message bubbles */}
-        {!isLoading &&
-          messages.map((m: any) => (
-            <div key={m.id} className={cn("flex", m.mine ? "justify-end" : "justify-start")}>
-              <div
-                className={cn(
-                  "max-w-[75%] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm",
-                  m.mine ? "msg-out" : "msg-in",
-                )}
+        <AnimatePresence initial={false}>
+          {!isLoading &&
+            messages.map((m: any) => (
+              <motion.div
+                key={m.id}
+                layout
+                initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                transition={{
+                  type: "spring",
+                  stiffness: 450,
+                  damping: 30,
+                  mass: 0.8
+                }}
+                className={cn("flex w-full", m.mine ? "justify-end" : "justify-start")}
               >
-                {m.mediaUrl && (
-                  <div className="mb-2 overflow-hidden rounded-xl max-w-[260px]">
-                    {m.mediaUrl.startsWith("data:video/") ? (
-                      <video src={m.mediaUrl} controls className="w-full max-h-44 rounded-xl object-cover" />
+                <div
+                  className={cn(
+                    "max-w-[75%] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm transition-all duration-200",
+                    m.mine ? "msg-out" : "msg-in",
+                    m.sending && "opacity-70 cursor-not-allowed select-none"
+                  )}
+                >
+                  {m.mediaUrl && (
+                    <div className="mb-2 overflow-hidden rounded-xl max-w-[260px]">
+                      {m.mediaUrl.startsWith("data:video/") ? (
+                        <video 
+                          src={m.mediaUrl} 
+                          controls 
+                          className="w-full max-h-44 rounded-xl object-cover" 
+                          onLoadedData={scrollToBottom}
+                        />
+                      ) : (
+                        <img 
+                          src={m.mediaUrl} 
+                          alt="Chat media" 
+                          className="w-full max-h-44 rounded-xl object-cover" 
+                          onLoad={scrollToBottom}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {m.body && <p className="break-words whitespace-pre-wrap">{m.body}</p>}
+                  <span className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-50 select-none">
+                    {m.sending ? (
+                      <>
+                        <span>Sending</span>
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      </>
                     ) : (
-                      <img src={m.mediaUrl} alt="Chat media" className="w-full max-h-44 rounded-xl object-cover" />
+                      m.time
                     )}
-                  </div>
-                )}
-                {m.body && <p className="break-words whitespace-pre-wrap">{m.body}</p>}
-                <span className="mt-1 block text-right text-[10px] opacity-50">{m.time}</span>
-              </div>
-            </div>
-          ))}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+        </AnimatePresence>
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />
@@ -296,13 +375,14 @@ function Thread() {
             ) : (
               <img src={attachedMedia} alt="" className="h-14 w-14 rounded-lg object-cover" />
             )}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.85 }}
               onClick={() => setAttachedMedia(null)}
               className="absolute -right-1.5 -top-1.5 rounded-full p-0.5 text-white transition hover:brightness-110"
               style={{ background: "var(--danger)" }}
             >
               <X className="h-3 w-3" />
-            </button>
+            </motion.button>
           </div>
         )}
 
@@ -318,7 +398,9 @@ function Thread() {
           />
 
           {/* Attach button */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05 }}
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="shrink-0 p-1 text-muted-foreground transition hover:text-foreground disabled:opacity-50"
@@ -329,7 +411,7 @@ function Thread() {
             ) : (
               <Paperclip className="h-4 w-4" />
             )}
-          </button>
+          </motion.button>
 
           {/* Auto-grow textarea */}
           <textarea
@@ -354,7 +436,9 @@ function Thread() {
           />
 
           {/* Send button */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
             onClick={handleSend}
             disabled={sendMessageMutation.isPending || (!draft.trim() && !attachedMedia)}
             className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-ink transition hover:brightness-110 disabled:opacity-35"
@@ -366,7 +450,7 @@ function Thread() {
               <Send className="h-3.5 w-3.5" />
             )}
             <span className="hidden sm:inline">Send</span>
-          </button>
+          </motion.button>
         </div>
 
         {/* Keyboard hint */}
