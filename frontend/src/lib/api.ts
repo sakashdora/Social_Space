@@ -303,21 +303,177 @@ export async function updateChatTimer(threadId: string, seconds: number) {
 /**
  * User Key & Account Management API
  */
-export async function updateSecurityKey(newPassphrase: string) {
-  const res = await fetch(`${API_BASE}/v1/auth/security-key`, {
-    method: "PATCH",
+
+/** @deprecated Use changePassphrase instead */
+export async function updateSecurityKey(_newPassphrase: string) {
+  return Promise.reject(new Error("updateSecurityKey is deprecated. Use changePassphrase."));
+}
+
+export async function changePassphrase(currentPassphrase: string, newPassphrase: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/passphrase/change`, {
+    method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({ newPassphrase }),
+    body: JSON.stringify({ currentPassphrase, newPassphrase }),
+  });
+  const data = await handleResponse(res);
+  // Update stored token since tokenVersion changed
+  if (data.token) localStorage.setItem("veil_auth_token", data.token);
+  return data;
+}
+
+export async function logoutAllDevices() {
+  const res = await fetch(`${API_BASE}/v1/auth/logout-all`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  const data = await handleResponse(res);
+  // Keep new token for current session
+  if (data.token) localStorage.setItem("veil_auth_token", data.token);
+  return data;
+}
+
+export async function redeemRecoveryCode(
+  handle: string,
+  recoveryCode: string,
+  newPassphrase: string
+) {
+  const res = await fetch(`${API_BASE}/v1/auth/recovery-codes/redeem`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ handle, recoveryCode, newPassphrase }),
+  });
+  const data = await handleResponse(res);
+  if (data.token) {
+    localStorage.setItem("veil_auth_token", data.token);
+    localStorage.setItem("veil_user", JSON.stringify(data.user));
+  }
+  return data;
+}
+
+export async function regenerateRecoveryCodes(currentPassphrase: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/recovery-codes/regenerate`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ currentPassphrase }),
   });
   return handleResponse(res);
 }
 
-export async function deleteAccount() {
+export async function deleteAccount(currentPassphrase: string) {
   const res = await fetch(`${API_BASE}/v1/auth/account`, {
     method: "DELETE",
     headers: getHeaders(),
+    body: JSON.stringify({ currentPassphrase }),
   });
   const data = await handleResponse(res);
   logoutUser();
   return data;
 }
+
+/** TOTP API */
+export async function getTotpStatus() {
+  const res = await fetch(`${API_BASE}/v1/auth/mfa/totp/status`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function setupTotp() {
+  const res = await fetch(`${API_BASE}/v1/auth/mfa/totp/setup`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function enableTotp(totpCode: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/mfa/totp/enable`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ totpCode }),
+  });
+  return handleResponse(res);
+}
+
+export async function disableTotp(currentPassphrase: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/mfa/totp/disable`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ currentPassphrase }),
+  });
+  return handleResponse(res);
+}
+
+/** Passkey API */
+export async function getPasskeyRegisterOptions() {
+  const res = await fetch(`${API_BASE}/v1/auth/passkeys/register-options`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function verifyPasskeyRegistration(credential: unknown, nickname?: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/passkeys/register-verify`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ credential, nickname }),
+  });
+  return handleResponse(res);
+}
+
+export async function getPasskeyLoginOptions() {
+  const res = await fetch(`${API_BASE}/v1/auth/passkeys/login-options`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function verifyPasskeyLogin(credential: unknown, sessionToken: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/passkeys/login-verify`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ credential, sessionToken }),
+  });
+  const data = await handleResponse(res);
+  if (data.token) {
+    localStorage.setItem("veil_auth_token", data.token);
+    localStorage.setItem("veil_user", JSON.stringify(data.user));
+  }
+  return data;
+}
+
+export async function listPasskeys() {
+  const res = await fetch(`${API_BASE}/v1/auth/passkeys`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function removePasskey(id: string, currentPassphrase: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/passkeys/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+    body: JSON.stringify({ currentPassphrase }),
+  });
+  return handleResponse(res);
+}
+
+/** Security Events */
+export async function getSecurityEvents() {
+  const res = await fetch(`${API_BASE}/v1/auth/security-events`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+/** Login with TOTP MFA step 2 */
+export async function loginVerifyTotp(challengeToken: string, totpCode: string) {
+  const res = await fetch(`${API_BASE}/v1/auth/login/totp`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ challengeToken, totpCode }),
+  });
+  const data = await handleResponse(res);
+  if (data.token) {
+    localStorage.setItem("veil_auth_token", data.token);
+    localStorage.setItem("veil_user", JSON.stringify(data.user));
+  }
+  return data;
+}
+
