@@ -294,7 +294,7 @@
     color: var(--input-placeholder);
     opacity: 1;
   }
-  input:focus, textarea:focus {
+  input:focus:not(.bg-transparent), textarea:focus:not(.bg-transparent) {
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--veil-glow) 25%, transparent);
   }
 
@@ -540,9 +540,13 @@
   .text-white { color: oklch(0.14 0.009 58); }
 
   /* Input fields */
-  input, textarea, select {
+  input:not(.bg-transparent), textarea:not(.bg-transparent), select:not(.bg-transparent) {
     color: var(--input-text);
     background-color: var(--input-bg);
+  }
+  input.bg-transparent, textarea.bg-transparent {
+    color: var(--input-text);
+    background-color: transparent;
   }
   input::placeholder, textarea::placeholder {
     color: var(--input-placeholder);
@@ -558,9 +562,11 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 textarea {
   caret-color: var(--veil-glow);
   outline: none;
-  &:focus {
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--veil-glow) 28%, transparent);
-  }
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.bg-transparent):focus,
+textarea:not(.bg-transparent):focus {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--veil-glow) 28%, transparent);
 }
 
 /* Premium button press feel */
