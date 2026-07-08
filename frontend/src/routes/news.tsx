@@ -2,10 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { fetchNews, generateArticle } from "@/lib/api";
-import { ExternalLink, X, Sparkles, Share2, Globe, FileText, Info } from "lucide-react";
+import { ExternalLink, X, Sparkles, Share2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-
 import { createPortal } from "react-dom";
 
 export const Route = createFileRoute("/news")({
@@ -25,7 +24,6 @@ function NewsComponent() {
   const [aiBriefing, setAiBriefing] = useState<string>("");
   const [isBriefingLoading, setIsBriefingLoading] = useState(false);
   const [briefingError, setBriefingError] = useState("");
-  const [activeTab, setActiveTab] = useState<"brief" | "web">("brief");
   const [iframeLoading, setIframeLoading] = useState(true);
 
   const { data: articles, isLoading, error } = useQuery({
@@ -37,25 +35,25 @@ function NewsComponent() {
     setSelectedArticle(article);
     setAiBriefing("");
     setBriefingError("");
-    setActiveTab("brief");
     setIframeLoading(true);
+    // Auto-generate briefing on card expansion for premium experience
+    autoGenerateBriefing(article);
   };
 
   const handleCloseArticle = () => {
     setSelectedArticle(null);
   };
 
-  const handleGenerateBriefing = async () => {
-    if (!selectedArticle) return;
+  const autoGenerateBriefing = async (article: any) => {
     setIsBriefingLoading(true);
     setBriefingError("");
     try {
       const res = await generateArticle(
-        `Provide a quick 3-sentence analytical overview of this news: "${selectedArticle.title}". Context: ${selectedArticle.contentSnippet || ""}`
+        `Provide a quick 3-sentence analytical overview of this news: "${article.title}". Context: ${article.contentSnippet || ""}`
       );
       setAiBriefing(res.article);
     } catch (err: any) {
-      setBriefingError("Failed to generate AI briefing. Please try again.");
+      setBriefingError("Failed to generate AI briefing.");
     } finally {
       setIsBriefingLoading(false);
     }
@@ -158,7 +156,7 @@ function NewsComponent() {
         </div>
       )}
 
-      {/* Premium In-App News Reader Modal with Shared Element Transition */}
+      {/* Premium Split-Screen News Dashboard Modal */}
       <AnimatePresence>
         {selectedArticle && typeof document !== "undefined" && createPortal(
           <motion.div 
@@ -174,15 +172,15 @@ function NewsComponent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xl"
+              className="absolute inset-0 bg-black/65 dark:bg-black/80 backdrop-blur-xl"
               onClick={handleCloseArticle}
             />
 
-            {/* Morphing Detail Dialog Panel */}
+            {/* Morphing Detail Dashboard Panel */}
             <motion.div 
               layoutId={`card-container-${selectedArticle.id}`}
               transition={springTransition}
-              className="relative w-full max-w-3xl dialog-panel flex flex-col p-6 overflow-hidden max-h-[90vh] z-10"
+              className="relative w-full max-w-5xl dialog-panel flex flex-col p-6 overflow-hidden max-h-[85vh] z-10"
               style={{
                 borderRadius: "24px",
                 background: "var(--dialog-bg)",
@@ -194,32 +192,21 @@ function NewsComponent() {
                 className="flex items-center justify-between mb-4 border-b pb-3 shrink-0" 
                 style={{ borderColor: "var(--surface-border)" }}
               >
-                {/* Reader Tabs */}
-                <div className="flex gap-2 p-1 rounded-2xl bg-white/5 border border-white/10 max-w-fit">
-                  <button
-                    onClick={() => setActiveTab("brief")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95",
-                      activeTab === "brief"
-                        ? "bg-white/10 text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
+                <div className="flex items-center gap-2">
+                  <motion.span 
+                    layoutId={`meta-${selectedArticle.id}`}
+                    transition={springTransition}
+                    className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" 
+                    style={{ 
+                      background: "var(--tag-bg)", 
+                      border: "1px solid var(--tag-border)" 
+                    }}
                   >
-                    <FileText className="h-3.5 w-3.5" />
-                    Summary Brief
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("web")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95",
-                      activeTab === "web"
-                        ? "bg-white/10 text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Web Reader
-                  </button>
+                    {selectedArticle.source}
+                  </motion.span>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    &bull; {new Date(selectedArticle.pubDate).toLocaleString()}
+                  </span>
                 </div>
 
                 {/* Close Button */}
@@ -231,126 +218,95 @@ function NewsComponent() {
                 </button>
               </div>
 
-              {/* Scrollable Content Body */}
-              <div className="flex-1 overflow-y-auto space-y-6 pr-1">
-                {activeTab === "brief" ? (
-                  /* BRIEFING VIEW */
-                  <div className="space-y-6 py-2">
-                    <div>
-                      <motion.span 
-                        layoutId={`meta-${selectedArticle.id}`}
-                        transition={springTransition}
-                        className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3" 
-                        style={{ 
-                          background: "var(--tag-bg)", 
-                          border: "1px solid var(--tag-border)" 
-                        }}
-                      >
-                        {selectedArticle.source}
-                      </motion.span>
-                      
-                      <motion.h2 
-                        layoutId={`title-${selectedArticle.id}`}
-                        transition={springTransition}
-                        className="font-serif text-3xl leading-tight text-foreground font-medium"
-                      >
-                        {selectedArticle.title}
-                      </motion.h2>
-                      
-                      <p className="text-xs text-muted-foreground mt-2.5">
-                        Published: {new Date(selectedArticle.pubDate).toLocaleString()}
-                      </p>
-                    </div>
+              {/* Scrollable Content Body Grid (Left Column Summary / Right Column Iframe) */}
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-y-auto lg:overflow-hidden min-h-[50vh]">
+                
+                {/* LEFT SUMMARY VIEW: Title, original snippet, and AI summary */}
+                <div className="lg:col-span-2 flex flex-col space-y-5 overflow-y-auto pr-1">
+                  <div>
+                    <motion.h2 
+                      layoutId={`title-${selectedArticle.id}`}
+                      transition={springTransition}
+                      className="font-serif text-2xl leading-tight text-foreground font-semibold"
+                    >
+                      {selectedArticle.title}
+                    </motion.h2>
+                  </div>
 
-                    <div className="border-t pt-4" style={{ borderColor: "var(--surface-border)" }}>
-                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Original Snippet</h3>
-                      <motion.p 
-                        layoutId={`snippet-${selectedArticle.id}`}
-                        transition={springTransition}
-                        className="text-sm text-foreground/90 leading-relaxed font-sans"
-                      >
-                        {selectedArticle.contentSnippet}
-                      </motion.p>
-                    </div>
+                  <div className="border-t pt-4" style={{ borderColor: "var(--surface-border)" }}>
+                    <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Original Snippet</h3>
+                    <motion.p 
+                      layoutId={`snippet-${selectedArticle.id}`}
+                      transition={springTransition}
+                      className="text-xs text-foreground/90 leading-relaxed font-sans"
+                    >
+                      {selectedArticle.contentSnippet}
+                    </motion.p>
+                  </div>
 
-                    {/* Veil AI Briefing Section */}
-                    <div className="border-t pt-4" style={{ borderColor: "var(--surface-border)" }}>
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Veil AI Briefing
-                        </h3>
-                        {!aiBriefing && !isBriefingLoading && (
-                          <button
-                            onClick={handleGenerateBriefing}
-                            className="flex items-center gap-1.5 rounded-full bg-[color:var(--primary)] px-3 py-1 text-xs font-semibold text-primary-foreground hover:brightness-110 transition active:scale-95"
-                          >
-                            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-                            Generate Brief
-                          </button>
-                        )}
+                  {/* Veil AI Briefing Section */}
+                  <div className="border-t pt-4" style={{ borderColor: "var(--surface-border)" }}>
+                    <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-[color:var(--primary)]" />
+                      Veil AI Briefing
+                    </h3>
+
+                    {isBriefingLoading && (
+                      <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-3.5 animate-pulse text-xs text-muted-foreground flex items-center gap-2">
+                        <div className="h-3 w-3 animate-spin rounded-full border border-[color:var(--primary)] border-t-transparent" />
+                        Synthesizing intelligence briefing...
                       </div>
+                    )}
 
-                      {isBriefingLoading && (
-                        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.05] p-4 animate-pulse text-xs text-muted-foreground flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 animate-spin text-[color:var(--primary)]" />
-                          Veil AI is synthesizing news briefing...
-                        </div>
-                      )}
+                    {briefingError && (
+                      <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-3.5 text-xs text-red-400">
+                        {briefingError}
+                      </div>
+                    )}
 
-                      {briefingError && (
-                        <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-3 text-xs text-red-400">
-                          {briefingError}
-                        </div>
-                      )}
-
-                      {aiBriefing && (
-                        <div className="rounded-2xl border border-[color:var(--primary)]/20 bg-[color:var(--primary)]/5 p-4 text-sm leading-relaxed text-foreground">
-                          <p className="font-semibold text-[color:var(--primary)] text-xs mb-1">Veil AI Summary</p>
-                          {aiBriefing}
-                        </div>
-                      )}
-                    </div>
+                    {aiBriefing && (
+                      <div className="rounded-xl border border-[color:var(--primary)]/15 bg-[color:var(--primary)]/5 p-3.5 text-xs leading-relaxed text-foreground animate-fade-in font-medium">
+                        {aiBriefing}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  /* IN-APP IFRAME WEB READER */
-                  <div className="space-y-3 py-2 h-full flex flex-col min-h-[50vh]">
-                    <div className="flex items-start gap-2.5 rounded-xl bg-blue-500/5 border border-blue-500/15 p-3 text-xs text-blue-400">
-                      <Info className="h-4.5 w-4.5 shrink-0 mt-0.5" />
-                      <p>
-                        This article is loaded securely inside Social Space. If the content does not render, it means the publisher restricts embedding. Click <strong>Read Externally</strong> below to view.
-                      </p>
-                    </div>
-                    
-                    <div className="relative flex-1 rounded-2xl overflow-hidden border bg-white min-h-[450px]" style={{ borderColor: "var(--surface-border)" }}>
-                      {iframeLoading && (
-                        <div 
-                          className="absolute inset-0 flex flex-col items-center justify-center text-center gap-3 z-10"
-                          style={{ background: "var(--dialog-bg)" }}
-                        >
-                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--veil-glow)] border-t-transparent" />
-                          <span className="text-xs text-muted-foreground font-mono">Securing sandbox connection…</span>
-                        </div>
-                      )}
-                      <iframe
-                        src={selectedArticle.link}
-                        title={selectedArticle.title}
-                        className="w-full h-full min-h-[450px] bg-white relative z-0"
-                        onLoad={() => setIframeLoading(false)}
-                        sandbox="allow-scripts allow-same-origin allow-popups"
-                      />
-                    </div>
+                </div>
+
+                {/* RIGHT IFRAME WEB READER: Embeds original site */}
+                <div className="lg:col-span-3 flex flex-col h-full min-h-[380px] lg:min-h-0">
+                  <div className="relative flex-1 rounded-2xl overflow-hidden border bg-white h-full" style={{ borderColor: "var(--surface-border)" }}>
+                    {iframeLoading && (
+                      <div 
+                        className="absolute inset-0 flex flex-col items-center justify-center text-center gap-3 z-10"
+                        style={{ background: "var(--dialog-bg)" }}
+                      >
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[color:var(--veil-glow)] border-t-transparent" />
+                        <span className="text-[10px] text-muted-foreground font-mono">Securing sandbox connection…</span>
+                      </div>
+                    )}
+                    <iframe
+                      src={selectedArticle.link}
+                      title={selectedArticle.title}
+                      className="w-full h-full min-h-[380px] lg:min-h-0 bg-white relative z-0"
+                      onLoad={() => setIframeLoading(false)}
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
                   </div>
-                )}
+                  <p className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1 px-1">
+                    <Info className="h-3 w-3 shrink-0" />
+                    If embedding is restricted, click <strong>Read Externally</strong> below.
+                  </p>
+                </div>
               </div>
 
               {/* Modal Bottom Footer Toolbar */}
               <div 
-                className="border-t pt-4 flex flex-col sm:flex-row gap-3 shrink-0" 
+                className="border-t pt-4 mt-4 flex flex-col sm:flex-row gap-3 shrink-0" 
                 style={{ borderColor: "var(--surface-border)" }}
               >
                 <button
                   onClick={handleShare}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-white/[0.03] border px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground transition hover:bg-white/[0.06] active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/[0.03] border px-4 py-3 text-xs font-semibold text-muted-foreground hover:text-foreground transition hover:bg-white/[0.06] active:scale-95"
                   style={{ borderColor: "var(--surface-border)" }}
                 >
                   <Share2 className="h-4 w-4" />
@@ -361,7 +317,7 @@ function NewsComponent() {
                   href={selectedArticle.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--primary)] px-4 py-3 text-sm font-semibold text-primary-foreground hover:brightness-110 transition active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[color:var(--primary)] px-4 py-3 text-xs font-semibold text-primary-foreground hover:brightness-110 transition active:scale-95"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Read Externally
