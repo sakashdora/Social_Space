@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { fetchFeed, toggleReaction, createComment, isAuthenticated, getCurrentUser, createChat, fetchChats } from "@/lib/api";
-import { Heart, MessageSquare, Send, Sparkles, Search, CornerDownRight, MessageCircle } from "lucide-react";
+import { Heart, MessageSquare, Send, Sparkles, Search, CornerDownRight, MessageCircle, X } from "lucide-react";
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +51,13 @@ function SocialComponent() {
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [localReactions, setLocalReactions] = useState<Record<string, { count: number, active: boolean }>>({});
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Helper: show a dismissible toast for 4 seconds
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const authed = isAuthenticated();
   const currentUser = getCurrentUser();
@@ -113,18 +120,17 @@ function SocialComponent() {
       });
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to start chat.");
+      showToast(err.message || "Failed to start chat.");
     }
   });
 
   const handleStartChat = (targetHandle: string) => {
     if (!authed) {
-      alert("Please login/onboard to start messaging!");
       navigate({ to: "/onboarding" });
       return;
     }
     if (currentUser && targetHandle === currentUser.handle) {
-      alert("You cannot message yourself.");
+      showToast("You cannot start a chat with yourself.");
       return;
     }
     createChatMutation.mutate(targetHandle);
@@ -132,8 +138,7 @@ function SocialComponent() {
 
   const handleReact = (postId: string, currentCount: number) => {
     if (!authed) {
-      alert("Please login/onboard to react to posts!");
-      window.location.href = "/onboarding";
+      navigate({ to: "/onboarding" });
       return;
     }
 
@@ -158,8 +163,7 @@ function SocialComponent() {
     const text = commentTexts[postId]?.trim();
     if (!text) return;
     if (!authed) {
-      alert("Please login/onboard to write comments!");
-      window.location.href = "/onboarding";
+      navigate({ to: "/onboarding" });
       return;
     }
     commentMutation.mutate({ postId, text });
@@ -174,6 +178,16 @@ function SocialComponent() {
 
   return (
     <div className="mx-auto max-w-2xl py-12 px-4 pb-32">
+      {/* In-app toast banner — replaces browser alert() dialogs */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900 px-5 py-3 text-sm shadow-xl">
+          <span>{toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} className="text-muted-foreground hover:text-foreground" aria-label="Dismiss">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <header className="mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight mb-4">Social Feed</h1>
         

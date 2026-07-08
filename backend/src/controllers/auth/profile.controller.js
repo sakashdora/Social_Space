@@ -145,6 +145,38 @@ export async function getSecurityEvents(req, res) {
 }
 
 /**
+ * GET /v1/auth/me
+ * Returns the authenticated user's public profile including pendingDeletionAt
+ * so the frontend can surface an inactivity-deletion warning.
+ */
+export async function getMe(req, res) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        handle: true,
+        createdAt: true,
+        pendingDeletionAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: { message: "User not found.", code: "NOT_FOUND" },
+      });
+    }
+
+    return res.status(200).json(user);
+  } catch (error) {
+    console.error("getMe error:", error);
+    return res.status(500).json({
+      error: { message: "Failed to fetch profile.", code: "INTERNAL_SERVER_ERROR" },
+    });
+  }
+}
+
+/**
  * Legacy: update security key (deprecated)
  */
 export async function updateSecurityKey(req, res) {

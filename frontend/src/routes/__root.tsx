@@ -14,7 +14,7 @@ import appCss from "../styles.css?url";
 import { AppNav } from "../components/veil/AppNav";
 import { ThemeProvider } from "../lib/theme";
 import { ThemeToggle } from "../components/veil/ThemeToggle";
-
+import { cn } from "../lib/utils";
 
 function NotFoundComponent() {
   return (
@@ -61,7 +61,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.03] px-5 py-2 text-sm font-medium text-foreground transition hover:bg-white/[0.06]"
+            className="inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium text-foreground transition"
+            style={{ border: "1px solid var(--surface-border)", background: "var(--surface-bg)" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.8"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
           >
             Go home
           </a>
@@ -143,21 +146,27 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <div className="relative min-h-screen">
-          {/* Ambient background wash — warm champagne, barely-there */}
+          {/* Ambient background wash — adapts to both themes */}
           <div
             aria-hidden
             className="pointer-events-none fixed inset-0 -z-10"
             style={{
               background:
-                "radial-gradient(1400px 900px at 12% -10%, color-mix(in oklab, var(--veil) 14%, transparent), transparent 65%), radial-gradient(900px 700px at 108% 108%, color-mix(in oklab, var(--veil-glow) 7%, transparent), transparent 60%), var(--ink)",
+                "radial-gradient(1400px 900px at 12% -10%, color-mix(in oklab, var(--veil) 12%, transparent), transparent 65%), radial-gradient(900px 700px at 108% 108%, color-mix(in oklab, var(--veil-glow) 6%, transparent), transparent 60%), var(--ink)",
             }}
           />
 
           {chrome && <AppNav />}
           {chrome && (
-            <header className="fixed top-0 inset-x-0 z-40 flex h-16 items-center justify-between border-b border-white/5 bg-ink/60 px-6 backdrop-blur-xl lg:hidden">
+            <header
+              className="fixed top-0 inset-x-0 z-40 flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl lg:hidden"
+              style={{
+                background: "var(--nav-bg)",
+                borderColor: "var(--nav-border)",
+              }}
+            >
               <Link to="/" className="flex items-center gap-2.5">
-                <span className="font-serif text-xl tracking-tight">Social Space</span>
+                <span className="font-serif text-xl tracking-tight text-foreground">Social Space</span>
               </Link>
               <ThemeToggle />
             </header>
@@ -165,19 +174,16 @@ function RootComponent() {
 
           <main
             key={pathname}
-            className={
-              (chrome ? "lg:pl-60 pt-20 lg:pt-0 " : "") +
-              "animate-[veil-reveal_900ms_cubic-bezier(0.22,1,0.36,1)_both]"
-            }
+            className={cn(
+              chrome && "lg:pl-60 pt-16 lg:pt-0",
+              chrome && pathname.startsWith("/messages")
+                ? "h-dvh overflow-hidden flex flex-col"
+                : "min-h-dvh",
+              "[animation:veil-reveal_860ms_cubic-bezier(0.22,1,0.36,1)_both]"
+            )}
           >
             <Outlet />
           </main>
-          <style>{`
-            @keyframes veil-reveal {
-              0% { opacity: 0; transform: translateY(14px); filter: blur(8px); }
-              100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-            }
-          `}</style>
         </div>
       </ThemeProvider>
     </QueryClientProvider>

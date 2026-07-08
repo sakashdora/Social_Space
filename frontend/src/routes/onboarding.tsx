@@ -262,8 +262,18 @@ function Onboarding() {
       await verifyPasskeyRegistration(credential, "My first passkey");
       navigate({ to: "/social" });
     } catch (err: any) {
-      // Non-fatal — user can skip
-      navigate({ to: "/social" });
+      // WebAuthn user cancellation — don't treat as a hard error
+      const cancelled =
+        err?.name === "NotAllowedError" ||
+        err?.message?.toLowerCase().includes("cancelled") ||
+        err?.message?.toLowerCase().includes("user denied");
+      setError(
+        cancelled
+          ? "Passkey setup was skipped. You can add one anytime in Profile → Passkeys."
+          : "Passkey setup failed. You can try again later in Profile → Passkeys."
+      );
+      // Still proceed to /social after a short delay so the user reads the message
+      setTimeout(() => navigate({ to: "/social" }), 2500);
     } finally {
       setIsLoading(false);
     }

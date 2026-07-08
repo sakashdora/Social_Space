@@ -464,6 +464,12 @@ export async function removePasskey(id: string, currentPassphrase: string) {
   return handleResponse(res);
 }
 
+/** Current user profile (includes pendingDeletionAt) */
+export async function getMe(): Promise<{ id: string; handle: string; createdAt: string; pendingDeletionAt: string | null }> {
+  const res = await fetch(`${API_BASE}/v1/auth/me`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
 /** Security Events */
 export async function getSecurityEvents() {
   const res = await fetch(`${API_BASE}/v1/auth/security-events`, { headers: getHeaders() });

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef } from "react";
-import { Send, Image as ImageIcon, Video, Mic, FileText, Sparkles, X } from "lucide-react";
+import { Send, Image as ImageIcon, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createPost, uploadMedia } from "@/lib/api";
 import { GrokEditor } from "@/components/GrokEditor";
@@ -17,6 +17,8 @@ export const Route = createFileRoute("/compose")({
 
 function Compose() {
   const [mode, setMode] = useState<"standard" | "article">("standard");
+  // "full" = fully anonymous (no handle attached); "pseudo" = pseudonymous (handle shown)
+  const [anonMode, setAnonMode] = useState<"full" | "pseudo">("full");
   const [text, setText] = useState(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -28,19 +30,22 @@ function Compose() {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePublish = async () => {
     if (!text.trim() && !mediaUrl) return;
     setIsLoading(true);
     setError("");
+    setSuccess(false);
     try {
-      // If mediaUrl exists, maybe we categorize it as Video if it's a video, but let's just use 'Life' or 'Video' based on media presence for now.
       const category = mediaUrl ? "Video" : (mode === "article" ? "Ideas" : "Life");
-      await createPost(text, category, "pseudo", mediaUrl);
+      await createPost(text, category, anonMode, mediaUrl);
       setText("");
       setMediaUrl(null);
-      alert("Published successfully!");
+      setSuccess(true);
+      // Auto-clear success banner after 4 seconds
+      setTimeout(() => setSuccess(false), 4000);
     } catch (err: any) {
       setError(err.message || "Failed to publish post.");
     } finally {
@@ -51,13 +56,16 @@ function Compose() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Reset so same file can be reselected after an error
+    e.target.value = "";
     setIsUploading(true);
     setError("");
     try {
       const url = await uploadMedia(file);
       setMediaUrl(url);
     } catch (err: any) {
-      setError("Failed to upload media. Please try again.");
+      // Surface the actual server error (MIME rejection, size limit, auth) — not a generic fallback
+      setError(err.message || "Failed to upload media. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -70,11 +78,19 @@ function Compose() {
           Create {mode === "article" ? "Article" : "Post"}
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-          {mode === "article" 
+          {mode === "article"
             ? "Write a long-form article with the help of Grok AI."
             : "Share your thoughts, photos, or videos with the community."}
         </p>
       </header>
+
+      {/* Success banner */}
+      {success && (
+        <div className="mb-6 flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-sm text-green-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Published successfully!
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
@@ -83,7 +99,7 @@ function Compose() {
       )}
 
       <div className="space-y-6">
-        {/* Mode Selector */}
+        {/* Mode Selector (Standard vs Article) */}
         <div className="flex gap-2 p-1 rounded-2xl bg-white/5 border border-white/10 max-w-fit">
           <button
             onClick={() => setMode("standard")}
@@ -106,6 +122,42 @@ function Compose() {
           </button>
         </div>
 
+        {/* ── Anonymity Mode Selector ────────────────────────────────── */}
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground mb-2">Post as</p>
+          <div className="flex gap-2 p-1 rounded-2xl bg-white/5 border border-white/10 max-w-fit">
+            <button
+              id="anon-mode-full"
+              onClick={() => setAnonMode("full")}
+              className={cn(
+                "flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition",
+                anonMode === "full"
+                  ? "bg-[color:var(--veil-glow)]/15 text-[color:var(--veil-glow)] border border-[color:var(--veil-glow)]/30"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              🎭 Fully Anonymous
+            </button>
+            <button
+              id="anon-mode-pseudo"
+              onClick={() => setAnonMode("pseudo")}
+              className={cn(
+                "flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition",
+                anonMode === "pseudo"
+                  ? "bg-white/10 text-foreground border border-white/20"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              👤 Show @handle
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {anonMode === "full"
+              ? "Your post will appear as 'Anonymous' — no handle or identity attached."
+              : "Your handle will be visible alongside this post."}
+          </p>
+        </div>
+
         {mode === "standard" ? (
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <textarea
@@ -113,14 +165,14 @@ function Compose() {
               onChange={(e) => setText(e.target.value)}
               placeholder="What's on your mind?"
               rows={5}
-              maxLength={1000}
+              maxLength={500}
               className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/60"
             />
-            
+
             {mediaUrl && (
               <div className="relative mt-4 inline-block">
                 <img src={mediaUrl} alt="Uploaded media" className="max-h-64 rounded-xl object-cover border border-white/10" />
-                <button 
+                <button
                   onClick={() => setMediaUrl(null)}
                   className="absolute -top-3 -right-3 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 transition"
                 >
@@ -131,24 +183,28 @@ function Compose() {
 
             <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
               <div className="flex gap-2">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*,video/*" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
                   onChange={handleFileUpload}
                 />
-                <button 
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+                  className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/5 hover:text-foreground disabled:opacity-50"
                 >
                   <ImageIcon className="h-4 w-4" />
                   {isUploading ? "Uploading..." : "Add Media"}
                 </button>
               </div>
-              <span className="mono text-[11px] tracking-[0.16em] text-muted-foreground">
-                {text.length}/1000
+              <span className={cn(
+                "mono text-[11px] tracking-[0.16em]",
+                text.length > 450 ? "text-amber-400" : "text-muted-foreground",
+                text.length >= 500 && "text-red-400"
+              )}>
+                {text.length}/500
               </span>
             </div>
           </div>
@@ -168,5 +224,3 @@ function Compose() {
     </div>
   );
 }
-
-

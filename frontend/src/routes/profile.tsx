@@ -27,6 +27,7 @@ import {
   removePasskey,
   regenerateRecoveryCodes,
   getSecurityEvents,
+  getMe,
 } from "@/lib/api";
 import { startRegistration } from "@simplewebauthn/browser";
 import { motion, AnimatePresence } from "framer-motion";
@@ -268,6 +269,13 @@ function Profile() {
     queryFn: getSecurityEvents,
   });
 
+  // Fetch full profile to check pendingDeletionAt
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: false,
+  });
+
   // ─── Passkey mutations ────────────────────────────────────────────────────
   const addPasskeyMut = useMutation({
     mutationFn: async () => {
@@ -312,7 +320,9 @@ function Profile() {
       setTotpSetupSuccess(true);
       setTotpQr(null);
       setTotpSetupCode("");
-      qc.invalidateQueries({ queryKey: ["totp-status", "security-events"] });
+      // Bug B8 fix: invalidate each query key separately
+      qc.invalidateQueries({ queryKey: ["totp-status"] });
+      qc.invalidateQueries({ queryKey: ["security-events"] });
     },
     onError: (e: any) => setTotpSetupError(e.message || "Invalid code."),
   });
@@ -322,7 +332,8 @@ function Profile() {
     onSuccess: () => {
       setDisableTotpModal(false);
       setTotpSetupSuccess(false);
-      qc.invalidateQueries({ queryKey: ["totp-status", "security-events"] });
+      qc.invalidateQueries({ queryKey: ["totp-status"] });
+      qc.invalidateQueries({ queryKey: ["security-events"] });
     },
     onError: (e: any) => setDisableTotpError(e.message || "Failed to disable TOTP."),
   });
@@ -377,6 +388,25 @@ function Profile() {
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Profile Settings</p>
         <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">Your identity. Your keys. Your call.</h1>
       </header>
+
+      {/* Soft-deletion warning banner */}
+      {meData?.pendingDeletionAt && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          <div>
+            <p className="text-sm font-medium text-amber-300">Account scheduled for deletion</p>
+            <p className="mt-0.5 text-xs text-amber-300/80">
+              Due to inactivity, your account and all its data will be permanently deleted on{" "}
+              <strong>
+                {new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(
+                  new Date(meData.pendingDeletionAt)
+                )}
+              </strong>.
+              Simply logging in resets the inactivity timer and cancels this.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Avatar Card */}
       <FrostedPanel className="flex items-center gap-5 p-6 mb-6">
@@ -530,28 +560,31 @@ function Profile() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
             <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
+            <label htmlFor="current-passphrase-change" className="sr-only">Current passphrase</label>
             <input
+              id="current-passphrase-change"
               type={showCurPass ? "text" : "password"}
               value={curPass}
               onChange={(e) => setCurPass(e.target.value)}
               placeholder="Current passphrase"
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
             />
-            <button onClick={() => setShowCurPass((v) => !v)} className="text-muted-foreground">
+            <button onClick={() => setShowCurPass((v) => !v)} className="text-muted-foreground" aria-label={showCurPass ? "Hide passphrase" : "Show passphrase"}>
               {showCurPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </button>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
             <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
+            <label htmlFor="new-passphrase-change" className="sr-only">New passphrase</label>
             <input
-              id="new-passphrase-input"
+              id="new-passphrase-change"
               type={showNewPass ? "text" : "password"}
               value={newPass}
               onChange={(e) => setNewPass(e.target.value)}
               placeholder="New passphrase (strong)"
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
             />
-            <button onClick={() => setShowNewPass((v) => !v)} className="text-muted-foreground">
+            <button onClick={() => setShowNewPass((v) => !v)} className="text-muted-foreground" aria-label={showNewPass ? "Hide new passphrase" : "Show new passphrase"}>
               {showNewPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </button>
           </div>

@@ -29,7 +29,8 @@ function Landing() {
             <ThemeToggle />
             <Link
               to="/onboarding"
-              className="group mono inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-4 py-2 text-[11px] uppercase tracking-[0.18em] backdrop-blur-xl transition hover:bg-white/[0.09]"
+              className="group mono inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.18em] backdrop-blur-xl transition text-foreground"
+              style={{ background: "var(--surface-bg)", border: "1px solid var(--surface-border)" }}
             >
               Enter Space
               <ArrowRight className="h-3.5 w-3.5 transition-transform duration-500 group-hover:translate-x-0.5" />
