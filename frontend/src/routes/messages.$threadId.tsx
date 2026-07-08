@@ -270,7 +270,7 @@ function Thread() {
           className="mx-auto mb-3 w-fit max-w-[85%] rounded-full px-4 py-1.5 text-center text-[11px] text-muted-foreground"
           style={{ background: "var(--tag-bg)", border: "1px solid var(--tag-border)" }}
         >
-          Encrypted · auto-deleted after {thread.disappearing || "7d"}
+          Transit Secured · auto-deleted after {thread.disappearing || "7d"}
         </div>
 
         {/* Loading skeletons */}

@@ -13,7 +13,7 @@ export const Route = createFileRoute("/messages")({
       {
         name: "description",
         content:
-          "End-to-end encrypted 1:1 messaging. Sealed sender. Per-thread disappearing timers.",
+          "1:1 messaging. Sealed sender. Per-thread disappearing timers. Encryption rolling out soon.",
       },
       { property: "og:title", content: "Messages — Veil" },
     ],
@@ -81,7 +81,7 @@ function MessagesLayout() {
           style={{ borderBottom: "1px solid var(--surface-border)" }}
         >
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            End-to-end encrypted
+            Transit Secured (E2EE Pending)
           </p>
           <h1 className="mt-1 font-serif text-3xl leading-tight">Messages</h1>
         </div>
