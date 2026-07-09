@@ -15,7 +15,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       whileHover={{ scale: 1.04 }}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       aria-pressed={isDark}
-      className={cn("group relative inline-flex h-8 w-14 items-center rounded-full transition-colors", className)}
+      className={cn(
+        "group relative inline-flex h-8 w-14 items-center rounded-full transition-colors",
+        className,
+      )}
       style={{
         background: "var(--muted)",
         boxShadow: isDark
@@ -32,7 +35,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         }}
         className={cn(
           "flex h-6 w-6 items-center justify-center rounded-full",
-          isDark ? "ml-1" : "ml-7"
+          isDark ? "ml-1" : "ml-7",
         )}
         style={{
           background: "var(--veil-glow)",

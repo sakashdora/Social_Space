@@ -26,6 +26,29 @@ const ALLOWED_MIME_TYPES = new Set([
   "video/mp4",
 ]);
 
+function validateMagicBytes(buffer, mimeType) {
+  if (!buffer || buffer.length < 12) return false;
+
+  const hex = buffer.toString("hex", 0, 12).toUpperCase();
+
+  if (mimeType === "image/jpeg") {
+    return hex.startsWith("FFD8FF");
+  }
+  if (mimeType === "image/png") {
+    return hex.startsWith("89504E470D0A1A0A");
+  }
+  if (mimeType === "image/gif") {
+    return hex.startsWith("474946383761") || hex.startsWith("474946383961");
+  }
+  if (mimeType === "image/webp") {
+    return hex.startsWith("52494646") && hex.substring(16, 24) === "57454250";
+  }
+  if (mimeType === "video/mp4") {
+    return hex.substring(8, 16) === "66747970";
+  }
+  return false;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 }, // 15 MB — scoped to this multer instance only
@@ -51,6 +74,13 @@ router.post("/", requireAuth, upload.single("file"), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file provided." });
+    }
+
+    // Verify magic bytes (prevent MIME spoofing)
+    if (!validateMagicBytes(req.file.buffer, req.file.mimetype)) {
+      return res.status(415).json({
+        error: `File content verification failed. The file signature does not match mimetype '${req.file.mimetype}'.`
+      });
     }
     // For local dev, return a base64 data URL.
     // PRODUCTION: replace with S3/GCS/Cloudflare R2 upload and return a public URL.

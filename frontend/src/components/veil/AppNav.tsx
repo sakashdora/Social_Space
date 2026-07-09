@@ -1,25 +1,28 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Rss, PlusCircle, MessageSquare, UserRound, Video, MessageCircle, Sparkles
+  Home,
+  Rss,
+  PlusCircle,
+  MessageSquare,
+  UserRound,
+  Video,
+  MessageCircle,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { to: "/",        label: "Home",     icon: Home },
-  { to: "/news",    label: "News",     icon: Rss },
-  { to: "/social",  label: "Social",   icon: MessageSquare },
-  { to: "/messages",label: "Messages", icon: MessageCircle },
-  { to: "/video",   label: "Video",    icon: Video },
-  { to: "/compose", label: "Compose",  icon: PlusCircle },
-  { to: "/profile", label: "Profile",  icon: UserRound },
-  { to: "/profile", label: "Premium",  icon: Sparkles },
+  { to: "/", label: "Home", icon: Home },
+  { to: "/news", label: "News", icon: Rss },
+  { to: "/social", label: "Social", icon: MessageSquare },
+  { to: "/messages", label: "Messages", icon: MessageCircle },
+  { to: "/video", label: "Video", icon: Video },
+  { to: "/compose", label: "Compose", icon: PlusCircle },
+  { to: "/profile", label: "Profile", icon: UserRound },
 ] as const;
 
 export function AppNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const search = useRouterState({ select: (s) => s.location.search }) as any;
-  const isPremiumActive = search.premium === true || search.premium === "true";
 
   return (
     <>
@@ -44,17 +47,12 @@ export function AppNav() {
             const active =
               it.to === "/"
                 ? pathname === "/"
-                : it.label === "Premium"
-                ? pathname.startsWith(it.to) && isPremiumActive
-                : it.label === "Profile"
-                ? pathname.startsWith(it.to) && !isPremiumActive
                 : pathname.startsWith(it.to);
             const Icon = it.icon;
             return (
               <Link
                 key={it.label}
                 to={it.to}
-                search={it.to === "/profile" && it.label === "Premium" ? { premium: true } : undefined}
                 className={cn(
                   "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -64,11 +62,11 @@ export function AppNav() {
                 }}
                 onMouseEnter={(e) => {
                   if (!active)
-                    (e.currentTarget as HTMLElement).style.backgroundColor = "var(--nav-item-hover)";
+                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                      "var(--nav-item-hover)";
                 }}
                 onMouseLeave={(e) => {
-                  if (!active)
-                    (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                  if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = "";
                 }}
               >
                 <Icon
@@ -111,9 +109,7 @@ export function AppNav() {
           }}
         >
           <p className="font-medium text-foreground">Social Space</p>
-          <p className="mt-1 opacity-75">
-            Read, post, and share videos in a premium environment.
-          </p>
+          <p className="mt-1 opacity-75">Read, post, and share videos in a premium environment.</p>
         </div>
       </aside>
 
@@ -131,17 +127,12 @@ export function AppNav() {
           const active =
             it.to === "/"
               ? pathname === "/"
-              : it.label === "Premium"
-              ? pathname.startsWith(it.to) && isPremiumActive
-              : it.label === "Profile"
-              ? pathname.startsWith(it.to) && !isPremiumActive
               : pathname.startsWith(it.to);
           const Icon = it.icon;
           return (
             <Link
               key={it.label}
               to={it.to}
-              search={it.to === "/profile" && it.label === "Premium" ? { premium: true } : undefined}
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 min-w-0 py-2 text-[9px] min-[400px]:text-[10px] transition-colors min-h-[44px]",
                 active ? "text-[color:var(--veil-glow)]" : "text-muted-foreground",

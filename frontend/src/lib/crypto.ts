@@ -61,7 +61,7 @@ export async function generateChatKeyPair(): Promise<CryptoKeyPair> {
       namedCurve: "P-256",
     },
     false, // Private key is marked non-extractable to block theft/exfiltration
-    ["deriveKey", "deriveBits"]
+    ["deriveKey", "deriveBits"],
   );
 }
 
@@ -85,11 +85,14 @@ export async function importPublicKeyBase64(base64Str: string): Promise<CryptoKe
       namedCurve: "P-256",
     },
     false,
-    []
+    [],
   );
 }
 
-export async function deriveSharedAesKey(privateKey: CryptoKey, publicKey: CryptoKey): Promise<CryptoKey> {
+export async function deriveSharedAesKey(
+  privateKey: CryptoKey,
+  publicKey: CryptoKey,
+): Promise<CryptoKey> {
   // Derive shared bits
   const sharedSecret = await window.crypto.subtle.deriveBits(
     {
@@ -97,17 +100,13 @@ export async function deriveSharedAesKey(privateKey: CryptoKey, publicKey: Crypt
       public: publicKey,
     },
     privateKey,
-    256
+    256,
   );
 
   // Import raw bits into HKDF secret
-  const hkdfSecret = await window.crypto.subtle.importKey(
-    "raw",
-    sharedSecret,
-    "HKDF",
-    false,
-    ["deriveKey"]
-  );
+  const hkdfSecret = await window.crypto.subtle.importKey("raw", sharedSecret, "HKDF", false, [
+    "deriveKey",
+  ]);
 
   // Derive symmetric AES-GCM key (256-bit)
   return window.crypto.subtle.deriveKey(
@@ -123,11 +122,14 @@ export async function deriveSharedAesKey(privateKey: CryptoKey, publicKey: Crypt
       length: 256,
     },
     false,
-    ["encrypt", "decrypt"]
+    ["encrypt", "decrypt"],
   );
 }
 
-export async function encryptText(text: string, aesKey: CryptoKey): Promise<{ ciphertext: string; iv: string }> {
+export async function encryptText(
+  text: string,
+  aesKey: CryptoKey,
+): Promise<{ ciphertext: string; iv: string }> {
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(text);
   const ciphertextBuffer = await window.crypto.subtle.encrypt(
@@ -136,7 +138,7 @@ export async function encryptText(text: string, aesKey: CryptoKey): Promise<{ ci
       iv,
     },
     aesKey,
-    encoded
+    encoded,
   );
 
   const ciphertextBase64 = btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)));
@@ -148,7 +150,11 @@ export async function encryptText(text: string, aesKey: CryptoKey): Promise<{ ci
   };
 }
 
-export async function decryptText(ciphertextBase64: string, ivBase64: string, aesKey: CryptoKey): Promise<string> {
+export async function decryptText(
+  ciphertextBase64: string,
+  ivBase64: string,
+  aesKey: CryptoKey,
+): Promise<string> {
   const ciphertextBinary = atob(ciphertextBase64);
   const ciphertext = new Uint8Array(ciphertextBinary.length);
   for (let i = 0; i < ciphertextBinary.length; i++) {
@@ -167,7 +173,7 @@ export async function decryptText(ciphertextBase64: string, ivBase64: string, ae
       iv,
     },
     aesKey,
-    ciphertext
+    ciphertext,
   );
 
   return new TextDecoder().decode(decryptedBuffer);

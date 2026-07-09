@@ -28,7 +28,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Social Space — Connect Freely" },
-      { name: "description", content: "A new social experience with news, social, and video feeds." },
+      {
+        name: "description",
+        content: "A new social experience with news, social, and video feeds.",
+      },
     ],
   }),
   component: LandingPage,
@@ -80,9 +83,7 @@ function Nav() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "frost border-b border-[color:var(--border)] shadow-soft"
-            : "bg-transparent"
+          scrolled ? "frost border-b border-[color:var(--border)] shadow-soft" : "bg-transparent"
         }`}
       >
         <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 md:px-12 xl:px-20">
@@ -260,8 +261,7 @@ function Hero() {
             animate="show"
             className="mt-6 font-display text-[42px] font-semibold leading-[1.02] tracking-tight text-balance text-foreground sm:text-6xl md:text-7xl xl:text-[84px]"
           >
-            Connect, Read,{" "}
-            <span className="italic text-primary">Watch.</span>
+            Connect, Read, <span className="italic text-primary">Watch.</span>
           </motion.h1>
 
           <motion.p
@@ -271,9 +271,8 @@ function Hero() {
             animate="show"
             className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
           >
-            Welcome to Social Space. Sign up frictionlessly without phone or
-            email. Explore news, share your thoughts, and watch videos — all
-            while remaining anonymous.
+            Welcome to Social Space. Sign up frictionlessly without phone or email. Explore news,
+            share your thoughts, and watch videos — all while remaining anonymous.
           </motion.p>
 
           <motion.div
@@ -285,7 +284,8 @@ function Hero() {
           >
             <Link to="/onboarding">
               <PrimaryButton className="justify-center w-full sm:w-auto">
-                Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                Get Started{" "}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </PrimaryButton>
             </Link>
             <a href="#social">
@@ -321,9 +321,7 @@ function Hero() {
                 />
               ))}
             </div>
-            <p className="text-sm text-muted-foreground">
-              Join thousands exploring anonymously
-            </p>
+            <p className="text-sm text-muted-foreground">Join thousands exploring anonymously</p>
           </motion.div>
         </div>
 
@@ -496,9 +494,24 @@ function Hero() {
                 </div>
                 <ul className="space-y-3">
                   {[
-                    { n: 1, t: "AI is changing the world", p: "12.5K posts", g: "linear-gradient(135deg,#7a5a3a,#c9a075)" },
-                    { n: 2, t: "Exploring the mountains", p: "8.7K posts", g: "linear-gradient(135deg,#3a4a6a,#8ab0d0)" },
-                    { n: 3, t: "Tech innovations in 2026", p: "6.3K posts", g: "linear-gradient(135deg,#1a2a4a,#4a7bb8)" },
+                    {
+                      n: 1,
+                      t: "AI is changing the world",
+                      p: "12.5K posts",
+                      g: "linear-gradient(135deg,#7a5a3a,#c9a075)",
+                    },
+                    {
+                      n: 2,
+                      t: "Exploring the mountains",
+                      p: "8.7K posts",
+                      g: "linear-gradient(135deg,#3a4a6a,#8ab0d0)",
+                    },
+                    {
+                      n: 3,
+                      t: "Tech innovations in 2026",
+                      p: "6.3K posts",
+                      g: "linear-gradient(135deg,#1a2a4a,#4a7bb8)",
+                    },
                   ].map((it) => (
                     <li key={it.n} className="flex items-center gap-3">
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
@@ -573,8 +586,8 @@ function Features() {
             A calmer feed, built for freedom.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Every detail is designed around privacy — no tracking, no personal
-            data, no noise. Just an honest place to read, share and watch.
+            Every detail is designed around privacy — no tracking, no personal data, no noise. Just
+            an honest place to read, share and watch.
           </p>
         </motion.div>
 
@@ -592,9 +605,7 @@ function Features() {
                 <f.icon className="h-5 w-5" />
               </span>
               <h3 className="mt-5 font-display text-xl font-semibold">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {f.desc}
-              </p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -658,9 +669,7 @@ function Footer() {
           <Lock className="h-4 w-4" />
           <p className="text-sm">Built for privacy. Designed for freedom.</p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Social Space
-        </p>
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Social Space</p>
       </div>
     </footer>
   );

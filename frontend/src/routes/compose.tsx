@@ -46,7 +46,7 @@ function Compose() {
     setError("");
     setSuccess(false);
     try {
-      const category = mediaUrl ? "Video" : (mode === "article" ? "Ideas" : "Life");
+      const category = mediaUrl ? "Video" : mode === "article" ? "Ideas" : "Life";
       await createPost(text, category, anonMode, mediaUrl);
       setText("");
       setMediaUrl(null);
@@ -60,6 +60,54 @@ function Compose() {
     }
   };
 
+async function anonymizeImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  try {
+    const { detectFace, loadImageFromFile } = await import("../lib/faceDetect");
+    const { image } = await loadImageFromFile(file);
+    const box = await detectFace(image);
+    if (!box) return file;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(image, 0, 0);
+
+    const px = box.x * canvas.width;
+    const py = box.y * canvas.height;
+    const pw = box.w * canvas.width;
+    const ph = box.h * canvas.height;
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = Math.max(8, Math.round(pw / 10));
+    tempCanvas.height = Math.max(8, Math.round(ph / 10));
+    const tempCtx = tempCanvas.getContext("2d");
+    if (tempCtx) {
+      tempCtx.imageSmoothingEnabled = false;
+      tempCtx.drawImage(canvas, px, py, pw, ph, 0, 0, tempCanvas.width, tempCanvas.height);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, px, py, pw, ph);
+    }
+
+    return new Promise<File>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          resolve(file);
+        } else {
+          resolve(new File([blob], file.name, { type: "image/webp" }));
+        }
+      }, "image/webp", 0.9);
+    });
+  } catch (err) {
+    console.warn("Client-side face anonymization failed, uploading raw:", err);
+    return file;
+  }
+}
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,7 +116,8 @@ function Compose() {
     setIsUploading(true);
     setError("");
     try {
-      const url = await uploadMedia(file);
+      const processedFile = await anonymizeImage(file);
+      const url = await uploadMedia(processedFile);
       setMediaUrl(url);
     } catch (err: any) {
       // Surface the actual server error (MIME rejection, size limit, auth) — not a generic fallback
@@ -112,7 +161,9 @@ function Compose() {
             onClick={() => setMode("standard")}
             className={cn(
               "px-6 py-2 rounded-xl text-sm font-medium transition",
-              mode === "standard" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground"
+              mode === "standard"
+                ? "bg-white/10 text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             Standard Post
@@ -121,7 +172,9 @@ function Compose() {
             onClick={() => setMode("article")}
             className={cn(
               "flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-medium transition",
-              mode === "article" ? "bg-[color:var(--primary)] text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              mode === "article"
+                ? "bg-[color:var(--primary)] text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Sparkles className="h-4 w-4" />
@@ -140,7 +193,7 @@ function Compose() {
                 "flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition",
                 anonMode === "full"
                   ? "bg-[color:var(--veil-glow)]/15 text-[color:var(--veil-glow)] border border-[color:var(--veil-glow)]/30"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               🎭 Fully Anonymous
@@ -152,7 +205,7 @@ function Compose() {
                 "flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition",
                 anonMode === "pseudo"
                   ? "bg-white/10 text-foreground border border-white/20"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               👤 Show @handle
@@ -179,25 +232,27 @@ function Compose() {
             {isUploading && (
               <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white/5 border border-dashed border-white/10 mt-4">
                 <Loader2 className="h-6 w-6 text-[color:var(--primary)] animate-spin" />
-                <p className="mt-2 text-xs text-muted-foreground">Optimizing and anonymizing media...</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Optimizing and anonymizing media...
+                </p>
               </div>
             )}
 
             {mediaUrl && (
               <div className="relative mt-4 w-full rounded-2xl overflow-hidden border border-white/10 bg-black/20">
                 {isVideoUrl(mediaUrl) ? (
-                  <video 
-                    src={mediaUrl} 
-                    controls 
-                    muted 
-                    playsInline 
-                    className="max-h-64 w-full object-contain bg-black" 
+                  <video
+                    src={mediaUrl}
+                    controls
+                    muted
+                    playsInline
+                    className="max-h-64 w-full object-contain bg-black"
                   />
                 ) : (
-                  <img 
-                    src={mediaUrl} 
-                    alt="Uploaded media" 
-                    className="max-h-64 w-full object-cover" 
+                  <img
+                    src={mediaUrl}
+                    alt="Uploaded media"
+                    className="max-h-64 w-full object-cover"
                   />
                 )}
                 <button
@@ -228,11 +283,13 @@ function Compose() {
                   {isUploading ? "Uploading..." : "Add Media"}
                 </button>
               </div>
-              <span className={cn(
-                "mono text-[11px] tracking-[0.16em]",
-                text.length > 450 ? "text-amber-400" : "text-muted-foreground",
-                text.length >= 500 && "text-red-400"
-              )}>
+              <span
+                className={cn(
+                  "mono text-[11px] tracking-[0.16em]",
+                  text.length > 450 ? "text-amber-400" : "text-muted-foreground",
+                  text.length >= 500 && "text-red-400",
+                )}
+              >
                 {text.length}/500
               </span>
             </div>

@@ -9,7 +9,7 @@ function EmptyThread() {
   return (
     <div className="flex h-full min-h-[560px] flex-col items-center justify-center px-6 py-12 text-center animate-fade-in">
       {/* Premium Floating Glassmorphic Card */}
-      <div 
+      <div
         className="frost grain-panel max-w-md rounded-3xl p-8 text-center transition-all duration-300 hover:scale-[1.01]"
         style={{
           border: "1px solid var(--surface-border)",
@@ -25,7 +25,8 @@ function EmptyThread() {
           Secure Messaging Space
         </h2>
         <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-          Select an active contact from the sidebar or start a new secure communication channel by entering their handle.
+          Select an active contact from the sidebar or start a new secure communication channel by
+          entering their handle.
         </p>
 
         {/* Feature List for trust and platform capabilities */}
@@ -37,7 +38,8 @@ function EmptyThread() {
             <div>
               <h3 className="text-xs font-semibold text-foreground">Local Encryption</h3>
               <p className="mt-0.5 text-[11px] text-muted-foreground leading-normal">
-                Messages are encrypted locally before leaving your device. Only the recipient can read them.
+                Messages are encrypted locally before leaving your device. Only the recipient can
+                read them.
               </p>
             </div>
           </div>
@@ -49,7 +51,8 @@ function EmptyThread() {
             <div>
               <h3 className="text-xs font-semibold text-foreground">Sealed Metadata</h3>
               <p className="mt-0.5 text-[11px] text-muted-foreground leading-normal">
-                Sender identities are securely sealed. The server handles delivery without knowing who spoke to whom.
+                Sender identities are securely sealed. The server handles delivery without knowing
+                who spoke to whom.
               </p>
             </div>
           </div>
@@ -61,7 +64,8 @@ function EmptyThread() {
             <div>
               <h3 className="text-xs font-semibold text-foreground">Self-Destruct Timers</h3>
               <p className="mt-0.5 text-[11px] text-muted-foreground leading-normal">
-                Configure disappearing timers per conversation to automatically wipe message histories on both ends.
+                Configure disappearing timers per conversation to automatically wipe message
+                histories on both ends.
               </p>
             </div>
           </div>

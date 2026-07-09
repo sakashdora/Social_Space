@@ -64,12 +64,26 @@ export function findMatchingRecoveryCode(rawCode, dbRecords) {
   if (!rawCode || !Array.isArray(dbRecords)) return null;
   const normalised = rawCode.toLowerCase().trim();
 
+  // Compute candidate hash ONCE to prevent redundant hashing and timing leak
+  const candidateHash = hashRecoveryCode(normalised);
+  const candidateBuf = Buffer.from(candidateHash, "hex");
+
+  let matchedRecord = null;
+
   for (const record of dbRecords) {
-    // Skip already-used codes
-    if (record.usedAt !== null) continue;
-    if (verifyRecoveryCode(normalised, record.codeHash)) {
-      return record;
+    try {
+      const storedBuf = Buffer.from(record.codeHash, "hex");
+      if (candidateBuf.length === storedBuf.length) {
+        if (crypto.timingSafeEqual(candidateBuf, storedBuf)) {
+          if (record.usedAt === null) {
+            matchedRecord = record;
+          }
+        }
+      }
+    } catch {
+      // Ignore
     }
   }
-  return null;
+
+  return matchedRecord;
 }

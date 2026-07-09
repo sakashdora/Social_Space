@@ -20,8 +20,7 @@ export const feedPosts: Post[] = [
     handle: "@muted-heron-42",
     topic: "Journalism",
     time: "3m",
-    body:
-      "First draft of the piece is out to my editor. Wrote it entirely on a device that has never touched my legal name. That still feels miraculous.",
+    body: "First draft of the piece is out to my editor. Wrote it entirely on a device that has never touched my legal name. That still feels miraculous.",
     reactions: 128,
     replies: 24,
   },
@@ -32,8 +31,7 @@ export const feedPosts: Post[] = [
     handle: "@quiet-linen",
     topic: "Art",
     time: "17m",
-    body:
-      "Sharing a portrait study. Face is procedurally replaced on-device before publish — the meter said green on every row.",
+    body: "Sharing a portrait study. Face is procedurally replaced on-device before publish — the meter said green on every row.",
     media: "portrait",
     synthetic: true,
     reactions: 412,
@@ -46,8 +44,7 @@ export const feedPosts: Post[] = [
     handle: "@slow-orbit",
     topic: "Survivors",
     time: "1h",
-    body:
-      "Six months of writing here without anyone in my old life finding me. Whatever else Veil ships, don't add follower counts. This is the reason I stayed.",
+    body: "Six months of writing here without anyone in my old life finding me. Whatever else Veil ships, don't add follower counts. This is the reason I stayed.",
     reactions: 986,
     replies: 141,
   },
@@ -58,22 +55,13 @@ export const feedPosts: Post[] = [
     handle: "@north-of-here",
     topic: "Activism",
     time: "3h",
-    body:
-      "PSA — the disappearing-message timer is per-thread now. Set it to 24h on your organizing threads and stop worrying about screenshots living forever.",
+    body: "PSA — the disappearing-message timer is per-thread now. Set it to 24h on your organizing threads and stop worrying about screenshots living forever.",
     reactions: 217,
     replies: 32,
   },
 ];
 
-export const topics = [
-  "All",
-  "Journalism",
-  "Art",
-  "Survivors",
-  "Activism",
-  "Research",
-  "Writing",
-];
+export const topics = ["All", "Journalism", "Art", "Survivors", "Activism", "Research", "Writing"];
 
 export type Thread = {
   id: string;
@@ -126,17 +114,42 @@ export type ThreadMessage = {
 
 export const threadMessages: Record<string, ThreadMessage[]> = {
   t1: [
-    { id: "m1", mine: false, body: "I finished the redactions. Everything Presidio flagged is masked.", time: "10:04" },
-    { id: "m2", mine: true, body: "Great. I'll verify the safety number before you send.", time: "10:05" },
-    { id: "m3", mine: false, body: "Already verified on my side — the shield went green.", time: "10:06" },
-    { id: "m4", mine: false, body: "Sending now. Disappears in 24h — save what you need.", time: "10:07" },
+    {
+      id: "m1",
+      mine: false,
+      body: "I finished the redactions. Everything Presidio flagged is masked.",
+      time: "10:04",
+    },
+    {
+      id: "m2",
+      mine: true,
+      body: "Great. I'll verify the safety number before you send.",
+      time: "10:05",
+    },
+    {
+      id: "m3",
+      mine: false,
+      body: "Already verified on my side — the shield went green.",
+      time: "10:06",
+    },
+    {
+      id: "m4",
+      mine: false,
+      body: "Sending now. Disappears in 24h — save what you need.",
+      time: "10:07",
+    },
   ],
   t2: [
     { id: "m1", mine: false, body: "meeting at 7. bring the redacted pdfs only.", time: "9:12" },
   ],
   t3: [
     { id: "m1", mine: true, body: "It's live.", time: "yest 8:41" },
-    { id: "m2", mine: false, body: "thank you. i think this piece changes things.", time: "yest 8:43" },
+    {
+      id: "m2",
+      mine: false,
+      body: "thank you. i think this piece changes things.",
+      time: "yest 8:43",
+    },
   ],
 };
 

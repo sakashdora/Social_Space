@@ -1,22 +1,32 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import {
-  ArrowRight, ArrowLeft, Check, Shuffle, ShieldCheck, KeyRound,
-  Fingerprint, AlertTriangle, Copy, EyeOff, Eye, RefreshCw
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Shuffle,
+  ShieldCheck,
+  KeyRound,
+  Fingerprint,
+  AlertTriangle,
+  Copy,
+  EyeOff,
+  Eye,
+  RefreshCw,
 } from "lucide-react";
 import { VeilGlyph } from "@/components/veil/VeilGlyph";
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  registerUser, loginUser, loginVerifyTotp,
-  getPasskeyLoginOptions, verifyPasskeyLogin
+  registerUser,
+  loginUser,
+  loginVerifyTotp,
+  getPasskeyLoginOptions,
+  verifyPasskeyLogin,
 } from "@/lib/api";
 import { ThemeToggle } from "@/components/veil/ThemeToggle";
 import { cn } from "@/lib/utils";
-import {
-  startRegistration,
-  startAuthentication,
-} from "@simplewebauthn/browser";
+import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -35,8 +45,12 @@ export const Route = createFileRoute("/onboarding")({
 });
 
 const suggestions = [
-  "slow-orbit", "quiet-linen", "north-of-here",
-  "muted-heron", "half-moon", "grey-static",
+  "slow-orbit",
+  "quiet-linen",
+  "north-of-here",
+  "muted-heron",
+  "half-moon",
+  "grey-static",
 ];
 
 // ─── Entropy meter helper ─────────────────────────────────────────────────────
@@ -45,10 +59,12 @@ function shannonEntropy(str: string): number {
   const freq: Record<string, number> = {};
   for (const ch of str) freq[ch] = (freq[ch] || 0) + 1;
   const len = str.length;
-  return Object.values(freq).reduce((sum, count) => {
-    const p = count / len;
-    return sum - p * Math.log2(p);
-  }, 0) * len;
+  return (
+    Object.values(freq).reduce((sum, count) => {
+      const p = count / len;
+      return sum - p * Math.log2(p);
+    }, 0) * len
+  );
 }
 
 function entropyLabel(bits: number): { label: string; color: string; pct: number } {
@@ -60,7 +76,11 @@ function entropyLabel(bits: number): { label: string; color: string; pct: number
 }
 
 // ─── TOTP Input component ─────────────────────────────────────────────────────
-function TotpInput({ onSubmit, isLoading, error }: {
+function TotpInput({
+  onSubmit,
+  isLoading,
+  error,
+}: {
   onSubmit: (code: string) => void;
   isLoading: boolean;
   error: string;
@@ -116,7 +136,9 @@ function RecoveryCodeGrid({ codes, onCopyAll }: { codes: string[]; onCopyAll: ()
             className="flex items-center gap-2 rounded-lg border border-border bg-white/5 dark:bg-black/40 px-3 py-2"
           >
             <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}.</span>
-            <span className="font-mono text-xs text-[color:var(--veil-glow)] select-all">{code}</span>
+            <span className="font-mono text-xs text-[color:var(--veil-glow)] select-all">
+              {code}
+            </span>
           </div>
         ))}
       </div>
@@ -165,7 +187,13 @@ function Onboarding() {
   const entropy = shannonEntropy(passphrase);
   const { label: entropyLbl, color: entropyColor, pct: entropyPct } = entropyLabel(entropy);
 
-  const REG_STEPS = ["Choose a handle", "Age assurance", "Set passphrase", "Recovery codes", "Passkey (optional)"];
+  const REG_STEPS = [
+    "Choose a handle",
+    "Age assurance",
+    "Set passphrase",
+    "Recovery codes",
+    "Passkey (optional)",
+  ];
 
   // ─── Passkey login ─────────────────────────────────────────────────────────
   const handlePasskeyLogin = async () => {
@@ -292,7 +320,7 @@ function Onboarding() {
       setError(
         cancelled
           ? "Passkey setup was skipped. You can add one anytime in Profile → Passkeys."
-          : "Passkey setup failed. You can try again later in Profile → Passkeys."
+          : "Passkey setup failed. You can try again later in Profile → Passkeys.",
       );
       // Still proceed to /social after a short delay so the user reads the message
       setTimeout(() => navigate({ to: "/social" }), 2500);
@@ -311,20 +339,23 @@ function Onboarding() {
       transition={{ duration: 0.35 }}
       className="max-w-xl"
     >
-      <h1 className="font-serif text-4xl leading-tight sm:text-5xl">
-        Save your recovery codes.
-      </h1>
+      <h1 className="font-serif text-4xl leading-tight sm:text-5xl">Save your recovery codes.</h1>
       <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2">
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
         <p className="text-sm text-amber-300">
-          <strong>Losing both your passphrase and these codes means permanent, unrecoverable account loss.</strong>{" "}
-          There is no reset mechanism — no email, no phone, no support team can help. Store these somewhere safe.
+          <strong>
+            Losing both your passphrase and these codes means permanent, unrecoverable account loss.
+          </strong>{" "}
+          There is no reset mechanism — no email, no phone, no support team can help. Store these
+          somewhere safe.
         </p>
       </div>
 
       <FrostedPanel className="mt-6 p-5 space-y-4">
         <p className="text-xs text-muted-foreground">
-          These 8 recovery codes are shown <strong>exactly once</strong>. Each code can be used once to regain access and set a new passphrase. Store them offline (printed paper, password manager).
+          These 8 recovery codes are shown <strong>exactly once</strong>. Each code can be used once
+          to regain access and set a new passphrase. Store them offline (printed paper, password
+          manager).
         </p>
         <RecoveryCodeGrid codes={recoveryCodes} onCopyAll={() => setCodesCopied(true)} />
 
@@ -342,7 +373,8 @@ function Onboarding() {
             </span>
           </div>
           <span className="text-sm leading-relaxed">
-            I have saved these codes securely. I understand that losing both my passphrase and these codes means <strong>permanent, unrecoverable loss</strong> of my account.
+            I have saved these codes securely. I understand that losing both my passphrase and these
+            codes means <strong>permanent, unrecoverable loss</strong> of my account.
           </span>
         </label>
       </FrostedPanel>
@@ -375,13 +407,15 @@ function Onboarding() {
                   i < step
                     ? "border-[color:var(--veil-glow)]/60 bg-[color:var(--veil-glow)]/10 text-[color:var(--veil-glow)]"
                     : i === step
-                    ? "border-white/40 text-foreground"
-                    : "border-white/10"
+                      ? "border-white/40 text-foreground"
+                      : "border-white/10"
                 }`}
               >
                 {i < step ? <Check className="h-3 w-3" /> : i + 1}
               </span>
-              <span className={cn("hidden sm:inline", i === step && "inline text-foreground")}>{s}</span>
+              <span className={cn("hidden sm:inline", i === step && "inline text-foreground")}>
+                {s}
+              </span>
               {i < 2 && <span className="mx-1.5 sm:mx-3 h-px w-4 sm:w-8 bg-border" />}
             </div>
           ))}
@@ -407,7 +441,9 @@ function Onboarding() {
               className="max-w-xl"
             >
               <h1 className="font-serif text-4xl leading-tight sm:text-5xl">Enter the Veil.</h1>
-              <p className="mt-4 text-muted-foreground">Enter your handle and passphrase to sign in.</p>
+              <p className="mt-4 text-muted-foreground">
+                Enter your handle and passphrase to sign in.
+              </p>
 
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 {/* Passkey-first login */}
@@ -428,14 +464,18 @@ function Onboarding() {
                 </div>
 
                 <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Handle</label>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Handle
+                  </label>
                   <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <span className="text-muted-foreground select-none">@</span>
                     <input
                       autoFocus
                       id="login-handle"
                       value={loginHandle}
-                      onChange={(e) => setLoginHandle(e.target.value.replace(/[^a-z0-9-]/gi, "").toLowerCase())}
+                      onChange={(e) =>
+                        setLoginHandle(e.target.value.replace(/[^a-z0-9-]/gi, "").toLowerCase())
+                      }
                       placeholder="quiet-linen"
                       className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground/50"
                     />
@@ -443,7 +483,9 @@ function Onboarding() {
                 </div>
 
                 <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Passphrase</label>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Passphrase
+                  </label>
                   <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <KeyRound className="h-4 w-4 text-muted-foreground" />
                     <input
@@ -455,7 +497,10 @@ function Onboarding() {
                       className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground/50"
                       onKeyDown={(e) => e.key === "Enter" && handlePassphraseLogin()}
                     />
-                    <button onClick={() => setShowLoginPass((v) => !v)} className="text-muted-foreground">
+                    <button
+                      onClick={() => setShowLoginPass((v) => !v)}
+                      className="text-muted-foreground"
+                    >
                       {showLoginPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
@@ -493,7 +538,9 @@ function Onboarding() {
               className="max-w-xl"
             >
               <h1 className="font-serif text-4xl">Two-factor check.</h1>
-              <p className="mt-4 text-muted-foreground">Enter the 6-digit code from your authenticator app.</p>
+              <p className="mt-4 text-muted-foreground">
+                Enter the 6-digit code from your authenticator app.
+              </p>
               <FrostedPanel className="mt-8 p-5">
                 <TotpInput onSubmit={handleMfaVerify} isLoading={isLoading} error={mfaError} />
               </FrostedPanel>
@@ -512,11 +559,14 @@ function Onboarding() {
             >
               <h1 className="font-serif text-4xl">Recover your account.</h1>
               <p className="mt-4 text-muted-foreground">
-                Enter one of your recovery codes and choose a new passphrase. The code will be invalidated after use.
+                Enter one of your recovery codes and choose a new passphrase. The code will be
+                invalidated after use.
               </p>
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Recovery code</label>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Recovery code
+                  </label>
                   <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <input
                       id="recovery-code-input"
@@ -528,7 +578,9 @@ function Onboarding() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">New passphrase</label>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    New passphrase
+                  </label>
                   <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <input
                       id="recovery-new-pass"
@@ -547,7 +599,10 @@ function Onboarding() {
                 >
                   {isLoading ? "Recovering…" : "Recover account"}
                 </button>
-                <button onClick={() => setShowRecoveryLogin(false)} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4">
+                <button
+                  onClick={() => setShowRecoveryLogin(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+                >
                   ← Back to sign in
                 </button>
               </FrostedPanel>
@@ -571,19 +626,25 @@ function Onboarding() {
                 No email. No phone. Nothing that ties this account to the rest of your life.
               </p>
               <FrostedPanel className="mt-8 p-5">
-                <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Handle</label>
+                <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Handle
+                </label>
                 <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                   <span className="text-muted-foreground select-none">@</span>
                   <input
                     autoFocus
                     id="register-handle"
                     value={handle}
-                    onChange={(e) => setHandle(e.target.value.replace(/[^a-z0-9-]/gi, "").toLowerCase())}
+                    onChange={(e) =>
+                      setHandle(e.target.value.replace(/[^a-z0-9-]/gi, "").toLowerCase())
+                    }
                     placeholder="quiet-linen"
                     className="flex-1 min-w-0 bg-transparent text-lg outline-none placeholder:text-muted-foreground/50"
                   />
                   <button
-                    onClick={() => setHandle(suggestions[Math.floor(Math.random() * suggestions.length)])}
+                    onClick={() =>
+                      setHandle(suggestions[Math.floor(Math.random() * suggestions.length)])
+                    }
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/5 dark:bg-white/[0.03] px-2 sm:px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground shrink-0"
                   >
                     <Shuffle className="h-3 w-3" />
@@ -631,7 +692,8 @@ function Onboarding() {
                 <div>
                   <p className="text-sm font-medium">On-device estimation</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Confirms you&rsquo;re over the required age. That&rsquo;s the only signal we keep.
+                    Confirms you&rsquo;re over the required age. That&rsquo;s the only signal we
+                    keep.
                   </p>
                   <label className="mt-4 flex cursor-pointer items-center gap-3">
                     <input
@@ -641,7 +703,9 @@ function Onboarding() {
                       className="peer sr-only"
                     />
                     <span className="grid h-5 w-5 place-items-center rounded-md border border-border bg-white/5 dark:bg-black/30 transition peer-checked:border-[color:var(--veil-glow)] peer-checked:bg-[color:var(--veil-glow)]/20">
-                      {ageConfirmed && <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />}
+                      {ageConfirmed && (
+                        <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />
+                      )}
                     </span>
                     <span className="text-sm">Run the on-device check and continue.</span>
                   </label>
@@ -660,13 +724,18 @@ function Onboarding() {
               transition={{ duration: 0.35 }}
               className="max-w-xl"
             >
-              <h1 className="font-serif text-4xl leading-tight sm:text-5xl">Set your passphrase.</h1>
+              <h1 className="font-serif text-4xl leading-tight sm:text-5xl">
+                Set your passphrase.
+              </h1>
               <p className="mt-4 text-muted-foreground">
-                This is your primary credential — choose something memorable but strong. It must have at least ~60 bits of entropy.
+                This is your primary credential — choose something memorable but strong. It must
+                have at least ~60 bits of entropy.
               </p>
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <div>
-                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Passphrase</label>
+                  <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Passphrase
+                  </label>
                   <div className="mt-2 flex items-center gap-2 px-4 py-3 input-surface">
                     <KeyRound className="h-4 w-4 text-muted-foreground" />
                     <input
@@ -677,8 +746,15 @@ function Onboarding() {
                       placeholder="long, strong, memorable"
                       className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground/50"
                     />
-                    <button onClick={() => setShowPassphrase((v) => !v)} className="text-muted-foreground">
-                      {showPassphrase ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <button
+                      onClick={() => setShowPassphrase((v) => !v)}
+                      className="text-muted-foreground"
+                    >
+                      {showPassphrase ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                   {/* Entropy meter */}
@@ -697,7 +773,9 @@ function Onboarding() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tip: use a long phrase or mix of unrelated words. Your passphrase is hashed with Argon2id and checked against known breach databases — the full passphrase is never sent to a third party.
+                  Tip: use a long phrase or mix of unrelated words. Your passphrase is hashed with
+                  Argon2id and checked against known breach databases — the full passphrase is never
+                  sent to a third party.
                 </p>
               </FrostedPanel>
             </motion.div>
@@ -716,9 +794,12 @@ function Onboarding() {
               transition={{ duration: 0.35 }}
               className="max-w-xl"
             >
-              <h1 className="font-serif text-4xl leading-tight sm:text-5xl">Add a passkey for faster sign-in.</h1>
+              <h1 className="font-serif text-4xl leading-tight sm:text-5xl">
+                Add a passkey for faster sign-in.
+              </h1>
               <p className="mt-4 text-muted-foreground">
-                Passkeys use your device biometrics (Face ID, fingerprint, PIN) — no passphrase needed next time. This step is optional but recommended.
+                Passkeys use your device biometrics (Face ID, fingerprint, PIN) — no passphrase
+                needed next time. This step is optional but recommended.
               </p>
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <button
@@ -779,7 +860,10 @@ function Onboarding() {
 
         {!isLogin && step === 3 && (
           <button
-            onClick={() => { setError(""); setStep(4); }}
+            onClick={() => {
+              setError("");
+              setStep(4);
+            }}
             disabled={!codesAcknowledged}
             className="group inline-flex items-center gap-2 rounded-full bg-[color:var(--veil-glow)] px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-40"
           >

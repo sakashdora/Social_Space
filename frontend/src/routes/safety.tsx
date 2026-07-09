@@ -33,12 +33,15 @@ function SafetyCenter() {
   return (
     <div className="mx-auto max-w-4xl px-4 pb-28 lg:pb-10 pt-10 sm:px-6 lg:pt-14">
       <header className="mb-8">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Safety Center</p>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          Safety Center
+        </p>
         <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">
           Report, track, appeal — in plain language.
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Reporting a piece of content should feel like relief, not another form. Every report gets a status. Every decision can be appealed.
+          Reporting a piece of content should feel like relief, not another form. Every report gets
+          a status. Every decision can be appealed.
         </p>
       </header>
 
@@ -49,7 +52,9 @@ function SafetyCenter() {
             onClick={() => setTab(key)}
             className={cn(
               "inline-flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 transition",
-              tab === key ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground",
+              tab === key
+                ? "bg-white/10 text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Icon className="h-4 w-4" />
@@ -71,10 +76,14 @@ function SafetyCenter() {
           <div>
             <h3 className="font-serif text-2xl">The floor.</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              These are non-negotiable. Break them and your Trust Token is revoked — no exceptions, no warnings.
+              These are non-negotiable. Break them and your Trust Token is revoked — no exceptions,
+              no warnings.
             </p>
             <ul className="mt-4 space-y-2 text-sm">
-              <li>&bull; No child sexual abuse material. Detected pre-anonymization, reported to authorities.</li>
+              <li>
+                &bull; No child sexual abuse material. Detected pre-anonymization, reported to
+                authorities.
+              </li>
               <li>&bull; No targeted harassment, doxxing, or coordinated intimidation.</li>
               <li>&bull; No non-consensual intimate imagery.</li>
               <li>&bull; No incitement to violence.</li>
@@ -83,7 +92,9 @@ function SafetyCenter() {
           <div>
             <h3 className="font-serif text-2xl">The spirit.</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Veil exists for people who need to speak without cost. Do not use it as a laundering path — for fake media, for hate, or for harm to others hiding here for the same reasons you are.
+              Veil exists for people who need to speak without cost. Do not use it as a laundering
+              path — for fake media, for hate, or for harm to others hiding here for the same
+              reasons you are.
             </p>
           </div>
         </FrostedPanel>
@@ -98,7 +109,8 @@ function SafetyCenter() {
             <div>
               <h3 className="font-serif text-2xl">Every decision can be challenged.</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Appeals are read by a second human moderator, not the one who made the initial decision. Median response time is under 48 hours.
+                Appeals are read by a second human moderator, not the one who made the initial
+                decision. Median response time is under 48 hours.
               </p>
               <button className="mt-5 inline-flex items-center gap-2 rounded-full bg-[color:var(--veil-glow)] px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110">
                 Start an appeal
@@ -120,7 +132,11 @@ const statusMap: Record<Report["status"], { label: string; color: string }> = {
 
 function ReportCard({ report }: { report: Report }) {
   const s = statusMap[report.status];
-  const steps: Report["status"][] = ["received", "reviewing", report.status === "no-violation" ? "no-violation" : "action"];
+  const steps: Report["status"][] = [
+    "received",
+    "reviewing",
+    report.status === "no-violation" ? "no-violation" : "action",
+  ];
   const currentIdx = steps.indexOf(report.status);
 
   return (
@@ -159,7 +175,9 @@ function ReportCard({ report }: { report: Report }) {
               >
                 {i + 1}
               </span>
-              <span className={cn("text-[11px]", done ? "text-foreground" : "text-muted-foreground")}>
+              <span
+                className={cn("text-[11px]", done ? "text-foreground" : "text-muted-foreground")}
+              >
                 {statusMap[step].label}
               </span>
               {i < steps.length - 1 && (

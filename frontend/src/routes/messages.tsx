@@ -2,7 +2,14 @@ import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tan
 import { Timer, Plus, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchChats, createChat, getMe, updateChatPublicKey, getCurrentUser, threadKeyCache } from "@/lib/api";
+import {
+  fetchChats,
+  createChat,
+  getMe,
+  updateChatPublicKey,
+  getCurrentUser,
+  threadKeyCache,
+} from "@/lib/api";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -41,7 +48,8 @@ function MessagesLayout() {
 
     async function checkKeys(activeUser: NonNullable<typeof me>) {
       try {
-        const { getKeyRecord, generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } = await import("@/lib/crypto");
+        const { getKeyRecord, generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } =
+          await import("@/lib/crypto");
         const record = await getKeyRecord(activeUser.id);
 
         if (!record) {
@@ -51,7 +59,7 @@ function MessagesLayout() {
             const pubKeyB64 = await exportPublicKeyBase64(keyPair.publicKey);
             await saveKeyRecord(activeUser.id, {
               privateKey: keyPair.privateKey,
-              publicKeyBase64: pubKeyB64
+              publicKeyBase64: pubKeyB64,
             });
             await updateChatPublicKey(pubKeyB64);
             queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -81,13 +89,14 @@ function MessagesLayout() {
     const currentMe = me;
     if (!currentMe) return;
     try {
-      const { generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } = await import("@/lib/crypto");
+      const { generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } =
+        await import("@/lib/crypto");
       console.log("Resetting chat keys...");
       const keyPair = await generateChatKeyPair();
       const pubKeyB64 = await exportPublicKeyBase64(keyPair.publicKey);
       await saveKeyRecord(currentMe.id, {
         privateKey: keyPair.privateKey,
-        publicKeyBase64: pubKeyB64
+        publicKeyBase64: pubKeyB64,
       });
       await updateChatPublicKey(pubKeyB64);
       setShowKeyResetDialog(false);
@@ -128,7 +137,7 @@ function MessagesLayout() {
     <div
       className={cn(
         "flex h-full w-full overflow-hidden flex-col lg:flex-row",
-        "pb-[88px] lg:pb-0" // Pad on mobile to clear bottom floating menu + safe area
+        "pb-[88px] lg:pb-0", // Pad on mobile to clear bottom floating menu + safe area
       )}
     >
       {/* ─── Thread list sidebar ──────────────────────────────────── */}
@@ -138,7 +147,7 @@ function MessagesLayout() {
           // Mobile: shown only when no thread active; hidden when viewing a thread
           active ? "hidden lg:flex" : "flex",
           // Desktop: fixed 300px wide sidebar
-          "lg:w-[300px]"
+          "lg:w-[300px]",
         )}
         style={{
           borderRight: "1px solid var(--surface-border)",
@@ -228,7 +237,7 @@ function MessagesLayout() {
                         "flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 select-none relative group",
                         isCurrent
                           ? "bg-white/[0.06] text-foreground border border-white/10"
-                          : "hover:bg-white/[0.02] text-muted-foreground hover:text-foreground border border-transparent"
+                          : "hover:bg-white/[0.02] text-muted-foreground hover:text-foreground border border-transparent",
                       )}
                     >
                       {/* Active indicator bar */}
@@ -257,11 +266,18 @@ function MessagesLayout() {
                             {t.time}
                           </span>
                         </div>
-                        <ThreadPreview preview={t.preview} threadId={t.id} recipientId={t.recipientId} />
+                        <ThreadPreview
+                          preview={t.preview}
+                          threadId={t.id}
+                          recipientId={t.recipientId}
+                        />
                         {t.disappearing && t.disappearing !== "Off" && (
                           <span
                             className="mt-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground"
-                            style={{ background: "var(--tag-bg)", border: "1px solid var(--tag-border)" }}
+                            style={{
+                              background: "var(--tag-bg)",
+                              border: "1px solid var(--tag-border)",
+                            }}
                           >
                             <Timer className="h-2.5 w-2.5" />
                             {t.disappearing}
@@ -273,7 +289,6 @@ function MessagesLayout() {
                 );
               })}
             </ul>
-
           )}
         </div>
       </aside>
@@ -283,7 +298,7 @@ function MessagesLayout() {
         className={cn(
           "min-w-0 flex-1 h-full",
           // Mobile: shown only when a thread is active
-          active ? "flex flex-col" : "hidden lg:flex lg:flex-col"
+          active ? "flex flex-col" : "hidden lg:flex lg:flex-col",
         )}
       >
         <Outlet />
@@ -306,8 +321,8 @@ function MessagesLayout() {
                 Chat Keys Out of Sync
               </h2>
               <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
-                You are logging in from a new device, cleared your browser storage, or your local keys are missing. 
-                Your previous chat history cannot be decrypted on this device.
+                You are logging in from a new device, cleared your browser storage, or your local
+                keys are missing. Your previous chat history cannot be decrypted on this device.
               </p>
               <div className="mt-6 flex flex-col gap-2">
                 <button
@@ -331,7 +346,15 @@ function MessagesLayout() {
   );
 }
 
-function ThreadPreview({ preview, threadId, recipientId }: { preview: string; threadId: string; recipientId: string }) {
+function ThreadPreview({
+  preview,
+  threadId,
+  recipientId,
+}: {
+  preview: string;
+  threadId: string;
+  recipientId: string;
+}) {
   const [decryptedText, setDecryptedText] = useState("Encrypted Message");
 
   React.useEffect(() => {
@@ -357,7 +380,8 @@ function ThreadPreview({ preview, threadId, recipientId }: { preview: string; th
         const sender = getCurrentUser();
         if (!sender) return;
 
-        const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey, decryptText } = await import("@/lib/crypto");
+        const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey, decryptText } =
+          await import("@/lib/crypto");
         const record = await getKeyRecord(sender.id);
         if (!record) {
           if (active) setDecryptedText("Encrypted Message");
@@ -393,4 +417,3 @@ function ThreadPreview({ preview, threadId, recipientId }: { preview: string; th
 
   return <p className="mt-0.5 truncate text-xs text-muted-foreground/80">{decryptedText}</p>;
 }
-

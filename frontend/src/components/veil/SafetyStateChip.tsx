@@ -3,7 +3,10 @@ import { cn } from "@/lib/utils";
 
 export type SafetyState = "safe" | "warn" | "danger" | "neutral";
 
-const config: Record<SafetyState, { icon: React.ComponentType<{ className?: string }>; ring: string; fg: string; bg: string }> = {
+const config: Record<
+  SafetyState,
+  { icon: React.ComponentType<{ className?: string }>; ring: string; fg: string; bg: string }
+> = {
   safe: {
     icon: Check,
     ring: "ring-1 ring-inset ring-[color:color-mix(in_oklab,var(--safe)_40%,transparent)]",

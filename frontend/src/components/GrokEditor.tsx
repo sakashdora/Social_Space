@@ -98,7 +98,7 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
           rows={10}
           className="w-full resize-y bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/60"
         />
-        
+
         {/* Grok Actions Toolbar */}
         <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
           <button
@@ -109,7 +109,7 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
             <Check className="h-3.5 w-3.5" />
             {isCorrecting ? "Correcting..." : "Correct Grammar"}
           </button>
-          
+
           <button
             onClick={handleSuggest}
             disabled={isSuggesting || !value.trim()}
@@ -129,8 +129,8 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
           </p>
           <ul className="space-y-2">
             {suggestions.map((suggestion, idx) => (
-              <li 
-                key={idx} 
+              <li
+                key={idx}
                 className="cursor-pointer rounded-lg bg-white/5 p-3 text-sm text-foreground/90 transition hover:bg-white/10"
                 onClick={() => onChange(value ? `${value}\n\n${suggestion}` : suggestion)}
               >

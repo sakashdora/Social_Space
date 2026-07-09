@@ -1,12 +1,25 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import React, { useState, useRef, useEffect } from "react";
 import {
-  ShieldCheck, Timer, Paperclip, Send, ChevronDown, ArrowLeft, X, Loader2,
+  ShieldCheck,
+  Timer,
+  Paperclip,
+  Send,
+  ChevronDown,
+  ArrowLeft,
+  X,
+  Loader2,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  fetchChats, fetchChatMessages, sendChatMessage, updateChatTimer, uploadMedia,
-  getCurrentUser, getUserPublicKey, threadKeyCache,
+  fetchChats,
+  fetchChatMessages,
+  sendChatMessage,
+  updateChatTimer,
+  uploadMedia,
+  getCurrentUser,
+  getUserPublicKey,
+  threadKeyCache,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -61,16 +74,19 @@ function Thread() {
       const sender = getCurrentUser();
       if (!sender) return;
 
-      const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey, decryptText } = await import("@/lib/crypto");
-      
+      const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey, decryptText } =
+        await import("@/lib/crypto");
+
       const record = await getKeyRecord(sender.id);
       if (!record) {
         console.warn("Secure key record missing.");
         if (active) {
-          setDecryptedMessages(messages.map((m: any) => ({ 
-            ...m, 
-            body: m.sending ? m.body : "Unable to decrypt (Keys out of sync)" 
-          })));
+          setDecryptedMessages(
+            messages.map((m: any) => ({
+              ...m,
+              body: m.sending ? m.body : "Unable to decrypt (Keys out of sync)",
+            })),
+          );
         }
         return;
       }
@@ -91,10 +107,12 @@ function Thread() {
 
       if (!aesKey) {
         if (active) {
-          setDecryptedMessages(messages.map((m: any) => ({ 
-            ...m, 
-            body: m.sending ? m.body : "Unable to decrypt (Recipient has no keys)" 
-          })));
+          setDecryptedMessages(
+            messages.map((m: any) => ({
+              ...m,
+              body: m.sending ? m.body : "Unable to decrypt (Recipient has no keys)",
+            })),
+          );
         }
         return;
       }
@@ -114,7 +132,7 @@ function Thread() {
             return { ...m, body: "Unable to decrypt" };
           }
           return { ...m, body: "Unable to decrypt" };
-        })
+        }),
       );
 
       if (active) {
@@ -209,10 +227,10 @@ function Thread() {
   });
 
   const timerOptions = [
-    { label: "1 Hour",       seconds: 3600 },
-    { label: "12 Hours",     seconds: 43200 },
-    { label: "1 Day",        seconds: 86400 },
-    { label: "3 Days",       seconds: 259200 },
+    { label: "1 Hour", seconds: 3600 },
+    { label: "12 Hours", seconds: 43200 },
+    { label: "1 Day", seconds: 86400 },
+    { label: "3 Days", seconds: 259200 },
     { label: "7 Days (Max)", seconds: 604800 },
   ];
 
@@ -245,7 +263,6 @@ function Thread() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-
       {/* ── HEADER — pinned at top ────────────────────────────────── */}
       <header
         className="flex shrink-0 items-center gap-3 px-5 py-3.5 relative z-30"
@@ -290,7 +307,10 @@ function Thread() {
             <span className="hidden sm:inline">Delete: </span>
             {thread.disappearing || "7d"}
             <ChevronDown
-              className={cn("h-3 w-3 transition-transform duration-200", showTimerMenu && "rotate-180")}
+              className={cn(
+                "h-3 w-3 transition-transform duration-200",
+                showTimerMenu && "rotate-180",
+              )}
             />
           </motion.button>
 
@@ -328,7 +348,8 @@ function Thread() {
                         }}
                         onMouseEnter={(e) => {
                           if (!isCurrent)
-                            (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-hover)";
+                            (e.currentTarget as HTMLElement).style.backgroundColor =
+                              "var(--surface-hover)";
                         }}
                         onMouseLeave={(e) => {
                           if (!isCurrent)
@@ -392,7 +413,7 @@ function Thread() {
                   type: "spring",
                   stiffness: 450,
                   damping: 30,
-                  mass: 0.8
+                  mass: 0.8,
                 }}
                 className={cn("flex w-full", m.mine ? "justify-end" : "justify-start")}
               >
@@ -400,23 +421,23 @@ function Thread() {
                   className={cn(
                     "max-w-[75%] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm transition-all duration-200",
                     m.mine ? "msg-out" : "msg-in",
-                    m.sending && "opacity-70 cursor-not-allowed select-none"
+                    m.sending && "opacity-70 cursor-not-allowed select-none",
                   )}
                 >
                   {m.mediaUrl && (
                     <div className="mb-2 overflow-hidden rounded-xl max-w-[260px]">
                       {m.mediaUrl.startsWith("data:video/") ? (
-                        <video 
-                          src={m.mediaUrl} 
-                          controls 
-                          className="w-full max-h-44 rounded-xl object-cover" 
+                        <video
+                          src={m.mediaUrl}
+                          controls
+                          className="w-full max-h-44 rounded-xl object-cover"
                           onLoadedData={scrollToBottom}
                         />
                       ) : (
-                        <img 
-                          src={m.mediaUrl} 
-                          alt="Chat media" 
-                          className="w-full max-h-44 rounded-xl object-cover" 
+                        <img
+                          src={m.mediaUrl}
+                          alt="Chat media"
+                          className="w-full max-h-44 rounded-xl object-cover"
                           onLoad={scrollToBottom}
                         />
                       )}

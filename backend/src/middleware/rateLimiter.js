@@ -101,8 +101,11 @@ export async function accountLockoutGuard(req, res, next) {
   const handle = (req.body?.handle || req.params?.handle || "").trim().toLowerCase();
   if (!handle) return next();
 
+  const ip = req.ip || "unknown";
+  const key = `${handle}:${ip}`;
+
   try {
-    const attempt = await prisma.loginAttempt.findUnique({ where: { handle } });
+    const attempt = await prisma.loginAttempt.findUnique({ where: { handle: key } });
     if (!attempt) return next();
 
     if (attempt.lockedUntil && attempt.lockedUntil > new Date()) {
@@ -125,18 +128,20 @@ export async function accountLockoutGuard(req, res, next) {
  * Applies the lockout schedule automatically.
  *
  * @param {string} handle
+ * @param {string} ip
  */
-export async function recordFailedAttempt(handle) {
+export async function recordFailedAttempt(handle, ip) {
   const cleanHandle = handle.trim().toLowerCase();
+  const key = `${cleanHandle}:${ip || "unknown"}`;
   try {
     const current = await prisma.loginAttempt.upsert({
-      where: { handle: cleanHandle },
-      create: { handle: cleanHandle, failCount: 1, lockedUntil: null },
+      where: { handle: key },
+      create: { handle: key, failCount: 1, lockedUntil: null },
       update: { failCount: { increment: 1 } },
     });
 
     const newCount = current.failCount + 1; // upsert returns pre-update value in some adapters; refetch
-    const refetched = await prisma.loginAttempt.findUnique({ where: { handle: cleanHandle } });
+    const refetched = await prisma.loginAttempt.findUnique({ where: { handle: key } });
     const failCount = refetched?.failCount ?? newCount;
 
     // Determine appropriate lockout duration
@@ -150,7 +155,7 @@ export async function recordFailedAttempt(handle) {
 
     if (lockedUntil) {
       await prisma.loginAttempt.update({
-        where: { handle: cleanHandle },
+        where: { handle: key },
         data: { lockedUntil },
       });
     }
@@ -163,11 +168,20 @@ export async function recordFailedAttempt(handle) {
  * Clear the failed attempt counter for a handle after a successful authentication.
  *
  * @param {string} handle
+ * @param {string} ip
  */
-export async function clearFailedAttempts(handle) {
+export async function clearFailedAttempts(handle, ip) {
   const cleanHandle = handle.trim().toLowerCase();
+  const key = `${cleanHandle}:${ip || "unknown"}`;
   try {
-    await prisma.loginAttempt.delete({ where: { handle: cleanHandle } }).catch(() => {});
+    await prisma.loginAttempt.delete({ where: { handle: key } }).catch(() => {});
+    await prisma.loginAttempt.deleteMany({
+      where: {
+        handle: {
+          startsWith: `${cleanHandle}:`
+        }
+      }
+    }).catch(() => {});
   } catch {
     // Ignore — not critical if cleanup fails
   }

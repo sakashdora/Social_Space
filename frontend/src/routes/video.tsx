@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { fetchFeed } from "@/lib/api";
+import { fetchFeed, mapApiPostToUiPost } from "@/lib/api";
+import type { ApiPost } from "@/lib/api";
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, Sparkles } from "lucide-react";
 
@@ -8,11 +9,11 @@ export const Route = createFileRoute("/video")({
   component: VideoFeed,
 });
 
-function PremiumPlayer({ post }: { post: any }) {
+function PremiumPlayer({ post }: { post: ReturnType<typeof mapApiPostToUiPost> }) {
   const url = post.mediaUrl || "";
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const [isVideo, setIsVideo] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -35,19 +36,22 @@ function PremiumPlayer({ post }: { post: any }) {
   // Autoplay when visible in viewport
   useEffect(() => {
     if (!isVideo || !videoRef.current) return;
-    
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            videoRef.current?.play().then(() => setIsPlaying(true)).catch(() => {});
+            videoRef.current
+              ?.play()
+              .then(() => setIsPlaying(true))
+              .catch(() => {});
           } else {
             videoRef.current?.pause();
             setIsPlaying(false);
           }
         });
       },
-      { threshold: 0.5 } // Play when 50% visible
+      { threshold: 0.5 }, // Play when 50% visible
     );
 
     if (containerRef.current) {
@@ -64,7 +68,10 @@ function PremiumPlayer({ post }: { post: any }) {
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      videoRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
     }
   };
 
@@ -113,7 +120,7 @@ function PremiumPlayer({ post }: { post: any }) {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="relative w-full aspect-[4/5] sm:aspect-[9/16] max-h-[70vh] sm:max-h-[80vh] bg-black/95 flex items-center justify-center overflow-hidden group select-none transition-all duration-300 hover:shadow-2xl border border-white/5 rounded-3xl"
     >
@@ -165,14 +172,18 @@ function PremiumPlayer({ post }: { post: any }) {
               <div className="flex items-center justify-between">
                 {/* Left controls */}
                 <div className="flex items-center gap-3">
-                  <button 
+                  <button
                     onClick={handlePlayPause}
                     className="p-1.5 rounded-lg hover:bg-white/10 text-white transition"
                   >
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+                    {isPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4 fill-current" />
+                    )}
                   </button>
 
-                  <button 
+                  <button
                     onClick={handleMuteToggle}
                     className="p-1.5 rounded-lg hover:bg-white/10 text-white transition"
                   >
@@ -186,7 +197,7 @@ function PremiumPlayer({ post }: { post: any }) {
 
                 {/* Right controls */}
                 <div className="flex items-center gap-3">
-                  <button 
+                  <button
                     onClick={handleFullscreen}
                     className="p-1.5 rounded-lg hover:bg-white/10 text-white transition"
                   >
@@ -199,7 +210,7 @@ function PremiumPlayer({ post }: { post: any }) {
 
           {/* Big Center Play Icon when paused */}
           {!isPlaying && (
-            <div 
+            <div
               onClick={handlePlayPause}
               className="absolute inset-0 flex items-center justify-center bg-black/35 cursor-pointer z-0"
             >
@@ -212,10 +223,10 @@ function PremiumPlayer({ post }: { post: any }) {
       ) : (
         /* Image Media rendering */
         <div className="relative w-full h-full flex items-center justify-center group/img">
-          <img 
-            src={url} 
-            alt="Media Card" 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105" 
+          <img
+            src={url}
+            alt="Media Card"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />
         </div>
@@ -224,14 +235,16 @@ function PremiumPlayer({ post }: { post: any }) {
       {/* Persistent Static Info Overlay (User Badge and Caption) */}
       <div className="absolute bottom-0 inset-x-0 p-5 flex flex-col justify-end pointer-events-none z-20 bg-gradient-to-t from-black/90 via-black/30 to-transparent">
         <div className="flex items-center gap-3 pointer-events-auto">
-          <div 
+          <div
             className="h-9 w-9 rounded-full flex items-center justify-center font-serif text-sm font-bold text-white shadow-lg uppercase"
             style={{ backgroundColor: post.color }}
           >
             {post.author[0]}
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-sm text-white leading-tight truncate">@{post.author}</p>
+            <p className="font-semibold text-sm text-white leading-tight truncate">
+              @{post.author}
+            </p>
             <p className="text-[10px] text-white/50 leading-none mt-1">{post.time}</p>
           </div>
         </div>
@@ -244,7 +257,11 @@ function PremiumPlayer({ post }: { post: any }) {
 }
 
 function VideoFeed() {
-  const { data: posts, isLoading, error } = useQuery({
+  const {
+    data: posts,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["posts", "Video"],
     queryFn: () => fetchFeed("Video"),
   });
@@ -253,13 +270,18 @@ function VideoFeed() {
     <div className="mx-auto w-full max-w-lg sm:max-w-xl py-8 px-4 sm:px-6 pb-28 lg:pb-10 h-full">
       <header className="text-center mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight">Media Portal</h1>
-        <p className="text-xs text-muted-foreground mt-2">End-to-end secure, untraceable media streams.</p>
+        <p className="text-xs text-muted-foreground mt-2">
+          End-to-end secure, untraceable media streams.
+        </p>
       </header>
 
       {isLoading && (
         <div className="space-y-8 animate-pulse">
-          {[1, 2].map(i => (
-            <div key={i} className="w-full aspect-[3/4] sm:aspect-[9/16] rounded-3xl bg-white/5 border border-white/5"></div>
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-full aspect-[3/4] sm:aspect-[9/16] rounded-3xl bg-white/5 border border-white/5"
+            ></div>
           ))}
         </div>
       )}
@@ -272,7 +294,9 @@ function VideoFeed() {
 
       {posts && posts.length === 0 && (
         <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center text-muted-foreground text-xs leading-relaxed">
-          No secure media uploaded yet.<br />Go to Compose to share a photo or video anonymously!
+          No secure media uploaded yet.
+          <br />
+          Go to Compose to share a photo or video anonymously!
         </div>
       )}
 

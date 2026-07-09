@@ -1,13 +1,79 @@
 const API_BASE = "http://localhost:3000";
 
+export interface SentimentAnalysis {
+  sentiment: string;
+  score: number;
+}
+
+export interface ApiPost {
+  id: string;
+  userId: string | null;
+  content: string;
+  category: string;
+  mediaUrl: string | null;
+  mediaId: string | null;
+  aiLabels: string | null;
+  sentimentAnalysis: string | SentimentAnalysis | null;
+  isDeleted: boolean;
+  sharedPostId: string | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    handle: string;
+    avatarUrl: string | null;
+  } | null;
+  reactionCount?: number;
+  commentCount?: number;
+  isAiModifiedMedia?: boolean;
+}
+
+export interface ApiComment {
+  id: string;
+  postId: string;
+  userId: string | null;
+  parentCommentId: string | null;
+  content: string;
+  isDeleted: boolean;
+  createdAt: string;
+  user?: {
+    id: string;
+    handle: string;
+    avatarUrl: string | null;
+  } | null;
+}
+
+export interface ApiChat {
+  id: string;
+  handle: string;
+  color?: string;
+  lastMessage?: string;
+  disappearing?: string;
+}
+
+export interface ApiUser {
+  id: string;
+  handle: string;
+  avatarUrl: string | null;
+  createdAt: string;
+  pendingDeletionAt: string | null;
+  chatPublicKey: string | null;
+  chatPublicKeyAlgo: string | null;
+}
+
 function stringToColor(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   const colors = [
-    "#0D7377", "#8B5CF6", "#E5C07B", "#3EC5A6", 
-    "#EF4444", "#3B82F6", "#10B981", "#F59E0B"
+    "#0D7377",
+    "#8B5CF6",
+    "#E5C07B",
+    "#3EC5A6",
+    "#EF4444",
+    "#3B82F6",
+    "#10B981",
+    "#F59E0B",
   ];
   const index = Math.abs(hash) % colors.length;
   return colors[index];
@@ -27,7 +93,7 @@ function formatRelativeTime(dateString: string): string {
   return `${diffDays}d`;
 }
 
-export function mapApiPostToUiPost(p: any) {
+export function mapApiPostToUiPost(p: ApiPost) {
   const author = p.user ? p.user.handle : "anonymous";
   const handle = p.user ? `@${p.user.handle}` : "@anonymous";
   const color = p.user ? stringToColor(p.user.handle) : "#555555"; // Dark gray for fully anonymous
@@ -42,7 +108,11 @@ export function mapApiPostToUiPost(p: any) {
     body: p.content,
     media: p.mediaUrl ? "portrait" : null,
     mediaUrl: p.mediaUrl,
-    sentimentAnalysis: p.sentimentAnalysis ? (typeof p.sentimentAnalysis === "string" ? JSON.parse(p.sentimentAnalysis) : p.sentimentAnalysis) : null,
+    sentimentAnalysis: p.sentimentAnalysis
+      ? typeof p.sentimentAnalysis === "string"
+        ? JSON.parse(p.sentimentAnalysis)
+        : p.sentimentAnalysis
+      : null,
     synthetic: p.isAiModifiedMedia || false,
     reactions: p.reactionCount || 0,
     replies: p.commentCount || 0,
@@ -55,7 +125,7 @@ function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, s
     "Content-Type": "application/json",
     ...extraHeaders,
   };
-  
+
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("veil_auth_token");
     if (token) {
@@ -174,7 +244,12 @@ export async function fetchPostDetails(postId: string) {
 /**
  * Create a new post.
  */
-export async function createPost(content: string, category: string, mode: string, mediaUrl: string | null = null) {
+export async function createPost(
+  content: string,
+  category: string,
+  mode: string,
+  mediaUrl: string | null = null,
+) {
   const res = await fetch(`${API_BASE}/v1/posts`, {
     method: "POST",
     headers: getHeaders(),
@@ -186,7 +261,12 @@ export async function createPost(content: string, category: string, mode: string
 /**
  * Add a comment/reply to a post.
  */
-export async function createComment(postId: string, content: string, mode = "pseudo", parentCommentId: string | null = null) {
+export async function createComment(
+  postId: string,
+  content: string,
+  mode = "pseudo",
+  parentCommentId: string | null = null,
+) {
   const res = await fetch(`${API_BASE}/v1/posts/${postId}/comments`, {
     method: "POST",
     headers: getHeaders(),
@@ -216,7 +296,7 @@ export async function toggleReaction({ postId, commentId, reactionType }: Reacti
 /**
  * Fetch RSS News feed.
  */
-export async function fetchNews(topic = '') {
+export async function fetchNews(topic = "") {
   const url = new URL(`${API_BASE}/api/rss`);
   if (topic) url.searchParams.append("topic", topic);
   const res = await fetch(url.toString(), {
@@ -310,7 +390,12 @@ export function clearThreadKeyCache() {
   }
 }
 
-export async function sendChatMessage(threadId: string, body: string, recipientId: string, mediaUrl: string | null = null) {
+export async function sendChatMessage(
+  threadId: string,
+  body: string,
+  recipientId: string,
+  mediaUrl: string | null = null,
+) {
   let aesKey = threadKeyCache[threadId];
   if (!aesKey) {
     const sender = getCurrentUser();
@@ -319,7 +404,9 @@ export async function sendChatMessage(threadId: string, body: string, recipientI
     const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey } = await import("./crypto");
     const record = await getKeyRecord(sender.id);
     if (!record) {
-      throw new Error("Secure chat keys missing locally. Reset your keys in the messaging side panel.");
+      throw new Error(
+        "Secure chat keys missing locally. Reset your keys in the messaging side panel.",
+      );
     }
 
     const recipientKeyData = await getUserPublicKey(recipientId);
@@ -336,7 +423,7 @@ export async function sendChatMessage(threadId: string, body: string, recipientI
   const encrypted = await encryptText(body, aesKey);
   const ciphertextPayload = JSON.stringify({
     ciphertext: encrypted.ciphertext,
-    iv: encrypted.iv
+    iv: encrypted.iv,
   });
 
   const res = await fetch(`${API_BASE}/v1/chats/${threadId}/messages`, {
@@ -391,7 +478,7 @@ export async function logoutAllDevices() {
 export async function redeemRecoveryCode(
   handle: string,
   recoveryCode: string,
-  newPassphrase: string
+  newPassphrase: string,
 ) {
   const res = await fetch(`${API_BASE}/v1/auth/recovery-codes/redeem`, {
     method: "POST",
@@ -513,10 +600,10 @@ export async function removePasskey(id: string, currentPassphrase: string) {
 }
 
 /** Current user profile (includes pendingDeletionAt) */
-export async function getMe(): Promise<{ 
-  id: string; 
-  handle: string; 
-  createdAt: string; 
+export async function getMe(): Promise<{
+  id: string;
+  handle: string;
+  createdAt: string;
   pendingDeletionAt: string | null;
   chatPublicKey: string | null;
   chatPublicKeyAlgo: string | null;
@@ -556,11 +643,11 @@ export async function updateChatPublicKey(chatPublicKey: string) {
   return handleResponse(res);
 }
 
-export async function getUserPublicKey(userId: string): Promise<{ id: string; chatPublicKey: string | null; chatPublicKeyAlgo: string | null }> {
+export async function getUserPublicKey(
+  userId: string,
+): Promise<{ id: string; chatPublicKey: string | null; chatPublicKeyAlgo: string | null }> {
   const res = await fetch(`${API_BASE}/v1/users/${userId}/chat-public-key`, {
     headers: getHeaders(),
   });
   return handleResponse(res);
 }
-
-

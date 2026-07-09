@@ -9,11 +9,7 @@ export const FrostedPanel = forwardRef<HTMLDivElement, Props>(
   ({ className, glow, ...rest }, ref) => (
     <div
       ref={ref}
-      className={cn(
-        "frost grain-panel rounded-3xl",
-        glow && "veil-glow-ring",
-        className,
-      )}
+      className={cn("frost grain-panel rounded-3xl", glow && "veil-glow-ring", className)}
       {...rest}
     />
   ),

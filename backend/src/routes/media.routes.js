@@ -67,6 +67,50 @@ router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {
   }
 
   const rawFilePath = req.file.path;
+
+  // Verify magic bytes (prevent MIME spoofing)
+  let isMagicValid = false;
+  try {
+    const fd = fs.openSync(rawFilePath, "r");
+    const sigBuffer = Buffer.alloc(12);
+    fs.readSync(fd, sigBuffer, 0, 12, 0);
+    fs.closeSync(fd);
+    
+    const hex = sigBuffer.toString("hex").toUpperCase();
+    const mimeType = req.file.mimetype;
+    
+    if (mimeType === "image/jpeg") {
+      isMagicValid = hex.startsWith("FFD8FF");
+    } else if (mimeType === "image/png") {
+      isMagicValid = hex.startsWith("89504E470D0A1A0A");
+    } else if (mimeType === "image/gif") {
+      isMagicValid = hex.startsWith("474946383761") || hex.startsWith("474946383961");
+    } else if (mimeType === "image/webp") {
+      isMagicValid = hex.startsWith("52494646") && hex.substring(16, 24) === "57454250";
+    } else if (mimeType === "video/mp4") {
+      isMagicValid = hex.substring(8, 16) === "66747970";
+    } else if (mimeType === "image/heic") {
+      isMagicValid = hex.substring(8, 24) === "6674797068656963" || hex.substring(8, 24) === "667479706D534631";
+    } else if (mimeType === "video/quicktime") {
+      isMagicValid = hex.substring(8, 20) === "667479707174" || hex.startsWith("00000014667479707174");
+    } else if (mimeType === "video/webm") {
+      isMagicValid = hex.startsWith("1A45DFA3");
+    }
+  } catch (err) {
+    console.error("Magic bytes read error:", err);
+    isMagicValid = false;
+  }
+
+  if (!isMagicValid) {
+    try {
+      fs.unlinkSync(rawFilePath);
+    } catch {}
+    return res.status(415).json({
+      error: "INVALID_FILE_SIGNATURE",
+      message: `File content verification failed. The file signature does not match mimetype '${req.file.mimetype}'.`
+    });
+  }
+
   const isVideo = req.file.mimetype.startsWith("video/");
   const userId = req.user.id;
   const mediaId = crypto.randomUUID(); // Node global crypto is available

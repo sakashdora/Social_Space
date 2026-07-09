@@ -35,5 +35,6 @@ build/
 *.sw?
 *.db
 *.sqlite
+*.bak
 logs/
 *.log

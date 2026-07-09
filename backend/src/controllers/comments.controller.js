@@ -1,5 +1,38 @@
 import prisma from "../config/prisma.js";
 import { analyzeContent } from "../services/ai.service.js";
+import sanitizeHtml from "sanitize-html";
+
+function sanitizeContent(raw) {
+  return sanitizeHtml(raw, { allowedTags: [], allowedAttributes: {} });
+}
+
+async function analyzeAndModerateComment(commentId, content) {
+  try {
+    const aiResult = await analyzeContent(content);
+
+    if (aiResult.isFlagged) {
+      // Log moderation action and soft-delete the comment in a transaction
+      await prisma.$transaction([
+        prisma.comment.update({
+          where: { id: commentId },
+          data: { isDeleted: true }
+        }),
+        prisma.moderationLog.create({
+          data: {
+            targetCommentId: commentId,
+            actionTaken: "blocked",
+            reason: `Comment blocked: ${aiResult.flagReason}`,
+            aiFlags: JSON.stringify(aiResult.flags),
+            originalContentSnapshot: content
+          }
+        })
+      ]);
+      console.log(`[Moderation] Comment ${commentId} flagged and soft-deleted.`);
+    }
+  } catch (err) {
+    console.error(`Error in background comment moderation for ${commentId}:`, err);
+  }
+}
 
 /**
  * Add a comment/reply to a post.
@@ -8,9 +41,9 @@ import { analyzeContent } from "../services/ai.service.js";
 export async function createComment(req, res) {
   try {
     const { postId } = req.params;
-    const { content, parentCommentId, mode } = req.body;
+    const { content: rawContent, parentCommentId, mode } = req.body;
 
-    if (!content) {
+    if (!rawContent) {
       return res.status(400).json({
         error: {
           message: "Comment content cannot be empty.",
@@ -33,28 +66,7 @@ export async function createComment(req, res) {
       });
     }
 
-    // Run AI content moderation on comment
-    const aiResult = await analyzeContent(content);
-
-    if (aiResult.isFlagged) {
-      // Log moderation action
-      await prisma.moderationLog.create({
-        data: {
-          actionTaken: "blocked",
-          reason: `Comment blocked: ${aiResult.flagReason}`,
-          aiFlags: JSON.stringify(aiResult.flags),
-          originalContentSnapshot: content
-        }
-      });
-
-      return res.status(400).json({
-        error: {
-          message: "Comment blocked by content moderation policy.",
-          code: "MODERATION_BLOCKED",
-        },
-        moderation: aiResult
-      });
-    }
+    const content = sanitizeContent(rawContent);
 
     // If parentCommentId is provided, verify it exists
     if (parentCommentId) {
@@ -90,6 +102,11 @@ export async function createComment(req, res) {
           }
         }
       }
+    });
+
+    // Run background AI moderation (non-blocking)
+    analyzeAndModerateComment(comment.id, content).catch((err) => {
+      console.error(`Background comment moderation fail-to-launch for ${comment.id}:`, err);
     });
 
     return res.status(201).json(comment);

@@ -49,7 +49,7 @@ export async function login(req, res) {
 
     if (!user || !isMatch) {
       // Always record failure against handle
-      await recordFailedAttempt(cleanHandle);
+      await recordFailedAttempt(cleanHandle, req.ip);
       return res.status(401).json({
         error: {
           message: "Invalid handle or passphrase.",
@@ -67,7 +67,7 @@ export async function login(req, res) {
       });
     }
 
-    await clearFailedAttempts(cleanHandle);
+    await clearFailedAttempts(cleanHandle, req.ip);
 
     // If TOTP is enabled, issue a short-lived challenge token instead of the full JWT
     if (user.totpEnabled) {
@@ -150,7 +150,7 @@ export async function loginVerifyTotp(req, res) {
     const valid = result.valid;
 
     if (!valid) {
-      await recordFailedAttempt(user.handle);
+      await recordFailedAttempt(user.handle, req.ip);
       return res.status(401).json({
         error: {
           message: "Invalid TOTP code.",
@@ -160,7 +160,7 @@ export async function loginVerifyTotp(req, res) {
     }
 
     await store.del(`mfa:${challengeToken}`);
-    await clearFailedAttempts(user.handle);
+    await clearFailedAttempts(user.handle, req.ip);
     await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
     await logSecurityEvent(user.id, "LOGIN_TOTP_SUCCESS", req);
 

@@ -18,6 +18,7 @@ import { startRetentionCron } from "./src/services/cron.service.js";
 import chatsRoutes from "./src/routes/chats.routes.js";
 import usersRoutes from "./src/routes/users.routes.js";
 import mediaRoutes from "./src/routes/media.routes.js";
+import prisma from "./src/config/prisma.js";
 
 const app = express();
 
@@ -63,6 +64,31 @@ app.get("/", (req, res) => {
   res.status(200).json({ message: "Veil Shine Backend API is running!" });
 });
 
+// Production-ready health check endpoint (verifies database connectivity)
+app.get("/healthz", async (req, res) => {
+  try {
+    // Run a basic raw query to check database responsiveness
+    await prisma.$queryRaw`SELECT 1`;
+    return res.status(200).json({
+      status: "OK",
+      timestamp: new Date().toISOString(),
+      services: {
+        database: "UP"
+      }
+    });
+  } catch (err) {
+    console.error("Health check database failure:", err.message);
+    return res.status(500).json({
+      status: "ERROR",
+      timestamp: new Date().toISOString(),
+      services: {
+        database: "DOWN"
+      },
+      error: err.message
+    });
+  }
+});
+
 // ─── Mounted Routes ───────────────────────────────────────────────────────────
 app.use("/v1/auth", authRoutes);
 app.use("/v1/auth/mfa/totp", totpRoutes);
@@ -88,7 +114,11 @@ app.use((err, req, res, next) => {
 
 const PORT = env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} [${env.NODE_ENV || "development"}]`);
-  startRetentionCron();
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT} [${env.NODE_ENV || "development"}]`);
+    startRetentionCron();
+  });
+}
+
+export default app;

@@ -63,8 +63,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             href="/"
             className="inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium text-foreground transition"
             style={{ border: "1px solid var(--surface-border)", background: "var(--surface-bg)" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.8"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = "0.8";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = "1";
+            }}
           >
             Go home
           </a>
@@ -90,8 +94,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Social Space — Discover, Share, Connect" },
       {
         property: "og:description",
-        content:
-          "Share your stories, read the latest news, and engage with the community.",
+        content: "Share your stories, read the latest news, and engage with the community.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -112,7 +115,9 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script dangerouslySetInnerHTML={{ __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
           (function() {
             try {
               var stored = localStorage.getItem('veil-theme');
@@ -125,7 +130,9 @@ function RootShell({ children }: { children: ReactNode }) {
               document.documentElement.style.colorScheme = theme;
             } catch (e) {}
           })();
-        ` }} />
+        `,
+          }}
+        />
       </head>
       <body className="veil-grain bg-ink text-foreground antialiased">
         {children}
@@ -166,7 +173,9 @@ function RootComponent() {
               }}
             >
               <Link to="/" className="flex items-center gap-2.5">
-                <span className="font-serif text-xl tracking-tight text-foreground">Social Space</span>
+                <span className="font-serif text-xl tracking-tight text-foreground">
+                  Social Space
+                </span>
               </Link>
               <ThemeToggle />
             </header>
@@ -179,7 +188,7 @@ function RootComponent() {
               chrome && pathname.startsWith("/messages")
                 ? "h-dvh overflow-hidden flex flex-col"
                 : "min-h-dvh",
-              "[animation:veil-reveal_860ms_cubic-bezier(0.22,1,0.36,1)_both]"
+              "[animation:veil-reveal_860ms_cubic-bezier(0.22,1,0.36,1)_both]",
             )}
           >
             <Outlet />

@@ -7,6 +7,43 @@ function sanitizeContent(raw) {
   return sanitizeHtml(raw, { allowedTags: [], allowedAttributes: {} });
 }
 
+async function analyzeAndModeratePost(postId, content) {
+  try {
+    const aiResult = await analyzeContent(content);
+
+    if (aiResult.isFlagged) {
+      // Soft-delete the post and create moderation log in a transaction
+      await prisma.$transaction([
+        prisma.post.update({
+          where: { id: postId },
+          data: { isDeleted: true }
+        }),
+        prisma.moderationLog.create({
+          data: {
+            targetPostId: postId,
+            actionTaken: "blocked",
+            reason: aiResult.flagReason,
+            aiFlags: JSON.stringify(aiResult.flags),
+            originalContentSnapshot: content
+          }
+        })
+      ]);
+      console.log(`[Moderation] Post ${postId} flagged and soft-deleted.`);
+    } else {
+      // Save labels and sentiment analysis on the post
+      await prisma.post.update({
+        where: { id: postId },
+        data: {
+          aiLabels: JSON.stringify(aiResult.labels),
+          sentimentAnalysis: JSON.stringify(aiResult.sentiment)
+        }
+      });
+    }
+  } catch (err) {
+    console.error(`Error in background post moderation for ${postId}:`, err);
+  }
+}
+
 /**
  * Create a new post.
  * POST /v1/posts
@@ -36,29 +73,6 @@ export async function createPost(req, res) {
       });
     }
 
-    // Call AI service for moderation, sentiment and tagging
-    const aiResult = await analyzeContent(content);
-
-    if (aiResult.isFlagged) {
-      // Create a moderation log first for record
-      await prisma.moderationLog.create({
-        data: {
-          actionTaken: "blocked",
-          reason: aiResult.flagReason,
-          aiFlags: JSON.stringify(aiResult.flags),
-          originalContentSnapshot: content
-        }
-      });
-
-      return res.status(400).json({
-        error: {
-          message: "Post blocked by content moderation policy.",
-          code: "MODERATION_BLOCKED",
-        },
-        moderation: aiResult
-      });
-    }
-
     // Handle anonymity mode:
     const postUserId = mode === "full" ? null : req.user.id;
 
@@ -84,8 +98,8 @@ export async function createPost(req, res) {
         category,
         mediaUrl,
         mediaId,
-        aiLabels: JSON.stringify(aiResult.labels),
-        sentimentAnalysis: JSON.stringify(aiResult.sentiment),
+        aiLabels: null,
+        sentimentAnalysis: null,
       },
       include: {
         user: {
@@ -96,6 +110,11 @@ export async function createPost(req, res) {
           }
         }
       }
+    });
+
+    // Run background AI moderation (non-blocking)
+    analyzeAndModeratePost(post.id, content).catch((err) => {
+      console.error(`Background post moderation fail-to-launch for ${post.id}:`, err);
     });
 
     return res.status(201).json(post);

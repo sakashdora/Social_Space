@@ -44,13 +44,21 @@ export async function redeemRecoveryCode(req, res) {
       });
     }
 
+    // Concurrently hash the new passphrase to prevent timing-based user enumeration/code testing leaks
+    const newHashPromise = hashPassphrase(newPassphrase);
+
     const user = await prisma.user.findUnique({
       where: { handle: cleanHandle },
       include: { recoveryCodes: true },
     });
 
+    const matched = user ? findMatchingRecoveryCode(recoveryCode, user.recoveryCodes) : null;
+
+    // Await the new hash (guarantees Argon2 CPU cost is always paid)
+    const newHash = await newHashPromise;
+
     // Always respond with the same generic error — don't reveal whether handle exists
-    if (!user) {
+    if (!user || !matched) {
       return res.status(400).json({
         error: {
           message: "Invalid recovery code.",
@@ -67,18 +75,6 @@ export async function redeemRecoveryCode(req, res) {
         },
       });
     }
-
-    const matched = findMatchingRecoveryCode(recoveryCode, user.recoveryCodes);
-    if (!matched) {
-      return res.status(400).json({
-        error: {
-          message: "Invalid or already-used recovery code.",
-          code: "INVALID_RECOVERY_CODE",
-        },
-      });
-    }
-
-    const newHash = await hashPassphrase(newPassphrase);
 
     const hadTotp = user.totpEnabled;
     const updated = await prisma.$transaction(async (tx) => {
