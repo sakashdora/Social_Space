@@ -53,6 +53,10 @@
   --color-safe: var(--safe);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
+
+  --shadow-elegant: 0 20px 60px color-mix(in oklab, var(--foreground) 8%, transparent);
+  --shadow-float: 0 30px 80px -20px color-mix(in oklab, var(--primary) 18%, transparent);
+  --shadow-soft: 0 8px 24px color-mix(in oklab, var(--foreground) 4%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -585,4 +589,125 @@ html, body {
 @keyframes veil-reveal {
   from { opacity: 0; transform: translateY(12px); filter: blur(6px); }
   to   { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FLOATING AND GLOW ANIMATIONS FOR LANDING PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-14px) rotate(var(--r, 0deg)); }
+}
+@keyframes float-y-slow {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-20px) rotate(var(--r, 0deg)); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@utility animate-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+@utility animate-float-slow {
+  animation: float-y-slow 9s ease-in-out infinite;
+}
+@utility animate-pulse-glow {
+  animation: pulse-glow 6s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE UTILITIES
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Hides scrollbar but preserves scroll functionality */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Mobile content bottom padding — clears floating bottom nav bar */
+@utility mobile-safe-bottom {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  @media (min-width: 1024px) {
+    padding-bottom: 2rem;
+  }
+}
+
+/* Horizontal scroll container without visible scrollbar */
+@utility scroll-x-hidden {
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Touch-friendly tap target minimum size */
+@utility tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Prevent text overflow in flex children on mobile */
+@utility text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ── iOS safe-area viewport support ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .has-safe-area {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Responsive container max-widths ── */
+@utility container-narrow {
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 640px) { padding-inline: 1.5rem; }
+}
+
+@utility container-content {
+  width: 100%;
+  max-width: 768px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 640px) { padding-inline: 1.5rem; }
+  @media (min-width: 1024px) { padding-inline: 2rem; }
+}
+
+@utility container-wide {
+  width: 100%;
+  max-width: 1024px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 640px) { padding-inline: 1.5rem; }
+  @media (min-width: 1024px) { padding-inline: 2rem; }
+}
+
+/* ── Mobile-first page wrapper for app pages ── */
+@utility page-wrapper {
+  padding-bottom: 100px;
+  @media (min-width: 1024px) {
+    padding-bottom: 2.5rem;
+  }
+}
+
+/* ── Flex-wrap for small screens ── */
+@utility flex-wrap-mobile {
+  flex-wrap: wrap;
+  @media (min-width: 480px) {
+    flex-wrap: nowrap;
+  }
 }

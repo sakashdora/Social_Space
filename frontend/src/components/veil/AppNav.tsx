@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Rss, PlusCircle, MessageSquare, UserRound, Video, MessageCircle,
+  Home, Rss, PlusCircle, MessageSquare, UserRound, Video, MessageCircle, Sparkles
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -13,10 +13,13 @@ const items = [
   { to: "/video",   label: "Video",    icon: Video },
   { to: "/compose", label: "Compose",  icon: PlusCircle },
   { to: "/profile", label: "Profile",  icon: UserRound },
+  { to: "/profile", label: "Premium",  icon: Sparkles },
 ] as const;
 
 export function AppNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.search }) as any;
+  const isPremiumActive = search.premium === true || search.premium === "true";
 
   return (
     <>
@@ -36,15 +39,22 @@ export function AppNav() {
         </Link>
 
         {/* Nav items */}
-        <nav className="mt-8 flex flex-1 flex-col gap-0.5">
+        <nav className="mt-8 flex flex-1 flex-col gap-0.5 animate-fadeIn">
           {items.map((it) => {
             const active =
-              it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
+              it.to === "/"
+                ? pathname === "/"
+                : it.label === "Premium"
+                ? pathname.startsWith(it.to) && isPremiumActive
+                : it.label === "Profile"
+                ? pathname.startsWith(it.to) && !isPremiumActive
+                : pathname.startsWith(it.to);
             const Icon = it.icon;
             return (
               <Link
-                key={it.to}
+                key={it.label}
                 to={it.to}
+                search={it.to === "/profile" && it.label === "Premium" ? { premium: true } : undefined}
                 className={cn(
                   "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -109,23 +119,31 @@ export function AppNav() {
 
       {/* ── Mobile bottom bar ── */}
       <nav
-        className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-between rounded-2xl px-2 py-1.5 backdrop-blur-xl lg:hidden"
+        className="fixed inset-x-2 bottom-2 z-40 flex items-center justify-around rounded-2xl px-1 py-1.5 backdrop-blur-xl lg:hidden"
         style={{
           background: "var(--nav-bg)",
           border: "1px solid var(--nav-border)",
           boxShadow: "0 4px 24px oklch(0 0 0 / 20%)",
+          paddingBottom: "calc(6px + env(safe-area-inset-bottom, 0px))",
         }}
       >
         {items.map((it) => {
           const active =
-            it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
+            it.to === "/"
+              ? pathname === "/"
+              : it.label === "Premium"
+              ? pathname.startsWith(it.to) && isPremiumActive
+              : it.label === "Profile"
+              ? pathname.startsWith(it.to) && !isPremiumActive
+              : pathname.startsWith(it.to);
           const Icon = it.icon;
           return (
             <Link
-              key={it.to}
+              key={it.label}
               to={it.to}
+              search={it.to === "/profile" && it.label === "Premium" ? { premium: true } : undefined}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] transition-colors",
+                "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 min-w-0 py-2 text-[9px] min-[400px]:text-[10px] transition-colors min-h-[44px]",
                 active ? "text-[color:var(--veil-glow)]" : "text-muted-foreground",
               )}
             >

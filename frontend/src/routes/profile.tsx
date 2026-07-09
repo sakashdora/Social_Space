@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   KeyRound, AlertTriangle, ShieldAlert, Trash2, Key, Check,
   Fingerprint, QrCode, RefreshCw, LogOut, Clock, Shield,
   ChevronRight, X, Eye, EyeOff, Smartphone, Activity,
-  AlertCircle, CheckCircle2, Info
+  AlertCircle, CheckCircle2, Info, Sparkles, Bell, Mail, Crown, Zap
 } from "lucide-react";
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { VeilGlyph } from "@/components/veil/VeilGlyph";
@@ -33,6 +34,11 @@ import { startRegistration } from "@simplewebauthn/browser";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/profile")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      premium: search.premium === "true" || search.premium === true ? true : undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Profile — Social Space" },
@@ -217,6 +223,71 @@ function Profile() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const user = getCurrentUser() || { handle: "anonymous" };
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+  const [premiumToast, setPremiumToast] = useState<string | null>(null);
+  const premiumModalRef = useRef<HTMLDivElement>(null);
+  const joinBtnRef = useRef<HTMLButtonElement>(null);
+  const search = Route.useSearch();
+  const premiumCardRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (search.premium) {
+      const timer = setTimeout(() => {
+        premiumCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setShowPremiumModal(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [search.premium]);
+
+  // ESC close + focus trap for premium modal
+  useEffect(() => {
+    if (!showPremiumModal) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closePremiumModal();
+      if (e.key === "Tab" && premiumModalRef.current) {
+        const focusable = premiumModalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+          e.preventDefault();
+          (e.shiftKey ? last : first)?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    setTimeout(() => joinBtnRef.current?.focus(), 50);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [showPremiumModal]);
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (!premiumToast) return;
+    const t = setTimeout(() => setPremiumToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [premiumToast]);
+
+  const openPremiumModal = useCallback(async () => {
+    setPremiumLoading(true);
+    await new Promise((r) => setTimeout(r, 900)); // simulate checkout prep
+    setPremiumLoading(false);
+    setShowPremiumModal(true);
+  }, []);
+
+  const closePremiumModal = useCallback(() => {
+    setShowPremiumModal(false);
+  }, []);
+
+  const handleJoinWaitlist = useCallback(async () => {
+    setWaitlistJoined(true);
+    await new Promise((r) => setTimeout(r, 500));
+    closePremiumModal();
+    setTimeout(() => setPremiumToast("✓ You're on the waitlist! We'll notify you when Premium launches."), 200);
+  }, [closePremiumModal]);
 
   const handleLogout = async () => {
     try {
@@ -393,7 +464,7 @@ function Profile() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-6 lg:pt-14">
+    <div className="mx-auto max-w-3xl px-4 pb-28 lg:pb-10 pt-10 sm:px-6 lg:pt-14">
       <header className="mb-8">
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Profile Settings</p>
         <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">Your identity. Your keys. Your call.</h1>
@@ -441,6 +512,79 @@ function Profile() {
         </button>
       </FrostedPanel>
 
+      {/* Premium Upgrade Card */}
+      <FrostedPanel ref={premiumCardRef} className="relative overflow-hidden p-6 mb-6 border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.04] to-transparent shadow-lg group shrink-0">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+        
+        {/* Decorative ambient gold wash */}
+        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl opacity-50 pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-wider">
+                Premium Tier
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                149 / month
+              </span>
+            </div>
+            <h2 className="font-serif text-2xl text-amber-500">Go Premium. Keep your media forever.</h2>
+            <ul className="grid gap-2 sm:grid-cols-2 mt-3 text-xs text-muted-foreground leading-relaxed">
+              <li className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                No 10-day video auto-deletion
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                Unlimited video length and size
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                Unlimited high-res image uploads
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                Gold pseudonym badges
+              </li>
+            </ul>
+          </div>
+
+          <button
+            onClick={openPremiumModal}
+            disabled={premiumLoading}
+            aria-label="Upgrade to Premium membership"
+            className={cn(
+              "relative rounded-xl border text-xs font-bold transition-all duration-200 px-5 py-3 shrink-0 self-start md:self-center cursor-pointer overflow-hidden",
+              "border-amber-500/40 bg-amber-500/10 text-amber-400",
+              "hover:border-amber-500/70 hover:bg-amber-500/20 hover:text-amber-300",
+              "hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]",
+              "active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+            )}
+          >
+            {/* Gold shimmer sweep on hover */}
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-amber-400/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+            <span className="relative flex items-center gap-2">
+              {premiumLoading ? (
+                <>
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Preparing Secure Checkout…
+                </>
+              ) : (
+                <>
+                  <Crown className="h-3.5 w-3.5" />
+                  Upgrade to Premium
+                </>
+              )}
+            </span>
+          </button>
+        </div>
+      </FrostedPanel>
+
       {/* ── Passkeys ──────────────────────────────────────────────────── */}
       <FrostedPanel className="p-6 mb-6">
         <div className="flex items-center gap-3 mb-1">
@@ -455,7 +599,7 @@ function Profile() {
         {passkeys.length > 0 && (
           <ul className="mb-4 space-y-2">
             {passkeys.map((pk: any) => (
-              <li key={pk.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+              <li key={pk.id} className="flex items-start sm:items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3">
                 <div>
                   <p className="text-sm font-medium">{pk.nickname || "Unnamed passkey"}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -831,6 +975,155 @@ function Profile() {
             onClose={() => setDeleteModal(false)}
             onConfirm={(passphrase) => deleteAccMut.mutate(passphrase)}
           />
+        )}
+
+        {/* Premium Waitlist Modal */}
+        {showPremiumModal && typeof document !== "undefined" && createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) closePremiumModal(); }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="premium-modal-title"
+          >
+            {/* Ambient gold glow behind modal */}
+            <div className="pointer-events-none absolute h-96 w-96 rounded-full bg-amber-500/10 blur-[80px]" />
+
+            <motion.div
+              ref={premiumModalRef}
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="relative w-full max-w-md overflow-hidden overflow-y-auto max-h-[90dvh] rounded-[28px] border border-amber-500/20 bg-black/80 shadow-2xl shadow-amber-500/10"
+              style={{ backdropFilter: "blur(24px)" }}
+            >
+              {/* Top gold accent line */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
+
+              {/* Decorative corner glow */}
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl" />
+              <div className="pointer-events-none absolute -left-16 -bottom-16 h-32 w-32 rounded-full bg-amber-500/5 blur-2xl" />
+
+              <div className="relative z-10 p-8">
+                {/* Close button */}
+                <button
+                  onClick={closePremiumModal}
+                  aria-label="Close premium modal"
+                  className="absolute right-5 top-5 rounded-lg p-1.5 text-muted-foreground transition-all duration-200 hover:bg-white/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+
+                {/* Icon badge */}
+                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-amber-600/10">
+                  <Crown className="h-8 w-8 text-amber-400" />
+                </div>
+
+                {/* Heading */}
+                <div className="mb-6 text-center space-y-3">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-500">
+                      Coming Soon
+                    </span>
+                  </div>
+                  <h3 id="premium-modal-title" className="font-serif text-2xl text-foreground leading-tight">
+                    Premium Membership
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    We are finalizing our privacy-first payment infrastructure. Join the waitlist and be the first to access Premium when we launch.
+                  </p>
+                </div>
+
+                {/* Feature highlights */}
+                <div className="mb-6 grid grid-cols-2 gap-2">
+                  {[
+                    { icon: Zap, text: "No video expiry" },
+                    { icon: Sparkles, text: "Unlimited uploads" },
+                    { icon: Shield, text: "Privacy first" },
+                    { icon: Crown, text: "Gold badges" },
+                  ].map(({ icon: Icon, text }) => (
+                    <div key={text} className="flex items-center gap-2.5 rounded-xl border border-amber-500/10 bg-amber-500/[0.04] px-3 py-2.5">
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      <span className="text-[11px] font-medium text-muted-foreground">{text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pricing pill */}
+                <div className="mb-6 flex items-center justify-center gap-2">
+                  <span className="font-serif text-3xl font-bold text-amber-400">₹149</span>
+                  <span className="text-sm text-muted-foreground">/ month</span>
+                </div>
+
+                {/* CTA Buttons */}
+                <div className="space-y-3">
+                  <motion.button
+                    ref={joinBtnRef}
+                    onClick={handleJoinWaitlist}
+                    disabled={waitlistJoined}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    aria-label="Join the Premium waitlist"
+                    className={cn(
+                      "relative w-full overflow-hidden rounded-xl px-5 py-3.5 text-sm font-bold transition-all duration-250",
+                      "bg-gradient-to-r from-amber-500 to-amber-400 text-black",
+                      "hover:from-amber-400 hover:to-amber-300 hover:shadow-lg hover:shadow-amber-500/30",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60",
+                      "disabled:opacity-60 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    {waitlistJoined ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        You're on the list!
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        Join Waitlist
+                      </span>
+                    )}
+                  </motion.button>
+
+                  <button
+                    onClick={closePremiumModal}
+                    aria-label="Dismiss and be notified later"
+                    className="w-full rounded-xl border border-white/10 bg-transparent px-5 py-3 text-sm text-muted-foreground transition-all duration-200 hover:border-white/20 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  >
+                    Notify Me Later
+                  </button>
+                </div>
+
+                {/* Privacy footnote */}
+                <p className="mt-4 text-center text-[10px] text-muted-foreground/60">
+                  No email required. Your anonymity is preserved.
+                </p>
+              </div>
+            </motion.div>
+          </div>,
+          document.body
+        )}
+      </AnimatePresence>
+
+      {/* Success toast */}
+      <AnimatePresence>
+        {premiumToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-black/90 px-5 py-3.5 text-sm font-semibold text-amber-400 shadow-xl shadow-amber-500/10"
+            style={{ backdropFilter: "blur(16px)" }}
+            role="status"
+            aria-live="polite"
+          >
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-400" />
+            {premiumToast}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

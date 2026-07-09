@@ -115,7 +115,7 @@ function PremiumPlayer({ post }: { post: any }) {
   return (
     <div 
       ref={containerRef}
-      className="relative w-full aspect-[3/4] sm:aspect-[9/16] max-h-[75vh] bg-black/95 flex items-center justify-center overflow-hidden group select-none transition-all duration-300 hover:shadow-2xl border border-white/5 rounded-3xl"
+      className="relative w-full aspect-[4/5] sm:aspect-[9/16] max-h-[70vh] sm:max-h-[80vh] bg-black/95 flex items-center justify-center overflow-hidden group select-none transition-all duration-300 hover:shadow-2xl border border-white/5 rounded-3xl"
     >
       {isVideo ? (
         <div className="relative w-full h-full flex items-center justify-center">
@@ -250,7 +250,7 @@ function VideoFeed() {
   });
 
   return (
-    <div className="mx-auto max-w-lg py-8 px-4 pb-32 h-full">
+    <div className="mx-auto w-full max-w-lg sm:max-w-xl py-8 px-4 sm:px-6 pb-28 lg:pb-10 h-full">
       <header className="text-center mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight">Media Portal</h1>
         <p className="text-xs text-muted-foreground mt-2">End-to-end secure, untraceable media streams.</p>

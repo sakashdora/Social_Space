@@ -62,12 +62,28 @@ export async function createPost(req, res) {
     // Handle anonymity mode:
     const postUserId = mode === "full" ? null : req.user.id;
 
+    let mediaId = null;
+    if (mediaUrl) {
+      const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const match = mediaUrl.match(uuidRegex);
+      if (match) {
+        const extractedMediaId = match[0];
+        const mediaRecord = await prisma.media.findUnique({
+          where: { id: extractedMediaId }
+        });
+        if (mediaRecord) {
+          mediaId = mediaRecord.id;
+        }
+      }
+    }
+
     const post = await prisma.post.create({
       data: {
         userId: postUserId,
         content,
         category,
         mediaUrl,
+        mediaId,
         aiLabels: JSON.stringify(aiResult.labels),
         sentimentAnalysis: JSON.stringify(aiResult.sentiment),
       },

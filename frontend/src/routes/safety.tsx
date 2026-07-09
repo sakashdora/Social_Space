@@ -31,7 +31,7 @@ function SafetyCenter() {
   const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("reports");
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-24 pt-10 sm:px-6 lg:pt-14">
+    <div className="mx-auto max-w-4xl px-4 pb-28 lg:pb-10 pt-10 sm:px-6 lg:pt-14">
       <header className="mb-8">
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Safety Center</p>
         <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">

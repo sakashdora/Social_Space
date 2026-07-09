@@ -31,6 +31,7 @@ const REQUIRED_SECRETS = {
   JWT_SECRET: 32,
   ENCRYPTION_KEY: 64,       // Exactly 64 hex chars (32 bytes)
   RECOVERY_CODE_SECRET: 32,
+  SUPABASE_SERVICE_ROLE_KEY: 32,
 };
 
 const errors = [];
@@ -43,7 +44,12 @@ for (const [name, minLen] of Object.entries(REQUIRED_SECRETS)) {
   const value = process.env[name];
 
   if (!value || value.trim().length === 0) {
-    errors.push(`  ✗ ${name} is missing or empty.`);
+    const msg = `  ✗ ${name} is missing or empty.`;
+    if (name === "SUPABASE_SERVICE_ROLE_KEY" && !isProd) {
+      warnings.push(msg.replace("✗", "⚠"));
+    } else {
+      errors.push(msg);
+    }
     continue;
   }
 
@@ -66,6 +72,11 @@ for (const [name, minLen] of Object.entries(REQUIRED_SECRETS)) {
 const encKey = process.env.ENCRYPTION_KEY;
 if (encKey && !/^[0-9a-fA-F]{64}$/.test(encKey.trim())) {
   errors.push("  ✗ ENCRYPTION_KEY must be exactly 64 hexadecimal characters (32 bytes).");
+}
+
+// Check SUPABASE_URL presence
+if (!process.env.SUPABASE_URL) {
+  warnings.push("  ⚠ SUPABASE_URL is missing, using default: https://qaovcjwalukixbvhgzel.supabase.co");
 }
 
 // In production, FRONTEND_ORIGIN must be set
@@ -114,4 +125,6 @@ export const env = {
   TOTP_ISSUER: process.env.TOTP_ISSUER || "Social Space",
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  SUPABASE_URL: process.env.SUPABASE_URL || "https://qaovcjwalukixbvhgzel.supabase.co",
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 };

@@ -1,9 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef } from "react";
-import { Send, Image as ImageIcon, Sparkles, X, CheckCircle2 } from "lucide-react";
+import { Send, Image as ImageIcon, Sparkles, X, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createPost, uploadMedia } from "@/lib/api";
 import { GrokEditor } from "@/components/GrokEditor";
+
+const isVideoUrl = (url: string) => {
+  if (!url) return false;
+  if (url.startsWith("data:video/")) return true;
+  const ext = url.split("?")[0].split(".").pop()?.toLowerCase();
+  return ["mp4", "webm", "ogg", "mov", "m4v"].includes(ext || "");
+};
 
 export const Route = createFileRoute("/compose")({
   head: () => ({
@@ -72,7 +79,7 @@ function Compose() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-6 lg:pt-14">
+    <div className="mx-auto max-w-3xl px-4 pb-28 lg:pb-10 pt-10 sm:px-6 lg:pt-14">
       <header className="mb-8">
         <h1 className="font-serif text-4xl leading-[1.05] tracking-[-0.02em] sm:text-6xl">
           Create {mode === "article" ? "Article" : "Post"}
@@ -100,7 +107,7 @@ function Compose() {
 
       <div className="space-y-6">
         {/* Mode Selector (Standard vs Article) */}
-        <div className="flex gap-2 p-1 rounded-2xl bg-white/5 border border-white/10 max-w-fit">
+        <div className="flex flex-wrap gap-2 p-1 rounded-2xl bg-white/5 border border-white/10">
           <button
             onClick={() => setMode("standard")}
             className={cn(
@@ -125,7 +132,7 @@ function Compose() {
         {/* ── Anonymity Mode Selector ────────────────────────────────── */}
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground mb-2">Post as</p>
-          <div className="flex gap-2 p-1 rounded-2xl bg-white/5 border border-white/10 max-w-fit">
+          <div className="flex flex-wrap gap-2 p-1 rounded-2xl bg-white/5 border border-white/10">
             <button
               id="anon-mode-full"
               onClick={() => setAnonMode("full")}
@@ -169,12 +176,34 @@ function Compose() {
               className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/60"
             />
 
+            {isUploading && (
+              <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white/5 border border-dashed border-white/10 mt-4">
+                <Loader2 className="h-6 w-6 text-[color:var(--primary)] animate-spin" />
+                <p className="mt-2 text-xs text-muted-foreground">Optimizing and anonymizing media...</p>
+              </div>
+            )}
+
             {mediaUrl && (
-              <div className="relative mt-4 inline-block">
-                <img src={mediaUrl} alt="Uploaded media" className="max-h-64 rounded-xl object-cover border border-white/10" />
+              <div className="relative mt-4 w-full rounded-2xl overflow-hidden border border-white/10 bg-black/20">
+                {isVideoUrl(mediaUrl) ? (
+                  <video 
+                    src={mediaUrl} 
+                    controls 
+                    muted 
+                    playsInline 
+                    className="max-h-64 w-full object-contain bg-black" 
+                  />
+                ) : (
+                  <img 
+                    src={mediaUrl} 
+                    alt="Uploaded media" 
+                    className="max-h-64 w-full object-cover" 
+                  />
+                )}
                 <button
                   onClick={() => setMediaUrl(null)}
-                  className="absolute -top-3 -right-3 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 transition"
+                  className="absolute top-3 right-3 rounded-full bg-red-500/80 p-2 text-white hover:bg-red-600 transition shadow-lg z-10"
+                  aria-label="Remove media"
                 >
                   <X className="h-4 w-4" />
                 </button>

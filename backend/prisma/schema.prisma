@@ -23,6 +23,8 @@ model User {
   totpSecret        String?
   chatPublicKey     String?
   chatPublicKeyAlgo String?
+  isPremium         Boolean             @default(false)
+  premiumSince      DateTime?
   comments          Comment[]
   messages          Message[]
   passkeys          Passkey[]
@@ -31,6 +33,7 @@ model User {
   recoveryCodes     RecoveryCode[]
   securityEvents    SecurityEvent[]
   threads           ThreadParticipant[]
+  media             Media[]
 }
 
 model Passkey {
@@ -81,6 +84,7 @@ model Post {
   category          String
   aiLabels          String?
   mediaUrl          String?
+  mediaId           String?
   sentimentAnalysis String?
   isDeleted         Boolean         @default(false)
   sharedPostId      String?
@@ -91,6 +95,7 @@ model Post {
   shares            Post[]          @relation("SharedPosts")
   user              User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions         Reaction[]
+  media             Media?          @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 }
 
 model Comment {
@@ -167,4 +172,31 @@ model Message {
   expiresAt DateTime
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
   thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Media {
+  id                String     @id @default(uuid())
+  userId            String
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type              MediaType
+  storagePath       String     // path within Supabase bucket, e.g. "media/{userId}/{mediaId}.webp"
+  thumbnailPath     String?    // path to video thumbnail, e.g. "media/{userId}/{mediaId}_thumb.jpg"
+  bucket            String     @default("veil-media")
+
+  mimeType          String
+  sizeBytes         Int
+  durationSeconds   Float?     // null for images, required for videos
+
+  wasPremiumUpload  Boolean    @default(false) // set once at upload time, immutable after
+  expiresAt         DateTime?  // null = never expires (premium or image). Set for free-tier videos >30s only
+
+  createdAt         DateTime   @default(now())
+
+  posts             Post[]     // relation target
 }

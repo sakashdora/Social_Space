@@ -113,7 +113,7 @@ function RecoveryCodeGrid({ codes, onCopyAll }: { codes: string[]; onCopyAll: ()
         {codes.map((code, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2"
+            className="flex items-center gap-2 rounded-lg border border-border bg-white/5 dark:bg-black/40 px-3 py-2"
           >
             <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}.</span>
             <span className="font-mono text-xs text-[color:var(--veil-glow)] select-all">{code}</span>
@@ -122,7 +122,7 @@ function RecoveryCodeGrid({ codes, onCopyAll }: { codes: string[]; onCopyAll: ()
       </div>
       <button
         onClick={handleCopy}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white/5 dark:bg-white/[0.03] px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
       >
         {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
         {copied ? "Copied!" : "Copy all codes"}
@@ -251,6 +251,28 @@ function Onboarding() {
     }
   };
 
+  const handleBack = () => {
+    setError("");
+    if (isLogin) {
+      if (showMfaStep || showRecoveryLogin) {
+        setShowMfaStep(false);
+        setShowRecoveryLogin(false);
+      } else {
+        setIsLogin(false);
+      }
+    } else {
+      if (step > 0) {
+        setStep((s) => s - 1);
+      } else {
+        if (typeof window !== "undefined" && window.history.length > 1) {
+          window.history.back();
+        } else {
+          navigate({ to: "/" });
+        }
+      }
+    }
+  };
+
   // ─── Passkey setup (optional, step 4) ────────────────────────────────────
   const handlePasskeySetup = async () => {
     const { getPasskeyRegisterOptions, verifyPasskeyRegistration } = await import("@/lib/api");
@@ -306,7 +328,7 @@ function Onboarding() {
         </p>
         <RecoveryCodeGrid codes={recoveryCodes} onCopyAll={() => setCodesCopied(true)} />
 
-        <label className="flex cursor-pointer items-start gap-3 pt-2 border-t border-white/10">
+        <label className="flex cursor-pointer items-start gap-3 pt-2 border-t border-border">
           <div className="shrink-0 mt-0.5">
             <input
               type="checkbox"
@@ -315,7 +337,7 @@ function Onboarding() {
               onChange={(e) => setCodesAcknowledged(e.target.checked)}
               className="peer sr-only"
             />
-            <span className="grid h-5 w-5 place-items-center rounded-md border border-white/20 bg-black/30 transition peer-checked:border-[color:var(--veil-glow)] peer-checked:bg-[color:var(--veil-glow)]/20">
+            <span className="grid h-5 w-5 place-items-center rounded-md border border-border bg-white/5 dark:bg-black/30 transition peer-checked:border-[color:var(--veil-glow)] peer-checked:bg-[color:var(--veil-glow)]/20">
               {codesAcknowledged && <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />}
             </span>
           </div>
@@ -329,7 +351,7 @@ function Onboarding() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-10">
+    <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-4 sm:px-6 py-8 sm:py-10">
       <div className="flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
           <VeilGlyph className="h-5 w-5 text-[color:var(--veil-glow)]" />
@@ -360,7 +382,7 @@ function Onboarding() {
                 {i < step ? <Check className="h-3 w-3" /> : i + 1}
               </span>
               <span className={cn("hidden sm:inline", i === step && "inline text-foreground")}>{s}</span>
-              {i < 2 && <span className="mx-1.5 sm:mx-3 h-px w-4 sm:w-8 bg-white/10" />}
+              {i < 2 && <span className="mx-1.5 sm:mx-3 h-px w-4 sm:w-8 bg-border" />}
             </div>
           ))}
         </div>
@@ -562,7 +584,7 @@ function Onboarding() {
                   />
                   <button
                     onClick={() => setHandle(suggestions[Math.floor(Math.random() * suggestions.length)])}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2 sm:px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground shrink-0"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/5 dark:bg-white/[0.03] px-2 sm:px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground shrink-0"
                   >
                     <Shuffle className="h-3 w-3" />
                     <span className="hidden sm:inline">Suggest</span>
@@ -573,7 +595,7 @@ function Onboarding() {
                     <button
                       key={s}
                       onClick={() => setHandle(s)}
-                      className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+                      className="rounded-full border border-border bg-white/5 dark:bg-white/[0.03] px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground"
                     >
                       @{s}
                     </button>
@@ -618,7 +640,7 @@ function Onboarding() {
                       onChange={(e) => setAgeConfirmed(e.target.checked)}
                       className="peer sr-only"
                     />
-                    <span className="grid h-5 w-5 place-items-center rounded-md border border-white/20 bg-black/30 transition peer-checked:border-[color:var(--veil-glow)] peer-checked:bg-[color:var(--veil-glow)]/20">
+                    <span className="grid h-5 w-5 place-items-center rounded-md border border-border bg-white/5 dark:bg-black/30 transition peer-checked:border-[color:var(--veil-glow)] peer-checked:bg-[color:var(--veil-glow)]/20">
                       {ageConfirmed && <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />}
                     </span>
                     <span className="text-sm">Run the on-device check and continue.</span>
@@ -662,7 +684,7 @@ function Onboarding() {
                   {/* Entropy meter */}
                   {passphrase && (
                     <div className="mt-2 space-y-1">
-                      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-1.5 rounded-full bg-border overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{ width: `${entropyPct}%`, background: entropyColor }}
@@ -722,22 +744,12 @@ function Onboarding() {
 
       {/* Navigation buttons */}
       <div className="mt-10 flex items-center justify-between">
-        {isLogin ? (
-          <button
-            onClick={() => { setIsLogin(false); setShowMfaStep(false); setShowRecoveryLogin(false); }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Cancel
-          </button>
-        ) : (
-          <button
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
-            disabled={step === 0}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-30"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back
-          </button>
-        )}
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-white/5 dark:bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back
+        </button>
 
         {!isLogin && step < 3 && (
           <button

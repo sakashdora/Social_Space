@@ -17,6 +17,7 @@ import uploadRoutes from "./src/routes/upload.routes.js";
 import { startRetentionCron } from "./src/services/cron.service.js";
 import chatsRoutes from "./src/routes/chats.routes.js";
 import usersRoutes from "./src/routes/users.routes.js";
+import mediaRoutes from "./src/routes/media.routes.js";
 
 const app = express();
 
@@ -73,6 +74,7 @@ app.use("/v1/users", usersRoutes);
 app.use("/api", aiRoutes);
 app.use("/api/rss", rssRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/media", mediaRoutes);
 
 // ─── Global Error Handler (no stack trace leakage in production) ──────────────
 app.use((err, req, res, next) => {

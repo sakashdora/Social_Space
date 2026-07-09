@@ -70,7 +70,7 @@ function NewsComponent() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl py-12 px-4 pb-32">
+    <div className="mx-auto max-w-3xl py-10 px-4 pb-28 sm:pb-10 lg:pb-12 sm:px-6">
       <header className="mb-8">
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">News Portal</p>
         <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">Global Stories</h1>
@@ -180,7 +180,7 @@ function NewsComponent() {
             <motion.div 
               layoutId={`card-container-${selectedArticle.id}`}
               transition={springTransition}
-              className="relative w-full max-w-5xl dialog-panel flex flex-col p-6 overflow-hidden max-h-[85vh] z-10"
+              className="relative w-full max-w-5xl dialog-panel flex flex-col p-4 sm:p-6 overflow-hidden max-h-[90vh] sm:max-h-[85vh] z-10"
               style={{
                 borderRadius: "24px",
                 background: "var(--dialog-bg)",
@@ -219,7 +219,7 @@ function NewsComponent() {
               </div>
 
               {/* Scrollable Content Body Grid (Left Column Summary / Right Column Iframe) */}
-              <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-y-auto lg:overflow-hidden min-h-[50vh]">
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 overflow-y-auto lg:overflow-hidden min-h-[40vh]">
                 
                 {/* LEFT SUMMARY VIEW: Title, original snippet, and AI summary */}
                 <div className="lg:col-span-2 flex flex-col space-y-5 overflow-y-auto pr-1">
@@ -273,7 +273,7 @@ function NewsComponent() {
                 </div>
 
                 {/* RIGHT IFRAME WEB READER: Embeds original site */}
-                <div className="lg:col-span-3 flex flex-col h-full min-h-[380px] lg:min-h-0">
+                <div className="lg:col-span-3 flex flex-col h-full min-h-[280px] sm:min-h-[380px] lg:min-h-0">
                   <div className="relative flex-1 rounded-2xl overflow-hidden border bg-white h-full" style={{ borderColor: "var(--surface-border)" }}>
                     {iframeLoading && (
                       <div 

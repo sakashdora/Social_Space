@@ -41,6 +41,8 @@ export function mapApiPostToUiPost(p: any) {
     time: formatRelativeTime(p.createdAt),
     body: p.content,
     media: p.mediaUrl ? "portrait" : null,
+    mediaUrl: p.mediaUrl,
+    sentimentAnalysis: p.sentimentAnalysis ? (typeof p.sentimentAnalysis === "string" ? JSON.parse(p.sentimentAnalysis) : p.sentimentAnalysis) : null,
     synthetic: p.isAiModifiedMedia || false,
     reactions: p.reactionCount || 0,
     replies: p.commentCount || 0,
@@ -142,10 +144,13 @@ export function isAuthenticated() {
 /**
  * Fetch chronological feed.
  */
-export async function fetchFeed(category?: string) {
+export async function fetchFeed(category?: string, page?: number) {
   const url = new URL(`${API_BASE}/v1/posts`);
   if (category && category !== "All") {
     url.searchParams.append("category", category);
+  }
+  if (page) {
+    url.searchParams.append("page", page.toString());
   }
 
   const res = await fetch(url.toString(), {
@@ -250,14 +255,21 @@ export async function getSuggestions(text: string) {
   return handleResponse(res);
 }
 
-/**
- * Upload Media (Mock)
- */
 export async function uploadMedia(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${API_BASE}/api/upload`, {
+
+  const headers: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("veil_auth_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
+  const res = await fetch(`${API_BASE}/api/media/upload`, {
     method: "POST",
+    headers,
     body: formData,
   });
   const data = await handleResponse(res);

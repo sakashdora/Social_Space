@@ -128,7 +128,7 @@ function MessagesLayout() {
     <div
       className={cn(
         "flex h-full w-full overflow-hidden flex-col lg:flex-row",
-        "pb-[76px] lg:pb-0" // Pad on mobile to clear bottom floating menu
+        "pb-[88px] lg:pb-0" // Pad on mobile to clear bottom floating menu + safe area
       )}
     >
       {/* ─── Thread list sidebar ──────────────────────────────────── */}

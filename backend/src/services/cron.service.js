@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import { supabase } from "../config/supabase.js";
 
 /**
  * Periodically runs data retention cleanup routines.
@@ -89,6 +90,47 @@ export function startRetentionCron() {
           `[Retention Cron] Hard-deleted @${u.handle} — ` +
           `pendingDeletionAt elapsed. All posts, comments, and chats cascade-deleted.`
         );
+      }
+
+      // ── Phase 3: Purge expired free-tier videos (10-day cleanup) ──────────────
+      const expiredVideos = await prisma.media.findMany({
+        where: {
+          type: "VIDEO",
+          wasPremiumUpload: false,
+          expiresAt: { lt: now }
+        }
+      });
+
+      for (const m of expiredVideos) {
+        // If it's a local/base64 dev fallback, bypass Supabase delete and remove database record directly
+        if (!m.storagePath.startsWith("media/")) {
+          await prisma.media.delete({
+            where: { id: m.id }
+          });
+          console.log(`[Retention Cron] Permanently purged expired video (local fallback): ${m.id}`);
+          continue;
+        }
+
+        if (!supabase) {
+          console.error(`[Retention Cron] Supabase client unavailable. Skipping purge of media ${m.id}`);
+          continue;
+        }
+
+        const filesToDelete = [m.storagePath];
+        if (m.thumbnailPath) {
+          filesToDelete.push(m.thumbnailPath);
+        }
+
+        const { error: storageError } = await supabase.storage.from(m.bucket).remove(filesToDelete);
+        if (storageError) {
+          console.error(`[Retention Cron] Failed to delete storage files for expired media ${m.id}:`, storageError.message);
+          continue; // skip DB deletion so it retries next run
+        }
+
+        await prisma.media.delete({
+          where: { id: m.id }
+        });
+        console.log(`[Retention Cron] Permanently purged expired video from storage and database: ${m.id}`);
       }
     } catch (err) {
       console.error("[Retention Cron] Cleanup failed:", err.message);

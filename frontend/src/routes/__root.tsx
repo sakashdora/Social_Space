@@ -159,7 +159,7 @@ function RootComponent() {
           {chrome && <AppNav />}
           {chrome && (
             <header
-              className="fixed top-0 inset-x-0 z-40 flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl lg:hidden"
+              className="fixed top-0 inset-x-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b px-4 sm:px-6 backdrop-blur-xl lg:hidden"
               style={{
                 background: "var(--nav-bg)",
                 borderColor: "var(--nav-border)",
