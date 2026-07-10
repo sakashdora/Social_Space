@@ -38,3 +38,8 @@ build/
 *.bak
 logs/
 *.log
+
+# Local upload processing scratch space
+tmp/
+**/tmp/
+
