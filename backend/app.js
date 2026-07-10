@@ -22,11 +22,20 @@ import prisma from "./src/config/prisma.js";
 
 const app = express();
 
+// Strip duplicate "/api" prefix if requests are double-prefixed (e.g. /api/api/...)
+app.use((req, res, next) => {
+  if (req.url.startsWith("/api/api/")) {
+    req.url = req.url.substring(4);
+  }
+  next();
+});
+
 // Trust the first proxy — required for accurate IP in rate limiting behind Nginx / Supabase edge
 app.set("trust proxy", 1);
 
 // ─── Phase 2 Fix #8: Explicit CORS allowlist ──────────────────────────────────
 // Parse FRONTEND_ORIGIN as a comma-separated list (supports staging + prod simultaneously)
+
 const allowedOrigins = (env.FRONTEND_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((o) => o.trim())
@@ -90,17 +99,49 @@ app.get("/healthz", async (req, res) => {
 });
 
 // ─── Mounted Routes ───────────────────────────────────────────────────────────
+// Auth Routes
 app.use("/v1/auth", authRoutes);
+app.use("/api/v1/auth", authRoutes);
+
+// TOTP Routes
 app.use("/v1/auth/mfa/totp", totpRoutes);
+app.use("/api/v1/auth/mfa/totp", totpRoutes);
+
+// Passkey Routes
 app.use("/v1/auth/passkeys", passkeyRoutes);
+app.use("/api/v1/auth/passkeys", passkeyRoutes);
+
+// Posts Routes
 app.use("/v1/posts", postsRoutes);
+app.use("/api/v1/posts", postsRoutes);
+
+// Reactions Routes
 app.use("/v1/reactions", reactionsRoutes);
+app.use("/api/v1/reactions", reactionsRoutes);
+
+// Chats Routes
 app.use("/v1/chats", chatsRoutes);
+app.use("/api/v1/chats", chatsRoutes);
+
+// Users Routes
 app.use("/v1/users", usersRoutes);
+app.use("/api/v1/users", usersRoutes);
+
+// AI Routes
 app.use("/api", aiRoutes);
+app.use("/ai", aiRoutes);
+
+// RSS Routes
 app.use("/api/rss", rssRoutes);
+app.use("/rss", rssRoutes);
+
+// Upload Routes
 app.use("/api/upload", uploadRoutes);
+app.use("/upload", uploadRoutes);
+
+// Media Routes
 app.use("/api/media", mediaRoutes);
+app.use("/media", mediaRoutes);
 
 // ─── Global Error Handler (no stack trace leakage in production) ──────────────
 app.use((err, req, res, next) => {

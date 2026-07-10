@@ -9,7 +9,8 @@ export function validateBody(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      const formattedErrors = result.error.errors
+      const errors = result.error.issues || result.error.errors || [];
+      const formattedErrors = errors
         .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join("; ");
       

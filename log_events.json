@@ -1,0 +1,544 @@
+﻿{
+    "events": [
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674901300,
+            "message": "2026-07-10T09:15:01: PM2 log: Launching in no daemon mode",
+            "ingestionTime": 1783674904152,
+            "eventId": "39777279490905558139162548865818915136029446579045531648"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674901464,
+            "message": "2026-07-10T09:15:01: PM2 log: App [veil-backend:0] starting in -cluster mode-",
+            "ingestionTime": 1783674904152,
+            "eventId": "39777279494562880351721571061030772932743777866026319873"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674901676,
+            "message": "2026-07-10T09:15:01: PM2 log: App [veil-backend:0] online",
+            "ingestionTime": 1783674904152,
+            "eventId": "39777279499290638333810063167036345206545230505294168066"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674901679,
+            "message": "2026-07-10T09:15:01: PM2 log: App [veil-backend:1] starting in -cluster mode-",
+            "ingestionTime": 1783674904152,
+            "eventId": "39777279499357540569405655036460952361363175589812109315"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674902150,
+            "message": "2026-07-10T09:15:02: PM2 log: App [veil-backend:1] online",
+            "ingestionTime": 1783674904152,
+            "eventId": "39777279509861191557913578536124275667780553859128885252"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674911150,
+            "message": "[config/env] ⚠  WARNINGS:",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279710567898344689186821995253030469600996147789824"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674911150,
+            "message": "  ⚠ SUPABASE_URL is missing, using default: https://qaovcjwalukixbvhgzel.supabase.co",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279710567898344689186821995253030469600996147789825"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674911150,
+            "message": "[config/env] ✓ All required environment secrets validated successfully.",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279710567898344689186821995253030469600996147789826"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674911160,
+            "message": "[config/env] ⚠  WARNINGS:",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279710790905796674493053410610213196084611207593987"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674911161,
+            "message": "  ⚠ SUPABASE_URL is missing, using default: https://qaovcjwalukixbvhgzel.supabase.co",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279710813206541873023676552145931468732972713574404"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674911250,
+            "message": "[config/env] ✓ All required environment secrets validated successfully.",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279712797972864542249136148824857734437146745831429"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674913259,
+            "message": "[challengeStore] WARNING: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN not configured — falling back to in-memory store.",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279757600169968390271027494082867484995412260487174"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674913259,
+            "message": "[challengeStore] WARNING: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN not configured — falling back to in-memory store.",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279757600169968390271027494082867484995412260487175"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674913259,
+            "message": "[challengeStore] WARNING: This is only safe for single-instance deployments.",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279757600169968390271027494082867484995412260487176"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674913260,
+            "message": "[challengeStore] WARNING: This is only safe for single-instance deployments.",
+            "ingestionTime": 1783674914119,
+            "eventId": "39777279757622470713588801650635618585757643773766467593"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674918061,
+            "message": "Server running on port 3000 [development]",
+            "ingestionTime": 1783674919104,
+            "eventId": "39777279864688348411734323359175070713236316660207714304"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674918150,
+            "message": "Server running on port 3000 [development]",
+            "ingestionTime": 1783674919104,
+            "eventId": "39777279866673114734403548818771749639502020834239971329"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674918150,
+            "message": "Data Retention Cron Service Initialized.",
+            "ingestionTime": 1783674919104,
+            "eventId": "39777279866673114734403548818771749639502020834239971330"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674918151,
+            "message": "Data Retention Cron Service Initialized.",
+            "ingestionTime": 1783674919104,
+            "eventId": "39777279866695415479602079441913285357774669195745951747"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674934721,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 3046.058 ms - 83\u001b[0m",
+            "ingestionTime": 1783674939120,
+            "eventId": "39777280236218763419254504921357952192061405553281400832"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674942849,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1245.175 ms - 83\u001b[0m",
+            "ingestionTime": 1783674944104,
+            "eventId": "39777280417479220392911409821785302811235157754596032512"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674944340,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 2897.666 ms - 83\u001b[0m",
+            "ingestionTime": 1783674949107,
+            "eventId": "39777280450729631483920568931863509794427313565550313472"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959056,
+            "message": "TypeError: Cannot read properties of undefined (reading 'map')",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778907397825497219094805464126370097511385661440"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959056,
+            "message": "    at file:///usr/src/app/src/middleware/validation.middleware.js:13:10",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778907397825497219094805464126370097511385661441"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959056,
+            "message": "    at Layer.handle [as handle_request] (/usr/src/app/node_modules/express/lib/router/layer.js:95:5)",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778907397825497219094805464126370097511385661442"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959056,
+            "message": "    at next (/usr/src/app/node_modules/express/lib/router/route.js:149:13)",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778907397825497219094805464126370097511385661443"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959056,
+            "message": "    at file:///usr/src/app/node_modules/express-rate-limit/dist/index.mjs:970:7",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778907397825497219094805464126370097511385661444"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959056,
+            "message": "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778907397825497219094805464126370097511385661445"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959056,
+            "message": "    at async file:///usr/src/app/node_modules/express-rate-limit/dist/index.mjs:825:5",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778907397825497219094805464126370097511385661446"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674959057,
+            "message": "\u001b[0mPOST /api/v1/auth/register \u001b[31m500\u001b[0m 11.505 ms - 47\u001b[0m",
+            "ingestionTime": 1783674959118,
+            "eventId": "39777280778929698570695749717946999844642745872891641863"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674962754,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1497.897 ms - 83\u001b[0m",
+            "ingestionTime": 1783674964110,
+            "eventId": "39777280861375553569663463478239600096142700115268403200"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674972851,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1244.822 ms - 83\u001b[0m",
+            "ingestionTime": 1783674974121,
+            "eventId": "39777281086546177839227165350428433258148897994005479424"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674972939,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1501.814 ms - 83\u001b[0m",
+            "ingestionTime": 1783674974121,
+            "eventId": "39777281088508643416697860186883576466141953806531756033"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783674992855,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1500.595 ms - 83\u001b[0m",
+            "ingestionTime": 1783674994119,
+            "eventId": "39777281532650284790633750697885142920715592775258079232"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675002858,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1250.872 ms - 83\u001b[0m",
+            "ingestionTime": 1783675004118,
+            "eventId": "39777281755724639011535573994754648625762925388228591616"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675002937,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1494.439 ms - 83\u001b[0m",
+            "ingestionTime": 1783675004118,
+            "eventId": "39777281757486397882219493222935970369302145947201044481"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673536"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at JSON.parse (<anonymous>)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673537"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at parse (/usr/src/app/node_modules/body-parser/lib/types/json.js:92:19)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673538"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at /usr/src/app/node_modules/body-parser/lib/read.js:128:18",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673539"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673540"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at invokeCallback (/usr/src/app/node_modules/raw-body/index.js:238:16)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673541"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at done (/usr/src/app/node_modules/raw-body/index.js:227:7)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673542"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at IncomingMessage.onEnd (/usr/src/app/node_modules/raw-body/index.js:287:7)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673543"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at IncomingMessage.emit (node:events:519:28)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673544"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at endReadableNT (node:internal/streams/readable:1698:12)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673545"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675016839,
+            "message": "    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)",
+            "ingestionTime": 1783675019126,
+            "eventId": "39777282067511357632192216154709204918008566868164673546"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021155,
+            "message": "TypeError: Cannot read properties of undefined (reading 'map')",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163761373909050385639596673370469247305677602816"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021155,
+            "message": "    at file:///usr/src/app/src/middleware/validation.middleware.js:13:10",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163761373909050385639596673370469247305677602817"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021155,
+            "message": "    at Layer.handle [as handle_request] (/usr/src/app/node_modules/express/lib/router/layer.js:95:5)",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163761373909050385639596673370469247305677602818"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021155,
+            "message": "    at next (/usr/src/app/node_modules/express/lib/router/route.js:149:13)",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163761373909050385639596673370469247305677602819"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021155,
+            "message": "    at file:///usr/src/app/node_modules/express-rate-limit/dist/index.mjs:970:7",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163761373909050385639596673370469247305677602820"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021155,
+            "message": "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163761373909050385639596673370469247305677602821"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021156,
+            "message": "    at async file:///usr/src/app/node_modules/express-rate-limit/dist/index.mjs:825:5",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163783674654248916262738209088741895667183583238"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675021156,
+            "message": "\u001b[0mPOST /api/v1/auth/register \u001b[31m500\u001b[0m 3.194 ms - 47\u001b[0m",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282163783674654248916262738209088741895667183583239"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675022846,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1495.236 ms - 83\u001b[0m",
+            "ingestionTime": 1783675024105,
+            "eventId": "39777282201471934039765669371933572969517626612290486280"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746240"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at JSON.parse (<anonymous>)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746241"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at parse (/usr/src/app/node_modules/body-parser/lib/types/json.js:92:19)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746242"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at /usr/src/app/node_modules/body-parser/lib/read.js:128:18",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746243"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746244"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at invokeCallback (/usr/src/app/node_modules/raw-body/index.js:238:16)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746245"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at done (/usr/src/app/node_modules/raw-body/index.js:227:7)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746246"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at IncomingMessage.onEnd (/usr/src/app/node_modules/raw-body/index.js:287:7)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746247"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at IncomingMessage.emit (node:events:519:28)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746248"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031948,
+            "message": "    at endReadableNT (node:internal/streams/readable:1698:12)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404453316836791401218299447131894511775700746249"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675031949,
+            "message": "    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282404475617581989931841440982850167160137206726666"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675032858,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1246.630 ms - 83\u001b[0m",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282424746994967454268277096950760004520746142924811"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675032951,
+            "message": "\u001b[0mGET /healthz \u001b[32m200\u001b[0m 1501.923 ms - 83\u001b[0m",
+            "ingestionTime": 1783675034120,
+            "eventId": "39777282426820964270917616229259772559360818366199103500"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043737,
+            "message": "TypeError: Cannot read properties of undefined (reading 'map')",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667356801982268917445951915496402411479468802048"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043737,
+            "message": "    at file:///usr/src/app/src/middleware/validation.middleware.js:13:10",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667356801982268917445951915496402411479468802049"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043737,
+            "message": "    at Layer.handle [as handle_request] (/usr/src/app/node_modules/express/lib/router/layer.js:95:5)",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667356801982268917445951915496402411479468802050"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043737,
+            "message": "    at next (/usr/src/app/node_modules/express/lib/router/route.js:149:13)",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667356801982268917445951915496402411479468802051"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043737,
+            "message": "    at file:///usr/src/app/node_modules/express-rate-limit/dist/index.mjs:970:7",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667356801982268917445951915496402411479468802052"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043737,
+            "message": "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667356801982268917445951915496402411479468802053"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043737,
+            "message": "    at async file:///usr/src/app/node_modules/express-rate-limit/dist/index.mjs:825:5",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667356801982268917445951915496402411479468802054"
+        },
+        {
+            "logStreamName": "ecs/veil-backend/c3628b00c76f4426bc4321fd16ed49a5",
+            "timestamp": 1783675043739,
+            "message": "\u001b[0mPOST /api/v1/auth/register \u001b[31m500\u001b[0m 10.525 ms - 47\u001b[0m",
+            "ingestionTime": 1783675044119,
+            "eventId": "39777282667401403472665978692234986932947708202480762887"
+        }
+    ],
+    "searchedLogStreams": []
+}

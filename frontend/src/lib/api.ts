@@ -1,4 +1,4 @@
-const API_BASE = "http://veil-alb-2042746512.eu-north-1.elb.amazonaws.com";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export interface SentimentAnalysis {
   sentiment: string;

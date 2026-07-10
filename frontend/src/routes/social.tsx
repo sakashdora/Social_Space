@@ -236,7 +236,7 @@ function SocialComponent() {
     queryKey: ["post-details", expandedPostId],
     queryFn: async () => {
       if (!expandedPostId) return null;
-      const res = await fetch(`http://veil-alb-2042746512.eu-north-1.elb.amazonaws.com/v1/posts/${expandedPostId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/v1/posts/${expandedPostId}`);
       if (!res.ok) throw new Error("Failed to load comments");
       return res.json();
     },
