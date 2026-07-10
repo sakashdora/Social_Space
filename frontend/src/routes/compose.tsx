@@ -38,6 +38,7 @@ function Compose() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [shouldBlur, setShouldBlur] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePublish = async () => {
@@ -116,7 +117,7 @@ async function anonymizeImage(file: File): Promise<File> {
     setIsUploading(true);
     setError("");
     try {
-      const processedFile = await anonymizeImage(file);
+      const processedFile = shouldBlur ? await anonymizeImage(file) : file;
       const url = await uploadMedia(processedFile);
       setMediaUrl(url);
     } catch (err: any) {
@@ -266,22 +267,49 @@ async function anonymizeImage(file: File): Promise<File> {
             )}
 
             <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-              <div className="flex gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
-                  onChange={handleFileUpload}
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/5 hover:text-foreground disabled:opacity-50"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                  {isUploading ? "Uploading..." : "Add Media"}
-                </button>
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+                    onChange={handleFileUpload}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-white/5 hover:text-foreground disabled:opacity-50 cursor-pointer"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    {isUploading ? "Uploading..." : "Add Media"}
+                  </button>
+                </div>
+
+                {/* Face Privacy Options */}
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground px-1">
+                  <span>Face Privacy:</span>
+                  <label className="flex items-center gap-1.5 hover:text-foreground transition cursor-pointer">
+                    <input
+                      type="radio"
+                      name="facePrivacy"
+                      checked={shouldBlur}
+                      onChange={() => setShouldBlur(true)}
+                      className="accent-amber-500 cursor-pointer"
+                    />
+                    Blur Faces
+                  </label>
+                  <label className="flex items-center gap-1.5 hover:text-foreground transition cursor-pointer">
+                    <input
+                      type="radio"
+                      name="facePrivacy"
+                      checked={!shouldBlur}
+                      onChange={() => setShouldBlur(false)}
+                      className="accent-amber-500 cursor-pointer"
+                    />
+                    Keep Raw
+                  </label>
+                </div>
               </div>
               <span
                 className={cn(
