@@ -114,7 +114,7 @@ router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {
   const isVideo = req.file.mimetype.startsWith("video/");
   const userId = req.user.id;
   const mediaId = crypto.randomUUID(); // Node global crypto is available
-  const bucketName = "veil-media";
+  const bucketName = process.env.SUPABASE_STORAGE_BUCKET || "staging";
   
   let processedFilePath = null;
   let localThumbPath = null;

@@ -1,0 +1,119 @@
+{
+  "family": "veil-backend-task",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "veil-backend",
+      "image": "174132708982.dkr.ecr.eu-north-1.amazonaws.com/veil-backend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "PORT",
+          "value": "3000"
+        },
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "AI_API_URL",
+          "value": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions"
+        },
+        {
+          "name": "AI_MODEL",
+          "value": "gemini-2.5-flash"
+        },
+        {
+          "name": "WEBAUTHN_RP_NAME",
+          "value": "Social Space"
+        },
+        {
+          "name": "WEBAUTHN_RP_ID",
+          "value": "veil-alb-2042746512.eu-north-1.elb.amazonaws.com"
+        },
+        {
+          "name": "WEBAUTHN_ORIGIN",
+          "value": "http://veil-alb-2042746512.eu-north-1.elb.amazonaws.com"
+        },
+        {
+          "name": "FRONTEND_ORIGIN",
+          "value": "http://veil-alb-2042746512.eu-north-1.elb.amazonaws.com"
+        },
+        {
+          "name": "TOTP_ISSUER",
+          "value": "Social Space"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:DATABASE_URL::"
+        },
+        {
+          "name": "DIRECT_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:DIRECT_URL::"
+        },
+        {
+          "name": "AI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:AI_API_KEY::"
+        },
+        {
+          "name": "GROK_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:GROK_API_KEY::"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:JWT_SECRET::"
+        },
+        {
+          "name": "ENCRYPTION_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:ENCRYPTION_KEY::"
+        },
+        {
+          "name": "RECOVERY_CODE_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:RECOVERY_CODE_SECRET::"
+        },
+        {
+          "name": "SUPABASE_SERVICE_ROLE_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:174132708982:secret:veil/production-secrets:SUPABASE_SERVICE_ROLE_KEY::"
+        }
+      ],
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/healthz').then(res => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))\""
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 10
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/veil-backend",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": {
+    "operatingSystemFamily": "LINUX",
+    "cpuArchitecture": "X86_64"
+  },
+  "executionRoleArn": "arn:aws:iam::174132708982:role/ecsTaskExecutionRole"
+}

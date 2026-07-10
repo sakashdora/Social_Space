@@ -20,13 +20,13 @@ docker run -d -p 3000:3000 --env-file ./backend/.env veil-backend:latest
 
 ### Authenticate local Docker Client with AWS ECR
 ```bash
-aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.ap-northeast-1.amazonaws.com
+aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 174132708982.dkr.ecr.eu-north-1.amazonaws.com
 ```
 
 ### Tag and Push Backend image to ECR
 ```bash
-docker tag veil-backend:latest <aws_account_id>.dkr.ecr.ap-northeast-1.amazonaws.com/veil-backend:latest
-docker push <aws_account_id>.dkr.ecr.ap-northeast-1.amazonaws.com/veil-backend:latest
+docker tag veil-backend:latest 174132708982.dkr.ecr.eu-north-1.amazonaws.com/veil-backend:latest
+docker push 174132708982.dkr.ecr.eu-north-1.amazonaws.com/veil-backend:latest
 ```
 
 ---
@@ -35,17 +35,17 @@ docker push <aws_account_id>.dkr.ecr.ap-northeast-1.amazonaws.com/veil-backend:l
 
 ### Force Deploy Container Update to ECS Service
 ```bash
-aws ecs update-service --cluster veil-cluster --service veil-service --force-new-deployment --region ap-northeast-1
+aws ecs update-service --cluster veil-cluster --service veil-service --force-new-deployment --region eu-north-1
 ```
 
 ### Get Current Status of ECS Tasks
 ```bash
-aws ecs list-tasks --cluster veil-cluster --service-name veil-service --region ap-northeast-1
+aws ecs list-tasks --cluster veil-cluster --service-name veil-service --region eu-north-1
 ```
 
 ### Describe Specific Task details
 ```bash
-aws ecs describe-tasks --cluster veil-cluster --tasks <task_arn> --region ap-northeast-1
+aws ecs describe-tasks --cluster veil-cluster --tasks <task_arn> --region eu-north-1
 ```
 
 ---
@@ -54,12 +54,12 @@ aws ecs describe-tasks --cluster veil-cluster --tasks <task_arn> --region ap-nor
 
 ### Revert Service to a Specific Stable Task Definition Revision
 ```bash
-aws ecs update-service --cluster veil-cluster --service veil-service --task-definition veil-task:45 --region ap-northeast-1
+aws ecs update-service --cluster veil-cluster --service veil-service --task-definition veil-task:45 --region eu-north-1
 ```
 
 ### Stop a Malfunctioning Task (ECS will automatically replace it)
 ```bash
-aws ecs stop-task --cluster veil-cluster --task <task_arn> --region ap-northeast-1
+aws ecs stop-task --cluster veil-cluster --task <task_arn> --region eu-north-1
 ```
 
 ---
@@ -68,12 +68,12 @@ aws ecs stop-task --cluster veil-cluster --task <task_arn> --region ap-northeast
 
 ### Tail Fargate Server Logs using CloudWatch logs
 ```bash
-aws logs tail /ecs/veil-backend --follow --format short --region ap-northeast-1
+aws logs tail /ecs/veil-backend --follow --format short --region eu-north-1
 ```
 
 ### Filter Server Errors in Logs
 ```bash
-aws logs tail /ecs/veil-backend --filter-pattern "ERROR" --region ap-northeast-1
+aws logs tail /ecs/veil-backend --filter-pattern "ERROR" --region eu-north-1
 ```
 
 ---
@@ -87,10 +87,10 @@ npm run build --prefix frontend
 
 ### Upload Static Assets to S3 Bucket
 ```bash
-aws s3 sync frontend/dist/ s3://veil-frontend-bucket/ --delete --region ap-northeast-1
+aws s3 sync frontend/dist/ s3://veil-frontend-bucket/ --delete --region eu-north-1
 ```
 
 ### Invalidate CloudFront Distribution Cache
 ```bash
-aws cloudfront create-invalidation --distribution-id <distribution_id> --paths "/*" --region ap-northeast-1
+aws cloudfront create-invalidation --distribution-id <distribution_id> --paths "/*" --region eu-north-1
 ```

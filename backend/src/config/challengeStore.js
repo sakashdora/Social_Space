@@ -25,6 +25,8 @@ import { env } from "./env.js";
 
 let redisClient = null;
 
+const warnPrefix = "[challengeStore] WARNING:";
+
 if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
   redisClient = new Redis({
     url: env.UPSTASH_REDIS_REST_URL,
@@ -32,15 +34,8 @@ if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
   });
   console.log("[challengeStore] Using Upstash Redis backend.");
 } else {
-  const warnPrefix = "[challengeStore] WARNING:";
-  if (env.NODE_ENV === "production") {
-    throw new Error(
-      `${warnPrefix} UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set in production. ` +
-      "In-memory challenge store is not safe for multi-instance deployments."
-    );
-  }
-  console.warn(`${warnPrefix} UPSTASH_REDIS_REST_URL not configured — falling back to in-memory store.`);
-  console.warn(`${warnPrefix} This is ONLY safe for single-instance local development.`);
+  console.warn(`${warnPrefix} UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN not configured — falling back to in-memory store.`);
+  console.warn(`${warnPrefix} This is only safe for single-instance deployments.`);
 }
 
 // ─── In-memory fallback (dev only) ────────────────────────────────────────────

@@ -84,9 +84,9 @@ if (isProd && !process.env.FRONTEND_ORIGIN) {
   errors.push("  ✗ FRONTEND_ORIGIN must be set in production.");
 }
 
-// In production, UPSTASH_REDIS_REST_URL and token must be set
+// In production, UPSTASH_REDIS_REST_URL and token are optional but recommended
 if (isProd && (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)) {
-  errors.push("  ✗ UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set in production.");
+  warnings.push("  ⚠ UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is missing in production. Falling back to in-memory store.");
 }
 
 if (warnings.length > 0) {

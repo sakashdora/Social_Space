@@ -1,0 +1,16 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci --prefix frontend
+    build:
+      commands:
+        - npm run build --prefix frontend
+  artifacts:
+    baseDirectory: frontend/dist/client
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - frontend/node_modules/**/*

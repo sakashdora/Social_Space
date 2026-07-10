@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000";
+const API_BASE = "http://veil-alb-2042746512.eu-north-1.elb.amazonaws.com";
 
 export interface SentimentAnalysis {
   sentiment: string;
