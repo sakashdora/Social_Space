@@ -215,15 +215,20 @@ export function isAuthenticated() {
  * Fetch chronological feed.
  */
 export async function fetchFeed(category?: string, page?: number) {
-  const url = new URL(`${API_BASE}/v1/posts`);
+  let url = `${API_BASE}/v1/posts`;
+  const params = new URLSearchParams();
   if (category && category !== "All") {
-    url.searchParams.append("category", category);
+    params.append("category", category);
   }
   if (page) {
-    url.searchParams.append("page", page.toString());
+    params.append("page", page.toString());
+  }
+  const queryString = params.toString();
+  if (queryString) {
+    url += `?${queryString}`;
   }
 
-  const res = await fetch(url.toString(), {
+  const res = await fetch(url, {
     headers: getHeaders(),
   });
   const posts = await handleResponse(res);
@@ -297,9 +302,13 @@ export async function toggleReaction({ postId, commentId, reactionType }: Reacti
  * Fetch RSS News feed.
  */
 export async function fetchNews(topic = "") {
-  const url = new URL(`${API_BASE}/api/rss`);
-  if (topic) url.searchParams.append("topic", topic);
-  const res = await fetch(url.toString(), {
+  let url = `${API_BASE}/api/rss`;
+  if (topic) {
+    const params = new URLSearchParams();
+    params.append("topic", topic);
+    url += `?${params.toString()}`;
+  }
+  const res = await fetch(url, {
     headers: getHeaders(),
   });
   return handleResponse(res);
