@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 24
+    commands:
+      - cd backend
+      - npm ci --production
+      - npx prisma generate
+
+  build:
+    commands:
+      - echo "VEIL backend build complete — artifact is backend/"
+
+artifacts:
+  base-directory: backend
+  files:
+    - "**/*"
+  discard-paths: no
