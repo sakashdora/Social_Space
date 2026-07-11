@@ -1,15 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { fetchFeed, mapApiPostToUiPost } from "@/lib/api";
+import { fetchFeed, mapApiPostToUiPost, detectMediaType } from "@/lib/api";
 import type { ApiPost } from "@/lib/api";
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, Sparkles } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Sparkles,
+} from "lucide-react";
 
 export const Route = createFileRoute("/video")({
   component: VideoFeed,
 });
 
-function PremiumPlayer({ post }: { post: ReturnType<typeof mapApiPostToUiPost> }) {
+function PremiumPlayer({
+  post,
+}: {
+  post: ReturnType<typeof mapApiPostToUiPost>;
+}) {
   const url = post.mediaUrl || "";
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,16 +32,10 @@ function PremiumPlayer({ post }: { post: ReturnType<typeof mapApiPostToUiPost> }
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Detect if video format
+  // Detect if video format (client-side, URL-based)
   useEffect(() => {
     if (!url) return;
-    if (url.startsWith("data:video/")) {
-      setIsVideo(true);
-      return;
-    }
-    const ext = url.split("?")[0].split(".").pop()?.toLowerCase();
-    const isVid = ["mp4", "webm", "ogg", "mov", "m4v"].includes(ext || "");
-    setIsVideo(isVid);
+    setIsVideo(detectMediaType(url) === "video");
   }, [url]);
 
   // Autoplay when visible in viewport
@@ -85,7 +90,8 @@ function PremiumPlayer({ post }: { post: ReturnType<typeof mapApiPostToUiPost> }
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
     setCurrentTime(videoRef.current.currentTime);
-    const progressPercent = (videoRef.current.currentTime / (videoRef.current.duration || 1)) * 100;
+    const progressPercent =
+      (videoRef.current.currentTime / (videoRef.current.duration || 1)) * 100;
     setProgress(progressPercent);
   };
 
@@ -187,7 +193,11 @@ function PremiumPlayer({ post }: { post: ReturnType<typeof mapApiPostToUiPost> }
                     onClick={handleMuteToggle}
                     className="p-1.5 rounded-lg hover:bg-white/10 text-white transition"
                   >
-                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    {isMuted ? (
+                      <VolumeX className="h-4 w-4" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
                   </button>
 
                   <span className="text-[10px] text-white/80 font-mono tracking-wider">
@@ -226,7 +236,7 @@ function PremiumPlayer({ post }: { post: ReturnType<typeof mapApiPostToUiPost> }
           <img
             src={url}
             alt="Media Card"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105"
+            className="max-w-full max-h-full object-contain transition-transform duration-700 group-hover/img:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />
         </div>
@@ -245,7 +255,9 @@ function PremiumPlayer({ post }: { post: ReturnType<typeof mapApiPostToUiPost> }
             <p className="font-semibold text-sm text-white leading-tight truncate">
               @{post.author}
             </p>
-            <p className="text-[10px] text-white/50 leading-none mt-1">{post.time}</p>
+            <p className="text-[10px] text-white/50 leading-none mt-1">
+              {post.time}
+            </p>
           </div>
         </div>
         <p className="mt-3 text-xs leading-relaxed text-white/90 line-clamp-2 max-w-[85%]">
@@ -269,7 +281,9 @@ function VideoFeed() {
   return (
     <div className="mx-auto w-full max-w-lg sm:max-w-xl py-8 px-4 sm:px-6 pb-28 lg:pb-10 h-full">
       <header className="text-center mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight">Media Portal</h1>
+        <h1 className="font-serif text-3xl font-medium tracking-tight">
+          Media Portal
+        </h1>
         <p className="text-xs text-muted-foreground mt-2">
           End-to-end secure, untraceable media streams.
         </p>
@@ -308,7 +322,9 @@ function VideoFeed() {
                 <PremiumPlayer post={post} />
               ) : (
                 <div className="p-8 text-center border border-white/10 rounded-2xl bg-white/5">
-                  <p className="text-muted-foreground text-xs">Media unavailable or expired.</p>
+                  <p className="text-muted-foreground text-xs">
+                    Media unavailable or expired.
+                  </p>
                 </div>
               )}
             </div>

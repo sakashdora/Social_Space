@@ -5,6 +5,7 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import prisma from "../config/prisma.js";
 import { supabase } from "../config/supabase.js";
+import { env } from "../config/env.js";
 import { isUserPremium } from "../services/subscription.service.js";
 import { runFaceAnonymization } from "../services/anonymization.service.js";
 import {
@@ -114,7 +115,7 @@ router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {
   const isVideo = req.file.mimetype.startsWith("video/");
   const userId = req.user.id;
   const mediaId = crypto.randomUUID(); // Node global crypto is available
-  const bucketName = process.env.SUPABASE_STORAGE_BUCKET || "staging";
+  const bucketName = env.SUPABASE_STORAGE_BUCKET;
   
   let processedFilePath = null;
   let localThumbPath = null;

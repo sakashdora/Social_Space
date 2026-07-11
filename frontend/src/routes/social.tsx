@@ -1,4 +1,9 @@
-import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -9,6 +14,7 @@ import {
   getCurrentUser,
   createChat,
   fetchChats,
+  detectMediaType,
 } from "@/lib/api";
 import type { ApiComment, ApiChat } from "@/lib/api";
 import {
@@ -51,7 +57,14 @@ export const Route = createFileRoute("/social")({
   component: SocialComponent,
 });
 
-const categories = ["All", "Life", "Mental Health", "Career", "Ideas", "Confessions"];
+const categories = [
+  "All",
+  "Life",
+  "Mental Health",
+  "Career",
+  "Ideas",
+  "Confessions",
+];
 
 const trendingTopics = [
   {
@@ -87,21 +100,22 @@ const trendingTopics = [
 ];
 
 const whoToFollow = [
-  { name: "silent_wanderer", handle: "@silent_wanderer", color: "text-amber-500 bg-amber-500/10" },
+  {
+    name: "silent_wanderer",
+    handle: "@silent_wanderer",
+    color: "text-amber-500 bg-amber-500/10",
+  },
   {
     name: "thoughts_unfiltered",
     handle: "@thoughts_unfiltered",
     color: "text-purple-500 bg-purple-500/10",
   },
-  { name: "dream_builder", handle: "@dream_builder", color: "text-teal-500 bg-teal-500/10" },
+  {
+    name: "dream_builder",
+    handle: "@dream_builder",
+    color: "text-teal-500 bg-teal-500/10",
+  },
 ];
-
-const isVideoUrl = (url: string) => {
-  if (!url) return false;
-  if (url.startsWith("data:video/")) return true;
-  const ext = url.split("?")[0].split(".").pop()?.toLowerCase();
-  return ["mp4", "webm", "ogg", "mov", "m4v"].includes(ext || "");
-};
 
 const detectMediaInText = (text: string) => {
   if (!text) return null;
@@ -110,10 +124,16 @@ const detectMediaInText = (text: string) => {
   if (match) {
     for (const url of match) {
       const cleanUrl = url.split("?")[0].split("#")[0].toLowerCase();
-      if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/) || url.startsWith("data:image/")) {
+      if (
+        cleanUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/) ||
+        url.startsWith("data:image/")
+      ) {
         return { url, type: "image" };
       }
-      if (cleanUrl.match(/\.(mp4|webm|ogg|mov|m4v)$/) || url.startsWith("data:video/")) {
+      if (
+        cleanUrl.match(/\.(mp4|webm|ogg|mov|m4v)$/) ||
+        url.startsWith("data:video/")
+      ) {
         return { url, type: "video" };
       }
     }
@@ -213,7 +233,12 @@ function SocialComponent() {
     if (!observerTarget.current) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isFetching && pagePosts && pagePosts.length > 0) {
+        if (
+          entries[0].isIntersecting &&
+          !isFetching &&
+          pagePosts &&
+          pagePosts.length > 0
+        ) {
           setPage((prev) => prev + 1);
         }
       },
@@ -236,7 +261,9 @@ function SocialComponent() {
     queryKey: ["post-details", expandedPostId],
     queryFn: async () => {
       if (!expandedPostId) return null;
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/v1/posts/${expandedPostId}`);
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || ""}/v1/posts/${expandedPostId}`,
+      );
       if (!res.ok) throw new Error("Failed to load comments");
       return res.json();
     },
@@ -249,7 +276,9 @@ function SocialComponent() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       if (expandedPostId === variables.postId) {
-        queryClient.invalidateQueries({ queryKey: ["post-details", expandedPostId] });
+        queryClient.invalidateQueries({
+          queryKey: ["post-details", expandedPostId],
+        });
       }
     },
   });
@@ -261,7 +290,9 @@ function SocialComponent() {
     onSuccess: (_, variables) => {
       setCommentTexts((prev) => ({ ...prev, [variables.postId]: "" }));
       queryClient.invalidateQueries({ queryKey: ["posts"] });
-      queryClient.invalidateQueries({ queryKey: ["post-details", variables.postId] });
+      queryClient.invalidateQueries({
+        queryKey: ["post-details", variables.postId],
+      });
     },
   });
 
@@ -489,7 +520,9 @@ function SocialComponent() {
                             {post.topic}
                           </span>
                           <button
-                            onClick={() => showToast("Post options coming soon")}
+                            onClick={() =>
+                              showToast("Post options coming soon")
+                            }
                             className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
                             aria-label="Options"
                           >
@@ -503,21 +536,22 @@ function SocialComponent() {
                         {post.body}
                       </p>
 
-                      {/* Media container: Forced Aspect-Ratio 16:9 & Zoom on Hover */}
+                      {/* Media container: fits media without cropping; type detected client-side */}
                       {(() => {
                         const mediaObj = post.mediaUrl
                           ? {
                               url: post.mediaUrl,
-                              type: isVideoUrl(post.mediaUrl) ? "video" : "image",
+                              type: detectMediaType(post.mediaUrl),
                             }
                           : detectMediaInText(post.body);
 
                         if (!mediaObj) return null;
+                        const isVideo = mediaObj.type === "video";
 
                         return (
                           <div className="rounded-[20px] border border-border overflow-hidden mb-4 bg-black/40 relative">
-                            {mediaObj.type === "video" ? (
-                              <div className="relative w-full">
+                            {isVideo ? (
+                              <div className="relative w-full flex justify-center">
                                 <video
                                   src={mediaObj.url}
                                   controls
@@ -526,23 +560,17 @@ function SocialComponent() {
                                   playsInline
                                   className="w-full max-h-[420px] object-contain bg-black"
                                 />
-                                <div className="absolute top-3 left-3 rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold text-white backdrop-blur border border-white/10 shadow-md">
-                                  Video Media
-                                </div>
                               </div>
                             ) : (
-                              <div className="relative w-full aspect-video overflow-hidden bg-black/10">
+                              <div className="relative w-full flex justify-center bg-black/10">
                                 <motion.img
                                   src={mediaObj.url}
                                   alt="Post media"
                                   whileHover={{ scale: 1.02 }}
                                   transition={{ duration: 0.3 }}
                                   loading="lazy"
-                                  className="w-full h-full object-cover"
+                                  className="max-h-[420px] w-auto max-w-full object-contain"
                                 />
-                                <div className="absolute top-3 left-3 rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold text-white backdrop-blur border border-white/10 shadow-md pointer-events-none">
-                                  Image Media
-                                </div>
                               </div>
                             )}
                           </div>
@@ -555,7 +583,10 @@ function SocialComponent() {
                           <Sparkles className="h-3.5 w-3.5" />
                           <span>
                             Sentiment: {post.sentimentAnalysis.sentiment} (
-                            {Math.round(Math.abs(post.sentimentAnalysis.score) * 100)}%)
+                            {Math.round(
+                              Math.abs(post.sentimentAnalysis.score) * 100,
+                            )}
+                            %)
                           </span>
                         </div>
                       )}
@@ -574,7 +605,10 @@ function SocialComponent() {
                             )}
                           >
                             <Heart
-                              className={cn("h-4.5 w-4.5", reactionState.active && "fill-current")}
+                              className={cn(
+                                "h-4.5 w-4.5",
+                                reactionState.active && "fill-current",
+                              )}
                             />
                             <span>{reactionState.count}</span>
                           </button>
@@ -639,27 +673,31 @@ function SocialComponent() {
                           ) : expandedPostDetails?.comments &&
                             expandedPostDetails.comments.length > 0 ? (
                             <div className="space-y-3 pl-3 border-l-2 border-white/5">
-                              {expandedPostDetails.comments.map((comment: ApiComment) => (
-                                <div
-                                  key={comment.id}
-                                  className="text-sm bg-black/10 dark:bg-white/[0.02] border border-border p-3.5 rounded-2xl flex gap-3"
-                                >
-                                  <CornerDownRight className="h-4 w-4 shrink-0 text-muted-foreground/60 mt-0.5" />
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-semibold text-foreground">
-                                        @{comment.user?.handle || "anonymous"}
-                                      </span>
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {new Date(comment.createdAt).toLocaleDateString()}
-                                      </span>
+                              {expandedPostDetails.comments.map(
+                                (comment: ApiComment) => (
+                                  <div
+                                    key={comment.id}
+                                    className="text-sm bg-black/10 dark:bg-white/[0.02] border border-border p-3.5 rounded-2xl flex gap-3"
+                                  >
+                                    <CornerDownRight className="h-4 w-4 shrink-0 text-muted-foreground/60 mt-0.5" />
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-semibold text-foreground">
+                                          @{comment.user?.handle || "anonymous"}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                          {new Date(
+                                            comment.createdAt,
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                      <p className="text-foreground/90 leading-relaxed">
+                                        {comment.content}
+                                      </p>
                                     </div>
-                                    <p className="text-foreground/90 leading-relaxed">
-                                      {comment.content}
-                                    </p>
                                   </div>
-                                </div>
-                              ))}
+                                ),
+                              )}
                             </div>
                           ) : (
                             <p className="text-xs text-muted-foreground italic text-center py-2">
@@ -673,17 +711,24 @@ function SocialComponent() {
                               type="text"
                               value={commentTexts[post.id] || ""}
                               onChange={(e) =>
-                                setCommentTexts((prev) => ({ ...prev, [post.id]: e.target.value }))
+                                setCommentTexts((prev) => ({
+                                  ...prev,
+                                  [post.id]: e.target.value,
+                                }))
                               }
                               placeholder="Write a reply..."
                               className="flex-1 rounded-xl border border-border bg-black/20 px-4 py-2.5 text-xs outline-none focus:border-[color:var(--primary)] transition-colors"
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSendComment(post.id);
+                                if (e.key === "Enter")
+                                  handleSendComment(post.id);
                               }}
                             />
                             <button
                               onClick={() => handleSendComment(post.id)}
-                              disabled={commentMutation.isPending || !commentTexts[post.id]?.trim()}
+                              disabled={
+                                commentMutation.isPending ||
+                                !commentTexts[post.id]?.trim()
+                              }
                               className="rounded-xl bg-[color:var(--primary)] px-3.5 py-2.5 text-primary-foreground transition hover:brightness-110 disabled:opacity-50 cursor-pointer"
                             >
                               <Send className="h-4 w-4" />
@@ -800,7 +845,9 @@ function SocialComponent() {
                     <p className="font-semibold text-xs text-foreground group-hover:text-[color:var(--primary)] transition truncate">
                       {topic.title}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{topic.posts}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {topic.posts}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -823,7 +870,10 @@ function SocialComponent() {
 
             <div className="space-y-4">
               {whoToFollow.map((user) => (
-                <div key={user.name} className="flex items-center justify-between gap-2.5">
+                <div
+                  key={user.name}
+                  className="flex items-center justify-between gap-2.5"
+                >
                   <div className="flex items-center gap-3">
                     <div
                       className={`h-10 w-10 rounded-full flex items-center justify-center text-lg ${user.color} border border-white/5 font-serif`}
@@ -834,7 +884,9 @@ function SocialComponent() {
                       <p className="font-semibold text-xs text-foreground leading-none">
                         {user.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{user.handle}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {user.handle}
+                      </p>
                     </div>
                   </div>
 
@@ -861,8 +913,8 @@ function SocialComponent() {
                   Your voice matters
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Speak freely. Stay anonymous. We protect your privacy with client-side keys and
-                  strict data deletion policies.
+                  Speak freely. Stay anonymous. We protect your privacy with
+                  client-side keys and strict data deletion policies.
                 </p>
               </div>
             </div>

@@ -76,7 +76,12 @@ if (encKey && !/^[0-9a-fA-F]{64}$/.test(encKey.trim())) {
 
 // Check SUPABASE_URL presence
 if (!process.env.SUPABASE_URL) {
-  warnings.push("  ⚠ SUPABASE_URL is missing, using default: https://qaovcjwalukixbvhgzel.supabase.co");
+  warnings.push(
+    "  ⚠ SUPABASE_URL is missing. Falling back to a hard-coded default project " +
+    "(https://qaovcjwalukixbvhgzel.supabase.co). This default exists only for local dev " +
+    "and MUST be overridden via SUPABASE_URL in every real environment. Media uploads/deletions " +
+    "will still fail unless SUPABASE_SERVICE_ROLE_KEY is also set."
+  );
 }
 
 // In production, FRONTEND_ORIGIN must be set
@@ -127,4 +132,7 @@ export const env = {
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
   SUPABASE_URL: process.env.SUPABASE_URL || "https://qaovcjwalukixbvhgzel.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  // Storage bucket name — defaults to "veil-media" (the production bucket).
+  // Override to "staging" in dev or test if you want to isolate uploads.
+  SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET || "veil-media",
 };

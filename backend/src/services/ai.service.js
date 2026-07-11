@@ -30,6 +30,26 @@ function isGrokConfigured() {
   return key && key !== "mock_key_for_dev" && key.trim() !== "";
 }
 
+/**
+ * Defense-in-depth: guarantee an LLM request only ever carries plain-text
+ * content. A text-only model throws "this model does not support image input"
+ * if an image slips into the payload. We strip embedded image data URLs and
+ * coerce non-string content so a contaminated/reused payload fails fast and
+ * locally instead of reaching the provider with an unsupported image part.
+ */
+function sanitizeTextInput(input) {
+  if (typeof input !== "string") return String(input ?? "");
+  // Remove any inlined base64 image blobs that could leak into a prompt.
+  return input.replace(/data:image\/[a-zA-Z0-9.+-]+;base64,[^\s"'`)]*/g, "[image-redacted]");
+}
+
+function buildTextMessages(systemInstruction, userContent) {
+  return [
+    { role: "system", content: sanitizeTextInput(systemInstruction) },
+    { role: "user", content: sanitizeTextInput(userContent) },
+  ];
+}
+
 // Helper to check if Gemini is configured
 function isGeminiConfigured() {
   const key = getAiApiKey();
@@ -76,10 +96,7 @@ async function callGemini(prompt, systemInstruction, options = {}) {
   
   const payload = {
     model: getAiModel(),
-    messages: [
-      { role: "system", content: systemInstruction },
-      { role: "user", content: prompt }
-    ],
+    messages: buildTextMessages(systemInstruction, prompt),
     temperature: options.temperature !== undefined ? options.temperature : 0.2,
     max_tokens: options.maxTokens || 1000
   };
@@ -111,10 +128,7 @@ async function callGrok(prompt, systemInstruction, options = {}) {
 
   const payload = {
     model: model,
-    messages: [
-      { role: "system", content: systemInstruction },
-      { role: "user", content: prompt }
-    ],
+    messages: buildTextMessages(systemInstruction, prompt),
     temperature: options.temperature !== undefined ? options.temperature : 0.2,
     max_tokens: options.maxTokens || 1000
   };

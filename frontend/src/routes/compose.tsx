@@ -1,16 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef } from "react";
-import { Send, Image as ImageIcon, Sparkles, X, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  Send,
+  Image as ImageIcon,
+  Sparkles,
+  X,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createPost, uploadMedia } from "@/lib/api";
+import { createPost, uploadMedia, type MediaKind } from "@/lib/api";
 import { GrokEditor } from "@/components/GrokEditor";
-
-const isVideoUrl = (url: string) => {
-  if (!url) return false;
-  if (url.startsWith("data:video/")) return true;
-  const ext = url.split("?")[0].split(".").pop()?.toLowerCase();
-  return ["mp4", "webm", "ogg", "mov", "m4v"].includes(ext || "");
-};
 
 export const Route = createFileRoute("/compose")({
   head: () => ({
@@ -33,7 +33,9 @@ function Compose() {
     }
     return "";
   });
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [media, setMedia] = useState<{ url: string; type: MediaKind } | null>(
+    null,
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,15 +44,20 @@ function Compose() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePublish = async () => {
-    if (!text.trim() && !mediaUrl) return;
+    if (!text.trim() && !media) return;
     setIsLoading(true);
     setError("");
     setSuccess(false);
     try {
-      const category = mediaUrl ? "Video" : mode === "article" ? "Ideas" : "Life";
-      await createPost(text, category, anonMode, mediaUrl);
+      const category =
+        media?.type === "video"
+          ? "Video"
+          : mode === "article"
+            ? "Ideas"
+            : "Life";
+      await createPost(text, category, anonMode, media?.url ?? null);
       setText("");
-      setMediaUrl(null);
+      setMedia(null);
       setSuccess(true);
       // Auto-clear success banner after 4 seconds
       setTimeout(() => setSuccess(false), 4000);
@@ -61,53 +68,81 @@ function Compose() {
     }
   };
 
-async function anonymizeImage(file: File): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
+  async function anonymizeImage(file: File): Promise<File> {
+    if (!file.type.startsWith("image/")) return file;
 
-  try {
-    const { detectFace, loadImageFromFile } = await import("../lib/faceDetect");
-    const { image } = await loadImageFromFile(file);
-    const box = await detectFace(image);
-    if (!box) return file;
+    try {
+      const { detectFace, loadImageFromFile } =
+        await import("../lib/faceDetect");
+      const { image } = await loadImageFromFile(file);
+      const box = await detectFace(image);
+      if (!box) return file;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth || image.width;
-    canvas.height = image.naturalHeight || image.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth || image.width;
+      canvas.height = image.naturalHeight || image.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
 
-    ctx.drawImage(image, 0, 0);
+      ctx.drawImage(image, 0, 0);
 
-    const px = box.x * canvas.width;
-    const py = box.y * canvas.height;
-    const pw = box.w * canvas.width;
-    const ph = box.h * canvas.height;
+      const px = box.x * canvas.width;
+      const py = box.y * canvas.height;
+      const pw = box.w * canvas.width;
+      const ph = box.h * canvas.height;
 
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = Math.max(8, Math.round(pw / 10));
-    tempCanvas.height = Math.max(8, Math.round(ph / 10));
-    const tempCtx = tempCanvas.getContext("2d");
-    if (tempCtx) {
-      tempCtx.imageSmoothingEnabled = false;
-      tempCtx.drawImage(canvas, px, py, pw, ph, 0, 0, tempCanvas.width, tempCanvas.height);
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, px, py, pw, ph);
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = Math.max(8, Math.round(pw / 10));
+      tempCanvas.height = Math.max(8, Math.round(ph / 10));
+      const tempCtx = tempCanvas.getContext("2d");
+      if (tempCtx) {
+        tempCtx.imageSmoothingEnabled = false;
+        tempCtx.drawImage(
+          canvas,
+          px,
+          py,
+          pw,
+          ph,
+          0,
+          0,
+          tempCanvas.width,
+          tempCanvas.height,
+        );
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(
+          tempCanvas,
+          0,
+          0,
+          tempCanvas.width,
+          tempCanvas.height,
+          px,
+          py,
+          pw,
+          ph,
+        );
+      }
+
+      return new Promise<File>((resolve) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+            } else {
+              resolve(new File([blob], file.name, { type: "image/webp" }));
+            }
+          },
+          "image/webp",
+          0.9,
+        );
+      });
+    } catch (err) {
+      console.warn(
+        "Client-side face anonymization failed, uploading raw:",
+        err,
+      );
+      return file;
     }
-
-    return new Promise<File>((resolve) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          resolve(file);
-        } else {
-          resolve(new File([blob], file.name, { type: "image/webp" }));
-        }
-      }, "image/webp", 0.9);
-    });
-  } catch (err) {
-    console.warn("Client-side face anonymization failed, uploading raw:", err);
-    return file;
   }
-}
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,8 +153,8 @@ async function anonymizeImage(file: File): Promise<File> {
     setError("");
     try {
       const processedFile = shouldBlur ? await anonymizeImage(file) : file;
-      const url = await uploadMedia(processedFile);
-      setMediaUrl(url);
+      const uploaded = await uploadMedia(processedFile);
+      setMedia(uploaded);
     } catch (err: any) {
       // Surface the actual server error (MIME rejection, size limit, auth) — not a generic fallback
       setError(err.message || "Failed to upload media. Please try again.");
@@ -185,7 +220,9 @@ async function anonymizeImage(file: File): Promise<File> {
 
         {/* ── Anonymity Mode Selector ────────────────────────────────── */}
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground mb-2">Post as</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground mb-2">
+            Post as
+          </p>
           <div className="flex flex-wrap gap-2 p-1 rounded-2xl bg-white/5 border border-white/10">
             <button
               id="anon-mode-full"
@@ -239,25 +276,27 @@ async function anonymizeImage(file: File): Promise<File> {
               </div>
             )}
 
-            {mediaUrl && (
+            {media && (
               <div className="relative mt-4 w-full rounded-2xl overflow-hidden border border-white/10 bg-black/20">
-                {isVideoUrl(mediaUrl) ? (
+                {media.type === "video" ? (
                   <video
-                    src={mediaUrl}
+                    src={media.url}
                     controls
                     muted
                     playsInline
-                    className="max-h-64 w-full object-contain bg-black"
+                    className="max-h-72 w-full object-contain bg-black"
                   />
                 ) : (
-                  <img
-                    src={mediaUrl}
-                    alt="Uploaded media"
-                    className="max-h-64 w-full object-cover"
-                  />
+                  <div className="flex justify-center bg-black/20">
+                    <img
+                      src={media.url}
+                      alt="Uploaded media"
+                      className="max-h-72 w-auto max-w-full object-contain"
+                    />
+                  </div>
                 )}
                 <button
-                  onClick={() => setMediaUrl(null)}
+                  onClick={() => setMedia(null)}
                   className="absolute top-3 right-3 rounded-full bg-red-500/80 p-2 text-white hover:bg-red-600 transition shadow-lg z-10"
                   aria-label="Remove media"
                 >
@@ -314,7 +353,9 @@ async function anonymizeImage(file: File): Promise<File> {
               <span
                 className={cn(
                   "mono text-[11px] tracking-[0.16em]",
-                  text.length > 450 ? "text-amber-400" : "text-muted-foreground",
+                  text.length > 450
+                    ? "text-amber-400"
+                    : "text-muted-foreground",
                   text.length >= 500 && "text-red-400",
                 )}
               >
@@ -328,7 +369,7 @@ async function anonymizeImage(file: File): Promise<File> {
 
         <button
           onClick={handlePublish}
-          disabled={isLoading || (!text.trim() && !mediaUrl)}
+          disabled={isLoading || (!text.trim() && !media)}
           className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-[color:var(--primary)] px-5 py-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40"
         >
           <Send className="h-4 w-4" />

@@ -5,6 +5,8 @@ export interface SentimentAnalysis {
   score: number;
 }
 
+export type MediaKind = "image" | "video" | "unknown";
+
 export interface ApiPost {
   id: string;
   userId: string | null;
@@ -22,9 +24,32 @@ export interface ApiPost {
     handle: string;
     avatarUrl: string | null;
   } | null;
+  media?: {
+    type: "IMAGE" | "VIDEO";
+    thumbnailPath: string | null;
+  } | null;
   reactionCount?: number;
   commentCount?: number;
   isAiModifiedMedia?: boolean;
+}
+
+/**
+ * Authoritatively classify a media URL as image/video when possible.
+ * Data URLs carry their MIME type directly; otherwise fall back to the file
+ * extension. Returns "unknown" when it cannot be determined (e.g. expired URLs).
+ */
+export function detectMediaType(url?: string | null): MediaKind {
+  if (!url) return "unknown";
+  if (url.startsWith("data:video/")) return "video";
+  if (url.startsWith("data:image/")) return "image";
+
+  const path = url.split("?")[0].split("#")[0].toLowerCase();
+  const ext = path.split(".").pop() || "";
+  if (["mp4", "webm", "ogg", "mov", "m4v", "avi", "mkv"].includes(ext))
+    return "video";
+  if (["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif"].includes(ext))
+    return "image";
+  return "unknown";
 }
 
 export interface ApiComment {
@@ -120,7 +145,9 @@ export function mapApiPostToUiPost(p: ApiPost) {
 }
 
 // Helper to get auth header
-function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+function getHeaders(
+  extraHeaders: Record<string, string> = {},
+): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...extraHeaders,
@@ -143,7 +170,10 @@ async function handleResponse(response: Response) {
     if (errorData.error) {
       if (typeof errorData.error === "string") {
         msg = errorData.error;
-      } else if (typeof errorData.error === "object" && errorData.error.message) {
+      } else if (
+        typeof errorData.error === "object" &&
+        errorData.error.message
+      ) {
         msg = errorData.error.message;
       }
     }
@@ -289,7 +319,11 @@ interface ReactionParams {
 /**
  * Toggle reaction on a post or comment.
  */
-export async function toggleReaction({ postId, commentId, reactionType }: ReactionParams) {
+export async function toggleReaction({
+  postId,
+  commentId,
+  reactionType,
+}: ReactionParams) {
   const res = await fetch(`${API_BASE}/v1/reactions`, {
     method: "POST",
     headers: getHeaders(),
@@ -344,7 +378,9 @@ export async function getSuggestions(text: string) {
   return handleResponse(res);
 }
 
-export async function uploadMedia(file: File): Promise<string> {
+export async function uploadMedia(
+  file: File,
+): Promise<{ url: string; type: MediaKind }> {
   const formData = new FormData();
   formData.append("file", file);
 
@@ -362,7 +398,8 @@ export async function uploadMedia(file: File): Promise<string> {
     body: formData,
   });
   const data = await handleResponse(res);
-  return data.url;
+  const serverType = data?.media?.type === "VIDEO" ? "video" : "image";
+  return { url: data.url, type: serverType };
 }
 
 /**
@@ -410,7 +447,8 @@ export async function sendChatMessage(
     const sender = getCurrentUser();
     if (!sender) throw new Error("User not authenticated.");
 
-    const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey } = await import("./crypto");
+    const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey } =
+      await import("./crypto");
     const record = await getKeyRecord(sender.id);
     if (!record) {
       throw new Error(
@@ -423,7 +461,9 @@ export async function sendChatMessage(
       throw new Error("Recipient has not set up secure chat keys yet.");
     }
 
-    const recipientPubKey = await importPublicKeyBase64(recipientKeyData.chatPublicKey);
+    const recipientPubKey = await importPublicKeyBase64(
+      recipientKeyData.chatPublicKey,
+    );
     aesKey = await deriveSharedAesKey(record.privateKey, recipientPubKey);
     threadKeyCache[threadId] = aesKey;
   }
@@ -458,10 +498,15 @@ export async function updateChatTimer(threadId: string, seconds: number) {
 
 /** @deprecated Use changePassphrase instead */
 export async function updateSecurityKey(_newPassphrase: string) {
-  return Promise.reject(new Error("updateSecurityKey is deprecated. Use changePassphrase."));
+  return Promise.reject(
+    new Error("updateSecurityKey is deprecated. Use changePassphrase."),
+  );
 }
 
-export async function changePassphrase(currentPassphrase: string, newPassphrase: string) {
+export async function changePassphrase(
+  currentPassphrase: string,
+  newPassphrase: string,
+) {
   const res = await fetch(`${API_BASE}/v1/auth/passphrase/change`, {
     method: "POST",
     headers: getHeaders(),
@@ -524,7 +569,9 @@ export async function deleteAccount(currentPassphrase: string) {
 
 /** TOTP API */
 export async function getTotpStatus() {
-  const res = await fetch(`${API_BASE}/v1/auth/mfa/totp/status`, { headers: getHeaders() });
+  const res = await fetch(`${API_BASE}/v1/auth/mfa/totp/status`, {
+    headers: getHeaders(),
+  });
   return handleResponse(res);
 }
 
@@ -563,7 +610,10 @@ export async function getPasskeyRegisterOptions() {
   return handleResponse(res);
 }
 
-export async function verifyPasskeyRegistration(credential: unknown, nickname?: string) {
+export async function verifyPasskeyRegistration(
+  credential: unknown,
+  nickname?: string,
+) {
   const res = await fetch(`${API_BASE}/v1/auth/passkeys/register-verify`, {
     method: "POST",
     headers: getHeaders(),
@@ -580,7 +630,10 @@ export async function getPasskeyLoginOptions() {
   return handleResponse(res);
 }
 
-export async function verifyPasskeyLogin(credential: unknown, sessionToken: string) {
+export async function verifyPasskeyLogin(
+  credential: unknown,
+  sessionToken: string,
+) {
   const res = await fetch(`${API_BASE}/v1/auth/passkeys/login-verify`, {
     method: "POST",
     headers: getHeaders(),
@@ -595,7 +648,9 @@ export async function verifyPasskeyLogin(credential: unknown, sessionToken: stri
 }
 
 export async function listPasskeys() {
-  const res = await fetch(`${API_BASE}/v1/auth/passkeys`, { headers: getHeaders() });
+  const res = await fetch(`${API_BASE}/v1/auth/passkeys`, {
+    headers: getHeaders(),
+  });
   return handleResponse(res);
 }
 
@@ -623,12 +678,17 @@ export async function getMe(): Promise<{
 
 /** Security Events */
 export async function getSecurityEvents() {
-  const res = await fetch(`${API_BASE}/v1/auth/security-events`, { headers: getHeaders() });
+  const res = await fetch(`${API_BASE}/v1/auth/security-events`, {
+    headers: getHeaders(),
+  });
   return handleResponse(res);
 }
 
 /** Login with TOTP MFA step 2 */
-export async function loginVerifyTotp(challengeToken: string, totpCode: string) {
+export async function loginVerifyTotp(
+  challengeToken: string,
+  totpCode: string,
+) {
   const res = await fetch(`${API_BASE}/v1/auth/login/totp`, {
     method: "POST",
     headers: getHeaders(),
@@ -652,9 +712,11 @@ export async function updateChatPublicKey(chatPublicKey: string) {
   return handleResponse(res);
 }
 
-export async function getUserPublicKey(
-  userId: string,
-): Promise<{ id: string; chatPublicKey: string | null; chatPublicKeyAlgo: string | null }> {
+export async function getUserPublicKey(userId: string): Promise<{
+  id: string;
+  chatPublicKey: string | null;
+  chatPublicKeyAlgo: string | null;
+}> {
   const res = await fetch(`${API_BASE}/v1/users/${userId}/chat-public-key`, {
     headers: getHeaders(),
   });

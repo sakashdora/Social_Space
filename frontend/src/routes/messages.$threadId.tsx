@@ -45,7 +45,10 @@ function Thread() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { data: chats = [] } = useQuery({ queryKey: ["chats"], queryFn: fetchChats });
+  const { data: chats = [] } = useQuery({
+    queryKey: ["chats"],
+    queryFn: fetchChats,
+  });
 
   const thread = chats.find((c: any) => c.id === threadId) || {
     handle: "User",
@@ -74,8 +77,12 @@ function Thread() {
       const sender = getCurrentUser();
       if (!sender) return;
 
-      const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey, decryptText } =
-        await import("@/lib/crypto");
+      const {
+        getKeyRecord,
+        importPublicKeyBase64,
+        deriveSharedAesKey,
+        decryptText,
+      } = await import("@/lib/crypto");
 
       const record = await getKeyRecord(sender.id);
       if (!record) {
@@ -96,8 +103,13 @@ function Thread() {
         try {
           const recipientKeyData = await getUserPublicKey(thread.recipientId);
           if (recipientKeyData && recipientKeyData.chatPublicKey) {
-            const recipientPubKey = await importPublicKeyBase64(recipientKeyData.chatPublicKey);
-            aesKey = await deriveSharedAesKey(record.privateKey, recipientPubKey);
+            const recipientPubKey = await importPublicKeyBase64(
+              recipientKeyData.chatPublicKey,
+            );
+            aesKey = await deriveSharedAesKey(
+              record.privateKey,
+              recipientPubKey,
+            );
             threadKeyCache[threadId] = aesKey;
           }
         } catch (err) {
@@ -110,7 +122,9 @@ function Thread() {
           setDecryptedMessages(
             messages.map((m: any) => ({
               ...m,
-              body: m.sending ? m.body : "Unable to decrypt (Recipient has no keys)",
+              body: m.sending
+                ? m.body
+                : "Unable to decrypt (Recipient has no keys)",
             })),
           );
         }
@@ -125,7 +139,11 @@ function Thread() {
           try {
             const parsed = JSON.parse(m.body);
             if (parsed && parsed.ciphertext && parsed.iv) {
-              const decryptedBody = await decryptText(parsed.ciphertext, parsed.iv, aesKey);
+              const decryptedBody = await decryptText(
+                parsed.ciphertext,
+                parsed.iv,
+                aesKey,
+              );
               return { ...m, body: decryptedBody };
             }
           } catch (err) {
@@ -165,14 +183,22 @@ function Thread() {
   }, [decryptedMessages.length]);
 
   const sendMessageMutation = useMutation({
-    mutationFn: ({ body, mediaUrl }: { body: string; mediaUrl: string | null }) =>
-      sendChatMessage(threadId, body, thread.recipientId, mediaUrl),
+    mutationFn: ({
+      body,
+      mediaUrl,
+    }: {
+      body: string;
+      mediaUrl: string | null;
+    }) => sendChatMessage(threadId, body, thread.recipientId, mediaUrl),
     onMutate: async ({ body, mediaUrl }) => {
       // Cancel outgoing refetches so they don't overwrite our optimistic state
       await queryClient.cancelQueries({ queryKey: ["chatMessages", threadId] });
 
       // Snapshot previous messages list
-      const previousMessages = queryClient.getQueryData<any[]>(["chatMessages", threadId]);
+      const previousMessages = queryClient.getQueryData<any[]>([
+        "chatMessages",
+        threadId,
+      ]);
 
       // Cache input states for potential rollback
       const currentDraft = draft;
@@ -192,7 +218,10 @@ function Thread() {
         mediaUrl: mediaUrl || null,
         mine: true,
         sending: true, // Styling hint for "pending" state
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       };
 
       queryClient.setQueryData<any[]>(["chatMessages", threadId], (old) => {
@@ -204,7 +233,10 @@ function Thread() {
     onError: (err, variables, context) => {
       // Rollback to previous message history on failure
       if (context?.previousMessages) {
-        queryClient.setQueryData(["chatMessages", threadId], context.previousMessages);
+        queryClient.setQueryData(
+          ["chatMessages", threadId],
+          context.previousMessages,
+        );
       }
       // Restore inputs so user does not lose draft content
       if (context?.currentDraft) {
@@ -244,8 +276,8 @@ function Thread() {
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadMedia(file);
-      setAttachedMedia(url);
+      const uploaded = await uploadMedia(file);
+      setAttachedMedia(uploaded.url);
     } catch (err: any) {
       console.error("Attachment failed:", err);
     } finally {
@@ -292,7 +324,9 @@ function Thread() {
             @{thread.handle}
             <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[color:var(--safe)]" />
           </p>
-          <p className="text-[11px] text-muted-foreground">Disappearing timer active</p>
+          <p className="text-[11px] text-muted-foreground">
+            Disappearing timer active
+          </p>
         </div>
 
         {/* Timer dropdown */}
@@ -301,7 +335,10 @@ function Thread() {
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowTimerMenu(!showTimerMenu)}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
-            style={{ background: "var(--tag-bg)", border: "1px solid var(--tag-border)" }}
+            style={{
+              background: "var(--tag-bg)",
+              border: "1px solid var(--tag-border)",
+            }}
           >
             <Timer className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Delete: </span>
@@ -317,7 +354,10 @@ function Thread() {
           <AnimatePresence>
             {showTimerMenu && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowTimerMenu(false)} />
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowTimerMenu(false)}
+                />
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: -8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -327,7 +367,8 @@ function Thread() {
                   style={{
                     background: "var(--dialog-bg)",
                     border: "1px solid var(--surface-border)",
-                    boxShadow: "0 8px 32px oklch(0 0 0 / 22%), 0 2px 8px oklch(0 0 0 / 12%)",
+                    boxShadow:
+                      "0 8px 32px oklch(0 0 0 / 22%), 0 2px 8px oklch(0 0 0 / 12%)",
                   }}
                 >
                   {timerOptions.map((opt) => {
@@ -341,19 +382,26 @@ function Thread() {
                         }}
                         className={cn(
                           "w-full text-left rounded-lg px-3 py-2 text-xs transition-colors active:bg-[var(--surface-hover)]",
-                          isCurrent ? "font-semibold text-foreground" : "text-muted-foreground",
+                          isCurrent
+                            ? "font-semibold text-foreground"
+                            : "text-muted-foreground",
                         )}
                         style={{
-                          backgroundColor: isCurrent ? "var(--nav-active-bg)" : undefined,
+                          backgroundColor: isCurrent
+                            ? "var(--nav-active-bg)"
+                            : undefined,
                         }}
                         onMouseEnter={(e) => {
                           if (!isCurrent)
-                            (e.currentTarget as HTMLElement).style.backgroundColor =
-                              "var(--surface-hover)";
+                            (
+                              e.currentTarget as HTMLElement
+                            ).style.backgroundColor = "var(--surface-hover)";
                         }}
                         onMouseLeave={(e) => {
                           if (!isCurrent)
-                            (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                            (
+                              e.currentTarget as HTMLElement
+                            ).style.backgroundColor = "";
                         }}
                       >
                         {opt.label}
@@ -372,7 +420,10 @@ function Thread() {
         {/* Encrypted notice */}
         <div
           className="mx-auto mb-3 w-fit max-w-[85%] rounded-full px-4 py-1.5 text-center text-[11px] text-muted-foreground"
-          style={{ background: "var(--tag-bg)", border: "1px solid var(--tag-border)" }}
+          style={{
+            background: "var(--tag-bg)",
+            border: "1px solid var(--tag-border)",
+          }}
         >
           Encrypted · auto-deleted after {thread.disappearing || "7d"}
         </div>
@@ -381,7 +432,10 @@ function Thread() {
         {isLoading && (
           <div className="space-y-3 pt-4">
             {[1, 2].map((i) => (
-              <div key={i} className={cn("flex", i % 2 ? "justify-start" : "justify-end")}>
+              <div
+                key={i}
+                className={cn("flex", i % 2 ? "justify-start" : "justify-end")}
+              >
                 <div
                   className="h-10 w-40 rounded-2xl animate-pulse"
                   style={{ background: "var(--surface-bg)" }}
@@ -415,7 +469,10 @@ function Thread() {
                   damping: 30,
                   mass: 0.8,
                 }}
-                className={cn("flex w-full", m.mine ? "justify-end" : "justify-start")}
+                className={cn(
+                  "flex w-full",
+                  m.mine ? "justify-end" : "justify-start",
+                )}
               >
                 <div
                   className={cn(
@@ -430,20 +487,22 @@ function Thread() {
                         <video
                           src={m.mediaUrl}
                           controls
-                          className="w-full max-h-44 rounded-xl object-cover"
+                          className="w-full max-h-44 rounded-xl object-contain bg-black"
                           onLoadedData={scrollToBottom}
                         />
                       ) : (
                         <img
                           src={m.mediaUrl}
                           alt="Chat media"
-                          className="w-full max-h-44 rounded-xl object-cover"
+                          className="w-full max-h-44 rounded-xl object-contain bg-black/10"
                           onLoad={scrollToBottom}
                         />
                       )}
                     </div>
                   )}
-                  {m.body && <p className="break-words whitespace-pre-wrap">{m.body}</p>}
+                  {m.body && (
+                    <p className="break-words whitespace-pre-wrap">{m.body}</p>
+                  )}
                   <span className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-50 select-none">
                     {m.sending ? (
                       <>
@@ -472,12 +531,22 @@ function Thread() {
         {attachedMedia && (
           <div
             className="relative mb-2 inline-block rounded-xl p-1.5"
-            style={{ background: "var(--surface-bg)", border: "1px solid var(--surface-border)" }}
+            style={{
+              background: "var(--surface-bg)",
+              border: "1px solid var(--surface-border)",
+            }}
           >
             {attachedMedia.startsWith("data:video/") ? (
-              <video src={attachedMedia} className="h-14 w-14 rounded-lg object-cover" />
+              <video
+                src={attachedMedia}
+                className="h-14 w-14 rounded-lg object-cover"
+              />
             ) : (
-              <img src={attachedMedia} alt="" className="h-14 w-14 rounded-lg object-cover" />
+              <img
+                src={attachedMedia}
+                alt=""
+                className="h-14 w-14 rounded-lg object-cover"
+              />
             )}
             <motion.button
               whileTap={{ scale: 0.85 }}
@@ -544,7 +613,9 @@ function Thread() {
             whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.02 }}
             onClick={handleSend}
-            disabled={sendMessageMutation.isPending || (!draft.trim() && !attachedMedia)}
+            disabled={
+              sendMessageMutation.isPending || (!draft.trim() && !attachedMedia)
+            }
             className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-ink transition hover:brightness-110 disabled:opacity-35"
             style={{ background: "var(--veil-glow)" }}
           >
