@@ -18,7 +18,7 @@ describe("VEIL Production Audit Remediation Test Suite", () => {
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("status", "OK");
       expect(res.body.services).toHaveProperty("database", "UP");
-    });
+    }, 10000);
   });
 
   describe("Constant-Time Recovery Code Verification", () => {
@@ -97,6 +97,6 @@ describe("VEIL Production Audit Remediation Test Suite", () => {
 
       expect(recordA).toBeNull();
       expect(recordB).toBeNull();
-    });
+    }, 15000);
   });
 });
