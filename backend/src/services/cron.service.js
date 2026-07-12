@@ -35,8 +35,8 @@ async function notifyPendingDeletion(user) {
 export function startRetentionCron() {
   console.log("Data Retention Cron Service Initialized.");
 
-  // Run checks every 10 minutes (600,000 ms)
-  setInterval(async () => {
+  // Define cleanup logic as a named async function for immediate + recurring use
+  async function runCleanup() {
     try {
       const now = new Date();
 
@@ -135,5 +135,11 @@ export function startRetentionCron() {
     } catch (err) {
       console.error("[Retention Cron] Cleanup failed:", err.message);
     }
-  }, 10 * 60 * 1000);
+  }
+
+  // Run immediately on startup (don't wait for first interval)
+  runCleanup();
+
+  // Then run every 10 minutes
+  setInterval(runCleanup, 10 * 60 * 1000);
 }

@@ -91,7 +91,14 @@ router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {
     } else if (mimeType === "video/mp4") {
       isMagicValid = hex.substring(8, 16) === "66747970";
     } else if (mimeType === "image/heic") {
-      isMagicValid = hex.substring(8, 24) === "6674797068656963" || hex.substring(8, 24) === "667479706D534631";
+      // Accept all common HEIC/HEIF container brands
+      const brand = hex.substring(8, 24);
+      isMagicValid = [
+        "6674797068656963", // heic
+        "667479706D534631", // msf1 / hevc sequence
+        "6674797068656966", // heif
+        "667479706D696631", // mif1
+      ].includes(brand);
     } else if (mimeType === "video/quicktime") {
       isMagicValid = hex.substring(8, 20) === "667479707174" || hex.startsWith("00000014667479707174");
     } else if (mimeType === "video/webm") {
@@ -166,11 +173,30 @@ router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {
       storagePath = `media/${userId}/${mediaId}.webp`;
     }
 
-    // 3. Upload to Supabase Storage if configured, otherwise fall back to local dev base64 URL
+    // 3. Get file size of processed file — must happen before upload for quota check
+    const stats = await fs.promises.stat(processedFilePath);
+    const sizeBytes = stats.size;
+
+    // 3a. Enforce storage quota BEFORE uploading (prevents wasting bandwidth on rejected files)
+    // 100MB for free-tier, 10GB for premium
+    const totalUsed = await prisma.media.aggregate({
+      where: { userId },
+      _sum: { sizeBytes: true }
+    });
+    const usedBytes = totalUsed._sum.sizeBytes || 0;
+    const quotaLimit = premium ? 10 * 1024 * 1024 * 1024 : 100 * 1024 * 1024;
+    if (usedBytes + sizeBytes > quotaLimit) {
+      return res.status(413).json({
+        error: "STORAGE_QUOTA_EXCEEDED",
+        message: `Upload exceeds your storage quota. You are using ${(usedBytes / (1024 * 1024)).toFixed(2)} MB of your ${(quotaLimit / (1024 * 1024)).toFixed(0)} MB quota. Upgrade to Premium for higher limits.`
+      });
+    }
+
+    // 4. Upload to Supabase Storage if configured, otherwise fall back to local dev base64 URL
     if (supabase) {
       await runFaceAnonymization(processedFilePath, bucketName, storagePath, finalMimeType);
 
-      // 4. Upload thumbnail if video
+      // 4a. Upload thumbnail if video
       if (isVideo && localThumbPath) {
         const thumbBuffer = await fs.promises.readFile(localThumbPath);
         const { error: thumbUploadError } = await supabase.storage
@@ -194,11 +220,7 @@ router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {
       }
     }
 
-    // 5. Get file size of processed file
-    const stats = await fs.promises.stat(processedFilePath);
-    const sizeBytes = stats.size;
-
-    // 6. Expiry rule (10 days for free tier videos, null for premium or images)
+    // 5. Expiry rule (10 days for free tier videos, null for premium or images)
     const expiresAt = (isVideo && !premium)
       ? new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
       : null;

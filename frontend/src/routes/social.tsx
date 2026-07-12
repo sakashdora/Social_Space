@@ -15,6 +15,7 @@ import {
   createChat,
   fetchChats,
   detectMediaType,
+  deletePost,
 } from "@/lib/api";
 import type { ApiComment, ApiChat } from "@/lib/api";
 import {
@@ -41,6 +42,7 @@ import {
   Video,
   Loader2,
   Menu,
+  Trash2,
 } from "lucide-react";
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { ThemeToggle } from "@/components/veil/ThemeToggle";
@@ -296,6 +298,19 @@ function SocialComponent() {
     },
   });
 
+  // Delete Post Mutation
+  const deletePostMutation = useMutation({
+    mutationFn: deletePost,
+    onSuccess: () => {
+      showToast("Post deleted successfully.");
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      setExpandedPostId(null);
+    },
+    onError: (err: any) => {
+      showToast(err.message || "Failed to delete post.");
+    },
+  });
+
   // Start Chat Mutation
   const createChatMutation = useMutation({
     mutationFn: createChat,
@@ -519,15 +534,31 @@ function SocialComponent() {
                           <span className="rounded-full bg-white/5 border border-border px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                             {post.topic}
                           </span>
-                          <button
-                            onClick={() =>
-                              showToast("Post options coming soon")
-                            }
-                            className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-                            aria-label="Options"
-                          >
-                            &bull;&bull;&bull;
-                          </button>
+                          {currentUser && post.author === currentUser.handle && post.author !== "anonymous" ? (
+                            <button
+                              onClick={() => {
+                                if (window.confirm("Are you sure you want to delete this post?")) {
+                                  deletePostMutation.mutate(post.id);
+                                }
+                              }}
+                              disabled={deletePostMutation.isPending}
+                              className="text-red-500 hover:text-red-400 p-1 cursor-pointer transition-colors"
+                              title="Delete post"
+                              aria-label="Delete post"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                showToast("Post options coming soon")
+                              }
+                              className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
+                              aria-label="Options"
+                            >
+                              &bull;&bull;&bull;
+                            </button>
+                          )}
                         </div>
                       </div>
 

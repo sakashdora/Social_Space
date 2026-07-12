@@ -146,8 +146,10 @@ export async function loginVerifyTotp(req, res) {
     }
 
     const secret = decrypt(user.totpSecret);
-    const result = await verify({ secret, token: totpCode });
-    const valid = result.valid;
+    // otplib verify() returns a boolean in some versions and {valid: boolean} in others.
+    // Normalize to always extract a boolean to avoid a silent bypass when result.valid is undefined.
+    const rawResult = await verify({ secret, token: totpCode });
+    const valid = typeof rawResult === "boolean" ? rawResult : (rawResult?.valid ?? false);
 
     if (!valid) {
       await recordFailedAttempt(user.handle, req.ip);

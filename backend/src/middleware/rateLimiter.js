@@ -5,8 +5,10 @@
  * PRODUCTION: replace MemoryStore with a Redis store (e.g. rate-limit-redis)
  * to share state across multiple server instances.
  *
- * Per-account lockout uses the Prisma LoginAttempt table — durable across restarts,
- * and immune to IP rotation (tracks by handle, not IP).
+ * Per-account lockout uses the Prisma LoginAttempt table — durable across restarts.
+ * The lockout key is keyed on `handle` only (not `handle:ip`) so it is truly
+ * immune to IP rotation — an attacker rotating IPs cannot bypass the lockout.
+ * DoS via lockout is mitigated by the separate IP-based loginLimiter.
  *
  * Lockout schedule:
  *   3 fails  → 30 seconds
@@ -101,8 +103,9 @@ export async function accountLockoutGuard(req, res, next) {
   const handle = (req.body?.handle || req.params?.handle || "").trim().toLowerCase();
   if (!handle) return next();
 
-  const ip = req.ip || "unknown";
-  const key = `${handle}:${ip}`;
+  // Key is per-account only (not per-account:ip) — truly immune to IP rotation.
+  // DoS via lockout is mitigated by the separate IP-based loginLimiter above.
+  const key = handle;
 
   try {
     const attempt = await prisma.loginAttempt.findUnique({ where: { handle: key } });
@@ -132,7 +135,8 @@ export async function accountLockoutGuard(req, res, next) {
  */
 export async function recordFailedAttempt(handle, ip) {
   const cleanHandle = handle.trim().toLowerCase();
-  const key = `${cleanHandle}:${ip || "unknown"}`;
+  // Key by handle only — IP rotation cannot bypass per-account lockout
+  const key = cleanHandle;
   try {
     const current = await prisma.loginAttempt.upsert({
       where: { handle: key },
@@ -170,18 +174,12 @@ export async function recordFailedAttempt(handle, ip) {
  * @param {string} handle
  * @param {string} ip
  */
-export async function clearFailedAttempts(handle, ip) {
+export async function clearFailedAttempts(handle, _ip) {
   const cleanHandle = handle.trim().toLowerCase();
-  const key = `${cleanHandle}:${ip || "unknown"}`;
+  // Delete the single per-account key — no wildcard to avoid clearing other accounts
+  const key = cleanHandle;
   try {
     await prisma.loginAttempt.delete({ where: { handle: key } }).catch(() => {});
-    await prisma.loginAttempt.deleteMany({
-      where: {
-        handle: {
-          startsWith: `${cleanHandle}:`
-        }
-      }
-    }).catch(() => {});
   } catch {
     // Ignore — not critical if cleanup fails
   }

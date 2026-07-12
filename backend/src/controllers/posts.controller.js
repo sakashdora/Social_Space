@@ -163,6 +163,12 @@ export async function getFeed(req, res) {
             avatarUrl: true
           }
         },
+        media: {
+          select: {
+            type: true,
+            thumbnailPath: true
+          }
+        },
         _count: {
           select: {
             comments: true,
@@ -173,12 +179,24 @@ export async function getFeed(req, res) {
     });
 
     const formattedPosts = posts.map(p => ({
-      ...p,
+      id: p.id,
+      // NOTE: userId intentionally omitted — use user.id for identity.
+      // Fully-anonymous posts (mode=full) have userId=null in DB; the user join is
+      // also null, so there is no way to recover the author's identity from this response.
+      content: p.content,
+      category: p.category,
+      mediaUrl: p.mediaUrl,
+      mediaId: p.mediaId,
+      sharedPostId: p.sharedPostId,
+      isDeleted: p.isDeleted,
+      isAiModifiedMedia: p.isAiModifiedMedia,
       aiLabels: p.aiLabels ? JSON.parse(p.aiLabels) : null,
       sentimentAnalysis: p.sentimentAnalysis ? JSON.parse(p.sentimentAnalysis) : null,
+      createdAt: p.createdAt,
+      user: p.user ?? null,
+      media: p.media ?? null,
       commentCount: p._count.comments,
       reactionCount: p._count.reactions,
-      _count: undefined
     }));
 
     return res.status(200).json(formattedPosts);
@@ -256,3 +274,54 @@ export async function getPostDetails(req, res) {
     });
   }
 }
+
+/**
+ * Delete a post (soft delete).
+ * DELETE /v1/posts/:id
+ */
+export async function deletePost(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const post = await prisma.post.findUnique({
+      where: { id }
+    });
+
+    if (!post || post.isDeleted) {
+      return res.status(404).json({
+        error: {
+          message: "Post not found or already deleted.",
+          code: "NOT_FOUND",
+        },
+      });
+    }
+
+    // Check authorization: user must be the author (only possible for non-anonymous posts where userId !== null)
+    if (post.userId !== userId) {
+      return res.status(403).json({
+        error: {
+          message: "You are not authorized to delete this post.",
+          code: "FORBIDDEN",
+        },
+      });
+    }
+
+    // Soft delete by setting isDeleted to true
+    await prisma.post.update({
+      where: { id },
+      data: { isDeleted: true }
+    });
+
+    return res.status(200).json({ success: true, message: "Post deleted successfully." });
+  } catch (error) {
+    console.error("Delete post error:", error);
+    return res.status(500).json({
+      error: {
+        message: "Failed to delete post.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
+  }
+}
+

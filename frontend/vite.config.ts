@@ -5,20 +5,17 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  preview: {
-    port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
-    allowedHosts: true,
-  },
   plugins: [
     tsconfigPaths(),
     tailwindcss(),
     tanstackStart({
-      // Redirect TanStack Start's bundled server entry to src/server.ts
+      // SSR/Nitro server — do NOT add static:true or it disables the SSR pipeline
       server: { entry: "server" },
     }),
     react(),
   ],
   server: {
+    // Dev-time proxy — routes /v1 and /api to the local backend
     proxy: {
       "/v1": {
         target: "http://localhost:3000",

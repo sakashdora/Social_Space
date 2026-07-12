@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createPost, getFeed, getPostDetails } from "../controllers/posts.controller.js";
+import { createPost, getFeed, getPostDetails, deletePost } from "../controllers/posts.controller.js";
 import { createComment, getComments } from "../controllers/comments.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validateBody } from "../middleware/validation.middleware.js";
@@ -17,5 +17,6 @@ router.post("/:postId/comments", requireAuth, validateBody(createCommentSchema),
 
 // Protected actions
 router.post("/", requireAuth, validateBody(createPostSchema), createPost);
+router.delete("/:id", requireAuth, deletePost);
 
 export default router;

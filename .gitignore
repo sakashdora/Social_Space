@@ -39,6 +39,22 @@ build/
 logs/
 *.log
 
+# Deploy artifacts / secrets — NEVER commit
+backend/containerapp.yaml
+.deploy_ctx.txt
+.acr_runid.txt
+.acr_user.txt
+.acr_pass.txt
+.ca_principal.txt
+.swa_token.txt
+acrbuild*.txt
+acrbuild*.log
+fe_acr.log
+fe_build*.log
+swa_err.txt
+migrate.log
+swa_deploy*.log
+
 # Local upload processing scratch space
 tmp/
 **/tmp/

@@ -29,8 +29,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Trust the first proxy — required for accurate IP in rate limiting behind Nginx / Supabase edge
-app.set("trust proxy", 1);
+// Trust all proxy hops — required for Azure Container Apps which injects multiple proxy headers
+app.set("trust proxy", true);
 
 // ─── Phase 2 Fix #8: Explicit CORS allowlist ──────────────────────────────────
 // Parse FRONTEND_ORIGIN as a comma-separated list (supports staging + prod simultaneously)

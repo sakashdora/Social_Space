@@ -42,61 +42,55 @@ describe("VEIL Production Audit Remediation Test Suite", () => {
     });
   });
 
-  describe("IP-Scoped Lockout Rate Limiting", () => {
+  describe("Per-Account Lockout Rate Limiting", () => {
     const handle = "lockouttestuser";
 
     afterEach(async () => {
-      // Clean up test entries
+      // Clean up test entries created with the per-account key
       try {
         await prisma.loginAttempt.deleteMany({
-          where: {
-            handle: {
-              startsWith: `${handle}:`
-            }
-          }
+          where: { handle }
         });
       } catch {}
     });
 
-    it("should store failed attempts uniquely per IP address", async () => {
+    it("should record failed attempts under a per-account key (immune to IP rotation)", async () => {
       const ipA = "1.2.3.4";
       const ipB = "5.6.7.8";
 
-      // Record failure for IP A
+      // Both IPs for the same handle should accumulate into one per-account record
       await recordFailedAttempt(handle, ipA);
-      
-      const recordA = await prisma.loginAttempt.findUnique({
+      await recordFailedAttempt(handle, ipB);
+
+      // The record is keyed by handle only — no IP in the key
+      const record = await prisma.loginAttempt.findUnique({
+        where: { handle }
+      });
+      expect(record).not.toBeNull();
+      // Two failures recorded from different IPs — both count against the account
+      expect(record.failCount).toBe(2);
+
+      // Old ip-scoped keys must NOT exist
+      const recordByIpA = await prisma.loginAttempt.findUnique({
         where: { handle: `${handle}:${ipA}` }
       });
-      expect(recordA).not.toBeNull();
-      expect(recordA.failCount).toBe(1);
-
-      // Verify IP B has no record (independent scoping)
-      const recordB = await prisma.loginAttempt.findUnique({
-        where: { handle: `${handle}:${ipB}` }
-      });
-      expect(recordB).toBeNull();
+      expect(recordByIpA).toBeNull();
     });
 
-    it("should clear failed attempts across all IPs on success", async () => {
+    it("should clear per-account failed attempts on successful login", async () => {
       const ipA = "1.2.3.4";
       const ipB = "5.6.7.8";
 
       await recordFailedAttempt(handle, ipA);
       await recordFailedAttempt(handle, ipB);
 
-      // Clear failed attempts for this user (which deletes all keys starting with handle:)
+      // On success, clear the per-account lockout record
       await clearFailedAttempts(handle, ipA);
 
-      const recordA = await prisma.loginAttempt.findUnique({
-        where: { handle: `${handle}:${ipA}` }
+      const record = await prisma.loginAttempt.findUnique({
+        where: { handle }
       });
-      const recordB = await prisma.loginAttempt.findUnique({
-        where: { handle: `${handle}:${ipB}` }
-      });
-
-      expect(recordA).toBeNull();
-      expect(recordB).toBeNull();
+      expect(record).toBeNull();
     }, 15000);
   });
 });

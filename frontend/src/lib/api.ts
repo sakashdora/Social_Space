@@ -294,6 +294,17 @@ export async function createPost(
 }
 
 /**
+ * Delete a post (soft delete).
+ */
+export async function deletePost(postId: string) {
+  const res = await fetch(`${API_BASE}/v1/posts/${postId}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+/**
  * Add a comment/reply to a post.
  */
 export async function createComment(
