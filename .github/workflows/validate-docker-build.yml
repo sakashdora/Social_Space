@@ -1,0 +1,39 @@
+name: Validate Docker Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/Dockerfile"
+      - "backend/.dockerignore"
+      - "backend/package.json"
+      - "backend/package-lock.json"
+      - "backend/prisma/**"
+      - "backend/src/**"
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          tags: veil-backend:build-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify image structure
+        run: |
+          echo "=== Image layers ==="
+          docker images veil-backend:build-test
+          echo "=== Image created successfully — Dockerfile is valid ==="

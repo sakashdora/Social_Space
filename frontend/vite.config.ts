@@ -6,6 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   preview: {
+    port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
     allowedHosts: true,
   },
   plugins: [
