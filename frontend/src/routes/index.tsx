@@ -83,7 +83,9 @@ function Nav() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-          scrolled ? "frost border-b border-[color:var(--border)] shadow-soft" : "bg-transparent"
+          scrolled
+            ? "frost border-b border-[color:var(--border)] shadow-soft"
+            : "bg-transparent"
         }`}
       >
         <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 md:px-12 xl:px-20">
@@ -226,7 +228,11 @@ const fadeUp = {
   show: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] as const },
+    transition: {
+      duration: 0.7,
+      delay: i * 0.08,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   }),
 };
 
@@ -271,8 +277,9 @@ function Hero() {
             animate="show"
             className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
           >
-            Welcome to Social Space. Sign up frictionlessly without phone or email. Explore news,
-            share your thoughts, and watch videos — all while remaining anonymous.
+            Welcome to Social Space. Sign up frictionlessly without phone or
+            email. Explore news, share your thoughts, and watch videos — all
+            while remaining anonymous.
           </motion.p>
 
           <motion.div
@@ -321,7 +328,9 @@ function Hero() {
                 />
               ))}
             </div>
-            <p className="text-sm text-muted-foreground">Join thousands exploring anonymously</p>
+            <p className="text-sm text-muted-foreground">
+              Join thousands exploring anonymously
+            </p>
           </motion.div>
         </div>
 
@@ -362,7 +371,9 @@ function Hero() {
                       <span className="block h-0.5 w-4 bg-current" />
                       <span className="block h-0.5 w-4 bg-current" />
                     </span>
-                    <span className="font-display text-lg font-semibold">For You</span>
+                    <span className="font-display text-lg font-semibold">
+                      For You
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Search className="h-4 w-4" />
@@ -374,11 +385,15 @@ function Hero() {
                 </div>
 
                 <div className="flex items-center gap-4 border-b border-black/5 px-1 pb-2 text-[13px] font-medium">
-                  <span className="border-b-2 border-primary pb-1 text-primary">All</span>
+                  <span className="border-b-2 border-primary pb-1 text-primary">
+                    All
+                  </span>
                   <span className="text-muted-foreground">Trending</span>
                   <span className="text-muted-foreground">News</span>
                   <span className="text-muted-foreground">Tech</span>
-                  <span className="hidden text-muted-foreground sm:inline">Entertainment</span>
+                  <span className="hidden text-muted-foreground sm:inline">
+                    Entertainment
+                  </span>
                 </div>
 
                 <div className="mt-3 rounded-2xl bg-background/60 p-3">
@@ -392,12 +407,15 @@ function Hero() {
                       }}
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">Anonymous User</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        Anonymous User
+                      </p>
                       <p className="text-xs text-muted-foreground">2h ago</p>
                     </div>
                   </div>
                   <p className="mt-3 text-sm text-foreground">
-                    The future belongs to those who believe in the beauty of their dreams.
+                    The future belongs to those who believe in the beauty of
+                    their dreams.
                   </p>
                   <div className="mt-3 overflow-hidden rounded-xl">
                     <img
@@ -411,7 +429,10 @@ function Hero() {
                   </div>
                   <div className="mt-3 flex items-center gap-5 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1.5">
-                      <Heart className="h-4 w-4 text-primary" fill="currentColor" />
+                      <Heart
+                        className="h-4 w-4 text-primary"
+                        fill="currentColor"
+                      />
                       1.2K
                     </span>
                     <span className="flex items-center gap-1.5">
@@ -459,7 +480,10 @@ function Hero() {
                   className="absolute inset-0 flex items-center justify-center"
                 >
                   <span className="frost flex h-12 w-12 items-center justify-center rounded-full">
-                    <Play className="h-5 w-5 translate-x-0.5 text-foreground" fill="currentColor" />
+                    <Play
+                      className="h-5 w-5 translate-x-0.5 text-foreground"
+                      fill="currentColor"
+                    />
                   </span>
                 </button>
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-white/90">
@@ -484,13 +508,20 @@ function Hero() {
                 className={`frost-heavy rounded-2xl p-4 shadow-float ${
                   reduce ? "" : "animate-float"
                 }`}
-                style={{ ["--r" as string]: "-2deg", animationDelay: "-2s" } as React.CSSProperties}
+                style={
+                  {
+                    ["--r" as string]: "-2deg",
+                    animationDelay: "-2s",
+                  } as React.CSSProperties
+                }
               >
                 <div className="flex items-center gap-2 pb-3">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Sparkles className="h-3.5 w-3.5" />
                   </span>
-                  <p className="font-display text-base font-semibold">Trending</p>
+                  <p className="font-display text-base font-semibold">
+                    Trending
+                  </p>
                 </div>
                 <ul className="space-y-3">
                   {[
@@ -523,7 +554,9 @@ function Hero() {
                         style={{ background: it.g }}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{it.t}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {it.t}
+                        </p>
                         <p className="text-xs text-muted-foreground">{it.p}</p>
                       </div>
                     </li>
@@ -586,8 +619,8 @@ function Features() {
             A calmer feed, built for freedom.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Every detail is designed around privacy — no tracking, no personal data, no noise. Just
-            an honest place to read, share and watch.
+            Every detail is designed around privacy — no tracking, no personal
+            data, no noise. Just an honest place to read, share and watch.
           </p>
         </motion.div>
 
@@ -598,14 +631,22 @@ function Features() {
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.6,
+                delay: i * 0.08,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="group frost rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 <f.icon className="h-5 w-5" />
               </span>
-              <h3 className="mt-5 font-display text-xl font-semibold">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+              <h3 className="mt-5 font-display text-xl font-semibold">
+                {f.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {f.desc}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -642,10 +683,12 @@ function CTA() {
               </span>
               <div>
                 <h2 className="font-display text-3xl font-semibold leading-tight text-balance md:text-5xl">
-                  Your Space. <span className="italic text-primary">Your Voice.</span>
+                  Your Space.{" "}
+                  <span className="italic text-primary">Your Voice.</span>
                 </h2>
                 <p className="mt-2 max-w-md text-muted-foreground">
-                  Privacy comes first. Step into a social experience designed for you.
+                  Privacy comes first. Step into a social experience designed
+                  for you.
                 </p>
               </div>
             </div>
@@ -669,7 +712,9 @@ function Footer() {
           <Lock className="h-4 w-4" />
           <p className="text-sm">Built for privacy. Designed for freedom.</p>
         </div>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Social Space</p>
+        <p className="text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Social Space
+        </p>
       </div>
     </footer>
   );

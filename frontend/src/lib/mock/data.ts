@@ -61,7 +61,15 @@ export const feedPosts: Post[] = [
   },
 ];
 
-export const topics = ["All", "Journalism", "Art", "Survivors", "Activism", "Research", "Writing"];
+export const topics = [
+  "All",
+  "Journalism",
+  "Art",
+  "Survivors",
+  "Activism",
+  "Research",
+  "Writing",
+];
 
 export type Thread = {
   id: string;
@@ -140,7 +148,12 @@ export const threadMessages: Record<string, ThreadMessage[]> = {
     },
   ],
   t2: [
-    { id: "m1", mine: false, body: "meeting at 7. bring the redacted pdfs only.", time: "9:12" },
+    {
+      id: "m1",
+      mine: false,
+      body: "meeting at 7. bring the redacted pdfs only.",
+      time: "9:12",
+    },
   ],
   t3: [
     { id: "m1", mine: true, body: "It's live.", time: "yest 8:41" },

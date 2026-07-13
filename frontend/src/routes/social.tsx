@@ -534,10 +534,16 @@ function SocialComponent() {
                           <span className="rounded-full bg-white/5 border border-border px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                             {post.topic}
                           </span>
-                          {currentUser && post.author === currentUser.handle && post.author !== "anonymous" ? (
+                          {currentUser &&
+                          post.author === currentUser.handle &&
+                          post.author !== "anonymous" ? (
                             <button
                               onClick={() => {
-                                if (window.confirm("Are you sure you want to delete this post?")) {
+                                if (
+                                  window.confirm(
+                                    "Are you sure you want to delete this post?",
+                                  )
+                                ) {
                                   deletePostMutation.mutate(post.id);
                                 }
                               }}

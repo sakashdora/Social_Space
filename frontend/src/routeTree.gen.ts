@@ -8,262 +8,262 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as VideoRouteImport } from './routes/video'
-import { Route as SocialRouteImport } from './routes/social'
-import { Route as SafetyRouteImport } from './routes/safety'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as NewsRouteImport } from './routes/news'
-import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as ComposeRouteImport } from './routes/compose'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as MessagesIndexRouteImport } from './routes/messages.index'
-import { Route as MessagesThreadIdRouteImport } from './routes/messages.$threadId'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as VideoRouteImport } from "./routes/video";
+import { Route as SocialRouteImport } from "./routes/social";
+import { Route as SafetyRouteImport } from "./routes/safety";
+import { Route as ProfileRouteImport } from "./routes/profile";
+import { Route as OnboardingRouteImport } from "./routes/onboarding";
+import { Route as NewsRouteImport } from "./routes/news";
+import { Route as MessagesRouteImport } from "./routes/messages";
+import { Route as ComposeRouteImport } from "./routes/compose";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as MessagesIndexRouteImport } from "./routes/messages.index";
+import { Route as MessagesThreadIdRouteImport } from "./routes/messages.$threadId";
 
 const VideoRoute = VideoRouteImport.update({
-  id: '/video',
-  path: '/video',
+  id: "/video",
+  path: "/video",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SocialRoute = SocialRouteImport.update({
-  id: '/social',
-  path: '/social',
+  id: "/social",
+  path: "/social",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SafetyRoute = SafetyRouteImport.update({
-  id: '/safety',
-  path: '/safety',
+  id: "/safety",
+  path: "/safety",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+  id: "/profile",
+  path: "/profile",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
+  id: "/onboarding",
+  path: "/onboarding",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const NewsRoute = NewsRouteImport.update({
-  id: '/news',
-  path: '/news',
+  id: "/news",
+  path: "/news",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const MessagesRoute = MessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
+  id: "/messages",
+  path: "/messages",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ComposeRoute = ComposeRouteImport.update({
-  id: '/compose',
-  path: '/compose',
+  id: "/compose",
+  path: "/compose",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const MessagesIndexRoute = MessagesIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => MessagesRoute,
-} as any)
+} as any);
 const MessagesThreadIdRoute = MessagesThreadIdRouteImport.update({
-  id: '/$threadId',
-  path: '/$threadId',
+  id: "/$threadId",
+  path: "/$threadId",
   getParentRoute: () => MessagesRoute,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/compose': typeof ComposeRoute
-  '/messages': typeof MessagesRouteWithChildren
-  '/news': typeof NewsRoute
-  '/onboarding': typeof OnboardingRoute
-  '/profile': typeof ProfileRoute
-  '/safety': typeof SafetyRoute
-  '/social': typeof SocialRoute
-  '/video': typeof VideoRoute
-  '/messages/$threadId': typeof MessagesThreadIdRoute
-  '/messages/': typeof MessagesIndexRoute
+  "/": typeof IndexRoute;
+  "/compose": typeof ComposeRoute;
+  "/messages": typeof MessagesRouteWithChildren;
+  "/news": typeof NewsRoute;
+  "/onboarding": typeof OnboardingRoute;
+  "/profile": typeof ProfileRoute;
+  "/safety": typeof SafetyRoute;
+  "/social": typeof SocialRoute;
+  "/video": typeof VideoRoute;
+  "/messages/$threadId": typeof MessagesThreadIdRoute;
+  "/messages/": typeof MessagesIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/compose': typeof ComposeRoute
-  '/news': typeof NewsRoute
-  '/onboarding': typeof OnboardingRoute
-  '/profile': typeof ProfileRoute
-  '/safety': typeof SafetyRoute
-  '/social': typeof SocialRoute
-  '/video': typeof VideoRoute
-  '/messages/$threadId': typeof MessagesThreadIdRoute
-  '/messages': typeof MessagesIndexRoute
+  "/": typeof IndexRoute;
+  "/compose": typeof ComposeRoute;
+  "/news": typeof NewsRoute;
+  "/onboarding": typeof OnboardingRoute;
+  "/profile": typeof ProfileRoute;
+  "/safety": typeof SafetyRoute;
+  "/social": typeof SocialRoute;
+  "/video": typeof VideoRoute;
+  "/messages/$threadId": typeof MessagesThreadIdRoute;
+  "/messages": typeof MessagesIndexRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/compose': typeof ComposeRoute
-  '/messages': typeof MessagesRouteWithChildren
-  '/news': typeof NewsRoute
-  '/onboarding': typeof OnboardingRoute
-  '/profile': typeof ProfileRoute
-  '/safety': typeof SafetyRoute
-  '/social': typeof SocialRoute
-  '/video': typeof VideoRoute
-  '/messages/$threadId': typeof MessagesThreadIdRoute
-  '/messages/': typeof MessagesIndexRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/compose": typeof ComposeRoute;
+  "/messages": typeof MessagesRouteWithChildren;
+  "/news": typeof NewsRoute;
+  "/onboarding": typeof OnboardingRoute;
+  "/profile": typeof ProfileRoute;
+  "/safety": typeof SafetyRoute;
+  "/social": typeof SocialRoute;
+  "/video": typeof VideoRoute;
+  "/messages/$threadId": typeof MessagesThreadIdRoute;
+  "/messages/": typeof MessagesIndexRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/compose'
-    | '/messages'
-    | '/news'
-    | '/onboarding'
-    | '/profile'
-    | '/safety'
-    | '/social'
-    | '/video'
-    | '/messages/$threadId'
-    | '/messages/'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/compose"
+    | "/messages"
+    | "/news"
+    | "/onboarding"
+    | "/profile"
+    | "/safety"
+    | "/social"
+    | "/video"
+    | "/messages/$threadId"
+    | "/messages/";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/compose'
-    | '/news'
-    | '/onboarding'
-    | '/profile'
-    | '/safety'
-    | '/social'
-    | '/video'
-    | '/messages/$threadId'
-    | '/messages'
+    | "/"
+    | "/compose"
+    | "/news"
+    | "/onboarding"
+    | "/profile"
+    | "/safety"
+    | "/social"
+    | "/video"
+    | "/messages/$threadId"
+    | "/messages";
   id:
-    | '__root__'
-    | '/'
-    | '/compose'
-    | '/messages'
-    | '/news'
-    | '/onboarding'
-    | '/profile'
-    | '/safety'
-    | '/social'
-    | '/video'
-    | '/messages/$threadId'
-    | '/messages/'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/compose"
+    | "/messages"
+    | "/news"
+    | "/onboarding"
+    | "/profile"
+    | "/safety"
+    | "/social"
+    | "/video"
+    | "/messages/$threadId"
+    | "/messages/";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ComposeRoute: typeof ComposeRoute
-  MessagesRoute: typeof MessagesRouteWithChildren
-  NewsRoute: typeof NewsRoute
-  OnboardingRoute: typeof OnboardingRoute
-  ProfileRoute: typeof ProfileRoute
-  SafetyRoute: typeof SafetyRoute
-  SocialRoute: typeof SocialRoute
-  VideoRoute: typeof VideoRoute
+  IndexRoute: typeof IndexRoute;
+  ComposeRoute: typeof ComposeRoute;
+  MessagesRoute: typeof MessagesRouteWithChildren;
+  NewsRoute: typeof NewsRoute;
+  OnboardingRoute: typeof OnboardingRoute;
+  ProfileRoute: typeof ProfileRoute;
+  SafetyRoute: typeof SafetyRoute;
+  SocialRoute: typeof SocialRoute;
+  VideoRoute: typeof VideoRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/video': {
-      id: '/video'
-      path: '/video'
-      fullPath: '/video'
-      preLoaderRoute: typeof VideoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/social': {
-      id: '/social'
-      path: '/social'
-      fullPath: '/social'
-      preLoaderRoute: typeof SocialRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/safety': {
-      id: '/safety'
-      path: '/safety'
-      fullPath: '/safety'
-      preLoaderRoute: typeof SafetyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/news': {
-      id: '/news'
-      path: '/news'
-      fullPath: '/news'
-      preLoaderRoute: typeof NewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/messages': {
-      id: '/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/compose': {
-      id: '/compose'
-      path: '/compose'
-      fullPath: '/compose'
-      preLoaderRoute: typeof ComposeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/messages/': {
-      id: '/messages/'
-      path: '/'
-      fullPath: '/messages/'
-      preLoaderRoute: typeof MessagesIndexRouteImport
-      parentRoute: typeof MessagesRoute
-    }
-    '/messages/$threadId': {
-      id: '/messages/$threadId'
-      path: '/$threadId'
-      fullPath: '/messages/$threadId'
-      preLoaderRoute: typeof MessagesThreadIdRouteImport
-      parentRoute: typeof MessagesRoute
-    }
+    "/video": {
+      id: "/video";
+      path: "/video";
+      fullPath: "/video";
+      preLoaderRoute: typeof VideoRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/social": {
+      id: "/social";
+      path: "/social";
+      fullPath: "/social";
+      preLoaderRoute: typeof SocialRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/safety": {
+      id: "/safety";
+      path: "/safety";
+      fullPath: "/safety";
+      preLoaderRoute: typeof SafetyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/profile": {
+      id: "/profile";
+      path: "/profile";
+      fullPath: "/profile";
+      preLoaderRoute: typeof ProfileRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/onboarding": {
+      id: "/onboarding";
+      path: "/onboarding";
+      fullPath: "/onboarding";
+      preLoaderRoute: typeof OnboardingRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/news": {
+      id: "/news";
+      path: "/news";
+      fullPath: "/news";
+      preLoaderRoute: typeof NewsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/messages": {
+      id: "/messages";
+      path: "/messages";
+      fullPath: "/messages";
+      preLoaderRoute: typeof MessagesRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/compose": {
+      id: "/compose";
+      path: "/compose";
+      fullPath: "/compose";
+      preLoaderRoute: typeof ComposeRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/messages/": {
+      id: "/messages/";
+      path: "/";
+      fullPath: "/messages/";
+      preLoaderRoute: typeof MessagesIndexRouteImport;
+      parentRoute: typeof MessagesRoute;
+    };
+    "/messages/$threadId": {
+      id: "/messages/$threadId";
+      path: "/$threadId";
+      fullPath: "/messages/$threadId";
+      preLoaderRoute: typeof MessagesThreadIdRouteImport;
+      parentRoute: typeof MessagesRoute;
+    };
   }
 }
 
 interface MessagesRouteChildren {
-  MessagesThreadIdRoute: typeof MessagesThreadIdRoute
-  MessagesIndexRoute: typeof MessagesIndexRoute
+  MessagesThreadIdRoute: typeof MessagesThreadIdRoute;
+  MessagesIndexRoute: typeof MessagesIndexRoute;
 }
 
 const MessagesRouteChildren: MessagesRouteChildren = {
   MessagesThreadIdRoute: MessagesThreadIdRoute,
   MessagesIndexRoute: MessagesIndexRoute,
-}
+};
 
 const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
   MessagesRouteChildren,
-)
+);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -275,17 +275,17 @@ const rootRouteChildren: RootRouteChildren = {
   SafetyRoute: SafetyRoute,
   SocialRoute: SocialRoute,
   VideoRoute: VideoRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
+import type { getRouter } from "./router.tsx";
+import type { startInstance } from "./start.ts";
+declare module "@tanstack/react-start" {
   interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+    ssr: true;
+    router: Awaited<ReturnType<typeof getRouter>>;
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>;
   }
 }

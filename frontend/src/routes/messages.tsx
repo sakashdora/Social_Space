@@ -1,4 +1,10 @@
-import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useRouterState,
+  useNavigate,
+} from "@tanstack/react-router";
 import { Timer, Plus, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -48,8 +54,12 @@ function MessagesLayout() {
 
     async function checkKeys(activeUser: NonNullable<typeof me>) {
       try {
-        const { getKeyRecord, generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } =
-          await import("@/lib/crypto");
+        const {
+          getKeyRecord,
+          generateChatKeyPair,
+          exportPublicKeyBase64,
+          saveKeyRecord,
+        } = await import("@/lib/crypto");
         const record = await getKeyRecord(activeUser.id);
 
         if (!record) {
@@ -64,7 +74,9 @@ function MessagesLayout() {
             await updateChatPublicKey(pubKeyB64);
             queryClient.invalidateQueries({ queryKey: ["me"] });
           } else {
-            console.warn("Key loss detected: Local key is missing, but registered on server.");
+            console.warn(
+              "Key loss detected: Local key is missing, but registered on server.",
+            );
             setShowKeyResetDialog(true);
           }
         } else {
@@ -73,7 +85,9 @@ function MessagesLayout() {
             await updateChatPublicKey(record.publicKeyBase64);
             queryClient.invalidateQueries({ queryKey: ["me"] });
           } else if (record.publicKeyBase64 !== activeUser.chatPublicKey) {
-            console.warn("Key mismatch detected between local key and server key.");
+            console.warn(
+              "Key mismatch detected between local key and server key.",
+            );
             setShowKeyResetDialog(true);
           }
         }
@@ -120,7 +134,10 @@ function MessagesLayout() {
       setNewHandle("");
       setErrorMsg("");
       queryClient.invalidateQueries({ queryKey: ["chats"] });
-      navigate({ to: "/messages/$threadId", params: { threadId: data.threadId } });
+      navigate({
+        to: "/messages/$threadId",
+        params: { threadId: data.threadId },
+      });
     },
     onError: (err: any) => {
       setErrorMsg(err.message || "Failed to start conversation.");
@@ -216,7 +233,9 @@ function MessagesLayout() {
             </div>
           ) : threads.length === 0 ? (
             <div className="flex h-32 flex-col items-center justify-center text-center px-4">
-              <p className="text-xs text-muted-foreground">No conversations started yet.</p>
+              <p className="text-xs text-muted-foreground">
+                No conversations started yet.
+              </p>
             </div>
           ) : (
             <ul className="space-y-1">
@@ -245,7 +264,11 @@ function MessagesLayout() {
                         <motion.span
                           layoutId="active-thread-indicator"
                           className="absolute left-1 top-3 bottom-3 w-1 rounded-full bg-[color:var(--veil-glow)]"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 380,
+                            damping: 30,
+                          }}
                         />
                       )}
 
@@ -321,8 +344,9 @@ function MessagesLayout() {
                 Chat Keys Out of Sync
               </h2>
               <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
-                You are logging in from a new device, cleared your browser storage, or your local
-                keys are missing. Your previous chat history cannot be decrypted on this device.
+                You are logging in from a new device, cleared your browser
+                storage, or your local keys are missing. Your previous chat
+                history cannot be decrypted on this device.
               </p>
               <div className="mt-6 flex flex-col gap-2">
                 <button
@@ -380,8 +404,12 @@ function ThreadPreview({
         const sender = getCurrentUser();
         if (!sender) return;
 
-        const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey, decryptText } =
-          await import("@/lib/crypto");
+        const {
+          getKeyRecord,
+          importPublicKeyBase64,
+          deriveSharedAesKey,
+          decryptText,
+        } = await import("@/lib/crypto");
         const record = await getKeyRecord(sender.id);
         if (!record) {
           if (active) setDecryptedText("Encrypted Message");
@@ -393,14 +421,23 @@ function ThreadPreview({
           const { getUserPublicKey } = await import("@/lib/api");
           const recipientKeyData = await getUserPublicKey(recipientId);
           if (recipientKeyData && recipientKeyData.chatPublicKey) {
-            const recipientPubKey = await importPublicKeyBase64(recipientKeyData.chatPublicKey);
-            aesKey = await deriveSharedAesKey(record.privateKey, recipientPubKey);
+            const recipientPubKey = await importPublicKeyBase64(
+              recipientKeyData.chatPublicKey,
+            );
+            aesKey = await deriveSharedAesKey(
+              record.privateKey,
+              recipientPubKey,
+            );
             threadKeyCache[threadId] = aesKey;
           }
         }
 
         if (aesKey && active) {
-          const decrypted = await decryptText(parsed.ciphertext, parsed.iv, aesKey);
+          const decrypted = await decryptText(
+            parsed.ciphertext,
+            parsed.iv,
+            aesKey,
+          );
           setDecryptedText(decrypted);
         }
       } catch (err) {
@@ -415,5 +452,9 @@ function ThreadPreview({
     };
   }, [preview, threadId, recipientId]);
 
-  return <p className="mt-0.5 truncate text-xs text-muted-foreground/80">{decryptedText}</p>;
+  return (
+    <p className="mt-0.5 truncate text-xs text-muted-foreground/80">
+      {decryptedText}
+    </p>
+  );
 }

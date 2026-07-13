@@ -21,7 +21,10 @@ export interface KeyRecord {
   publicKeyBase64: string;
 }
 
-export async function saveKeyRecord(userId: string, record: KeyRecord): Promise<void> {
+export async function saveKeyRecord(
+  userId: string,
+  record: KeyRecord,
+): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
@@ -65,13 +68,17 @@ export async function generateChatKeyPair(): Promise<CryptoKeyPair> {
   );
 }
 
-export async function exportPublicKeyBase64(publicKey: CryptoKey): Promise<string> {
+export async function exportPublicKeyBase64(
+  publicKey: CryptoKey,
+): Promise<string> {
   const exported = await window.crypto.subtle.exportKey("spki", publicKey);
   const binary = String.fromCharCode(...new Uint8Array(exported));
   return btoa(binary);
 }
 
-export async function importPublicKeyBase64(base64Str: string): Promise<CryptoKey> {
+export async function importPublicKeyBase64(
+  base64Str: string,
+): Promise<CryptoKey> {
   const binary = atob(base64Str);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -104,9 +111,13 @@ export async function deriveSharedAesKey(
   );
 
   // Import raw bits into HKDF secret
-  const hkdfSecret = await window.crypto.subtle.importKey("raw", sharedSecret, "HKDF", false, [
-    "deriveKey",
-  ]);
+  const hkdfSecret = await window.crypto.subtle.importKey(
+    "raw",
+    sharedSecret,
+    "HKDF",
+    false,
+    ["deriveKey"],
+  );
 
   // Derive symmetric AES-GCM key (256-bit)
   return window.crypto.subtle.deriveKey(
@@ -141,7 +152,9 @@ export async function encryptText(
     encoded,
   );
 
-  const ciphertextBase64 = btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)));
+  const ciphertextBase64 = btoa(
+    String.fromCharCode(...new Uint8Array(ciphertextBuffer)),
+  );
   const ivBase64 = btoa(String.fromCharCode(...iv));
 
   return {

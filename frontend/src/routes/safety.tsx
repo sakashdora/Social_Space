@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { ShieldCheck, FileText, MessageSquare, ScrollText, Gavel } from "lucide-react";
+import {
+  ShieldCheck,
+  FileText,
+  MessageSquare,
+  ScrollText,
+  Gavel,
+} from "lucide-react";
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { reports, type Report } from "@/lib/mock/data";
 import { cn } from "@/lib/utils";
@@ -15,7 +21,10 @@ export const Route = createFileRoute("/safety")({
           "Track your reports, read the community guidelines, and appeal decisions. Every report gets a status — no dead ends.",
       },
       { property: "og:title", content: "Safety Center — Veil" },
-      { property: "og:description", content: "Report. Track. Appeal. Never a dead end." },
+      {
+        property: "og:description",
+        content: "Report. Track. Appeal. Never a dead end.",
+      },
     ],
   }),
   component: SafetyCenter,
@@ -40,8 +49,8 @@ function SafetyCenter() {
           Report, track, appeal — in plain language.
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Reporting a piece of content should feel like relief, not another form. Every report gets
-          a status. Every decision can be appealed.
+          Reporting a piece of content should feel like relief, not another
+          form. Every report gets a status. Every decision can be appealed.
         </p>
       </header>
 
@@ -76,15 +85,18 @@ function SafetyCenter() {
           <div>
             <h3 className="font-serif text-2xl">The floor.</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              These are non-negotiable. Break them and your Trust Token is revoked — no exceptions,
-              no warnings.
+              These are non-negotiable. Break them and your Trust Token is
+              revoked — no exceptions, no warnings.
             </p>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
-                &bull; No child sexual abuse material. Detected pre-anonymization, reported to
-                authorities.
+                &bull; No child sexual abuse material. Detected
+                pre-anonymization, reported to authorities.
               </li>
-              <li>&bull; No targeted harassment, doxxing, or coordinated intimidation.</li>
+              <li>
+                &bull; No targeted harassment, doxxing, or coordinated
+                intimidation.
+              </li>
               <li>&bull; No non-consensual intimate imagery.</li>
               <li>&bull; No incitement to violence.</li>
             </ul>
@@ -92,9 +104,9 @@ function SafetyCenter() {
           <div>
             <h3 className="font-serif text-2xl">The spirit.</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Veil exists for people who need to speak without cost. Do not use it as a laundering
-              path — for fake media, for hate, or for harm to others hiding here for the same
-              reasons you are.
+              Veil exists for people who need to speak without cost. Do not use
+              it as a laundering path — for fake media, for hate, or for harm to
+              others hiding here for the same reasons you are.
             </p>
           </div>
         </FrostedPanel>
@@ -107,10 +119,13 @@ function SafetyCenter() {
               <Gavel className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="font-serif text-2xl">Every decision can be challenged.</h3>
+              <h3 className="font-serif text-2xl">
+                Every decision can be challenged.
+              </h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Appeals are read by a second human moderator, not the one who made the initial
-                decision. Median response time is under 48 hours.
+                Appeals are read by a second human moderator, not the one who
+                made the initial decision. Median response time is under 48
+                hours.
               </p>
               <button className="mt-5 inline-flex items-center gap-2 rounded-full bg-[color:var(--veil-glow)] px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110">
                 Start an appeal
@@ -176,7 +191,10 @@ function ReportCard({ report }: { report: Report }) {
                 {i + 1}
               </span>
               <span
-                className={cn("text-[11px]", done ? "text-foreground" : "text-muted-foreground")}
+                className={cn(
+                  "text-[11px]",
+                  done ? "text-foreground" : "text-muted-foreground",
+                )}
               >
                 {statusMap[step].label}
               </span>
@@ -184,7 +202,9 @@ function ReportCard({ report }: { report: Report }) {
                 <span
                   className={cn(
                     "ml-1 h-px flex-1",
-                    i < currentIdx ? "bg-[color:var(--veil-glow)]/40" : "bg-white/10",
+                    i < currentIdx
+                      ? "bg-[color:var(--veil-glow)]/40"
+                      : "bg-white/10",
                   )}
                 />
               )}

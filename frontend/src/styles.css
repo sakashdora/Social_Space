@@ -19,7 +19,8 @@
   --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
   --font-serif: "Fraunces", "Instrument Serif", ui-serif, Georgia, serif;
   --font-display: "Fraunces", ui-serif, Georgia, serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-mono:
+    "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --ease-veil: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-veil-in: cubic-bezier(0.7, 0, 0.84, 0);
@@ -54,9 +55,12 @@
   --color-warn: var(--warn);
   --color-danger: var(--danger);
 
-  --shadow-elegant: 0 20px 60px color-mix(in oklab, var(--foreground) 8%, transparent);
-  --shadow-float: 0 30px 80px -20px color-mix(in oklab, var(--primary) 18%, transparent);
-  --shadow-soft: 0 8px 24px color-mix(in oklab, var(--foreground) 4%, transparent);
+  --shadow-elegant: 0 20px 60px
+    color-mix(in oklab, var(--foreground) 8%, transparent);
+  --shadow-float: 0 30px 80px -20px
+    color-mix(in oklab, var(--primary) 18%, transparent);
+  --shadow-soft: 0 8px 24px
+    color-mix(in oklab, var(--foreground) 4%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -656,7 +660,9 @@ textarea {
   outline: none;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.bg-transparent):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    .bg-transparent
+  ):focus,
 textarea:not(.bg-transparent):focus {
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--veil-glow) 28%, transparent);
 }

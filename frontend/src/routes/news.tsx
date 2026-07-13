@@ -73,8 +73,12 @@ function NewsComponent() {
   return (
     <div className="mx-auto max-w-3xl py-10 px-4 pb-28 sm:pb-10 lg:pb-12 sm:px-6">
       <header className="mb-8">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">News Portal</p>
-        <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">Global Stories</h1>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          News Portal
+        </p>
+        <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">
+          Global Stories
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Real-time stories decoded with privacy-centric AI summaries.
         </p>
@@ -83,7 +87,10 @@ function NewsComponent() {
       {isLoading && (
         <div className="space-y-4 animate-pulse">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 rounded-2xl bg-white/5 border border-white/[0.04]"></div>
+            <div
+              key={i}
+              className="h-32 rounded-2xl bg-white/5 border border-white/[0.04]"
+            ></div>
           ))}
         </div>
       )}
@@ -150,7 +157,9 @@ function NewsComponent() {
                         {article.source}
                       </span>
                       <span>&bull;</span>
-                      <span>{new Date(article.pubDate).toLocaleDateString()}</span>
+                      <span>
+                        {new Date(article.pubDate).toLocaleDateString()}
+                      </span>
                     </motion.div>
                   </div>
                 </div>
@@ -211,7 +220,8 @@ function NewsComponent() {
                       {selectedArticle.source}
                     </motion.span>
                     <span className="text-[10px] text-muted-foreground font-medium">
-                      &bull; {new Date(selectedArticle.pubDate).toLocaleString()}
+                      &bull;{" "}
+                      {new Date(selectedArticle.pubDate).toLocaleString()}
                     </span>
                   </div>
 
@@ -238,7 +248,10 @@ function NewsComponent() {
                       </motion.h2>
                     </div>
 
-                    <div className="border-t pt-4" style={{ borderColor: "var(--surface-border)" }}>
+                    <div
+                      className="border-t pt-4"
+                      style={{ borderColor: "var(--surface-border)" }}
+                    >
                       <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                         Original Snippet
                       </h3>
@@ -252,7 +265,10 @@ function NewsComponent() {
                     </div>
 
                     {/* Veil AI Briefing Section */}
-                    <div className="border-t pt-4" style={{ borderColor: "var(--surface-border)" }}>
+                    <div
+                      className="border-t pt-4"
+                      style={{ borderColor: "var(--surface-border)" }}
+                    >
                       <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5 text-[color:var(--primary)]" />
                         Veil AI Briefing
@@ -306,7 +322,8 @@ function NewsComponent() {
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1 px-1">
                       <Info className="h-3 w-3 shrink-0" />
-                      If embedding is restricted, click <strong>Read Externally</strong> below.
+                      If embedding is restricted, click{" "}
+                      <strong>Read Externally</strong> below.
                     </p>
                   </div>
                 </div>

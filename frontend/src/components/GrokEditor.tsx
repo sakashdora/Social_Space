@@ -132,7 +132,9 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
               <li
                 key={idx}
                 className="cursor-pointer rounded-lg bg-white/5 p-3 text-sm text-foreground/90 transition hover:bg-white/10"
-                onClick={() => onChange(value ? `${value}\n\n${suggestion}` : suggestion)}
+                onClick={() =>
+                  onChange(value ? `${value}\n\n${suggestion}` : suggestion)
+                }
               >
                 {suggestion}
               </li>

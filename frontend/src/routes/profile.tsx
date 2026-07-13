@@ -58,7 +58,8 @@ import { motion, AnimatePresence } from "framer-motion";
 export const Route = createFileRoute("/profile")({
   validateSearch: (search: Record<string, unknown>) => {
     return {
-      premium: search.premium === "true" || search.premium === true ? true : undefined,
+      premium:
+        search.premium === "true" || search.premium === true ? true : undefined,
     };
   },
   head: () => ({
@@ -70,7 +71,10 @@ export const Route = createFileRoute("/profile")({
           "Your pseudonym, security settings, passkeys, two-factor auth, and data life policies.",
       },
       { property: "og:title", content: "Profile — Social Space" },
-      { property: "og:description", content: "Your handle. Your keys. Your call." },
+      {
+        property: "og:description",
+        content: "Your handle. Your keys. Your call.",
+      },
     ],
   }),
   component: Profile,
@@ -108,7 +112,10 @@ function PassphraseModal({
             <h3 className="font-serif text-xl">{title}</h3>
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -123,8 +130,15 @@ function PassphraseModal({
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
             onKeyDown={(e) => e.key === "Enter" && pass && onConfirm(pass)}
           />
-          <button onClick={() => setShow((v) => !v)} className="text-muted-foreground">
-            {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          <button
+            onClick={() => setShow((v) => !v)}
+            className="text-muted-foreground"
+          >
+            {show ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
           </button>
         </div>
         {error && (
@@ -145,7 +159,13 @@ function PassphraseModal({
 }
 
 // ─── Recovery codes reveal panel ──────────────────────────────────────────────
-function RecoveryCodesReveal({ codes, onDone }: { codes: string[]; onDone: () => void }) {
+function RecoveryCodesReveal({
+  codes,
+  onDone,
+}: {
+  codes: string[];
+  onDone: () => void;
+}) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
@@ -154,12 +174,16 @@ function RecoveryCodesReveal({ codes, onDone }: { codes: string[]; onDone: () =>
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4"
+    >
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2">
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
         <p className="text-xs text-amber-300">
-          These codes are shown <strong>exactly once</strong>. Each can be used once to regain
-          access. Store them offline.
+          These codes are shown <strong>exactly once</strong>. Each can be used
+          once to regain access. Store them offline.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -168,7 +192,9 @@ function RecoveryCodesReveal({ codes, onDone }: { codes: string[]; onDone: () =>
             key={i}
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2"
           >
-            <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}.</span>
+            <span className="text-[10px] text-muted-foreground w-4 shrink-0">
+              {i + 1}.
+            </span>
             <span className="font-mono text-xs text-[color:var(--veil-glow)] select-all">
               {code}
             </span>
@@ -194,11 +220,17 @@ function RecoveryCodesReveal({ codes, onDone }: { codes: string[]; onDone: () =>
           className="peer sr-only"
         />
         <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-white/20 bg-black/30 mt-0.5 transition peer-checked:border-[color:var(--veil-glow)] peer-checked:bg-[color:var(--veil-glow)]/20">
-          {acknowledged && <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />}
+          {acknowledged && (
+            <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />
+          )}
         </span>
         <span className="text-xs leading-relaxed text-muted-foreground">
-          I have saved these codes. I understand losing both my passphrase and these codes means{" "}
-          <strong className="text-foreground">permanent, unrecoverable account loss</strong>.
+          I have saved these codes. I understand losing both my passphrase and
+          these codes means{" "}
+          <strong className="text-foreground">
+            permanent, unrecoverable account loss
+          </strong>
+          .
         </span>
       </label>
       <button
@@ -217,14 +249,22 @@ const EVENT_ICONS: Record<string, React.ReactNode> = {
   ACCOUNT_CREATED: <CheckCircle2 className="h-4 w-4 text-green-400" />,
   LOGIN_SUCCESS: <CheckCircle2 className="h-4 w-4 text-green-400" />,
   LOGIN_TOTP_SUCCESS: <CheckCircle2 className="h-4 w-4 text-green-400" />,
-  PASSKEY_LOGIN_SUCCESS: <Fingerprint className="h-4 w-4 text-[color:var(--veil-glow)]" />,
-  PASSKEY_ADDED: <Fingerprint className="h-4 w-4 text-[color:var(--veil-glow)]" />,
+  PASSKEY_LOGIN_SUCCESS: (
+    <Fingerprint className="h-4 w-4 text-[color:var(--veil-glow)]" />
+  ),
+  PASSKEY_ADDED: (
+    <Fingerprint className="h-4 w-4 text-[color:var(--veil-glow)]" />
+  ),
   PASSKEY_REMOVED: <Fingerprint className="h-4 w-4 text-amber-400" />,
   TOTP_ENABLED: <Smartphone className="h-4 w-4 text-green-400" />,
   TOTP_DISABLED: <Smartphone className="h-4 w-4 text-amber-400" />,
-  PASSPHRASE_CHANGED: <KeyRound className="h-4 w-4 text-[color:var(--veil-glow)]" />,
+  PASSPHRASE_CHANGED: (
+    <KeyRound className="h-4 w-4 text-[color:var(--veil-glow)]" />
+  ),
   RECOVERY_CODE_REDEEMED: <Shield className="h-4 w-4 text-amber-400" />,
-  RECOVERY_CODES_REGENERATED: <RefreshCw className="h-4 w-4 text-[color:var(--veil-glow)]" />,
+  RECOVERY_CODES_REGENERATED: (
+    <RefreshCw className="h-4 w-4 text-[color:var(--veil-glow)]" />
+  ),
   LOGOUT_ALL_DEVICES: <LogOut className="h-4 w-4 text-muted-foreground" />,
   CLONE_DETECTED: <AlertCircle className="h-4 w-4 text-red-400" />,
 };
@@ -287,7 +327,11 @@ function Profile() {
         );
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
-        if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+        if (
+          e.shiftKey
+            ? document.activeElement === first
+            : document.activeElement === last
+        ) {
           e.preventDefault();
           (e.shiftKey ? last : first)?.focus();
         }
@@ -314,7 +358,10 @@ function Profile() {
     await new Promise((r) => setTimeout(r, 500));
     closePremiumModal();
     setTimeout(
-      () => setPremiumToast("✓ You're on the waitlist! We'll notify you when Premium launches."),
+      () =>
+        setPremiumToast(
+          "✓ You're on the waitlist! We'll notify you when Premium launches.",
+        ),
       200,
     );
   }, [closePremiumModal]);
@@ -333,7 +380,9 @@ function Profile() {
   const [passkeyNickname, setPasskeyNickname] = useState("");
   const [passkeyError, setPasskeyError] = useState("");
   const [passkeySuccess, setPasskeySuccess] = useState("");
-  const [removingPasskeyId, setRemovingPasskeyId] = useState<string | null>(null);
+  const [removingPasskeyId, setRemovingPasskeyId] = useState<string | null>(
+    null,
+  );
   const [removePasskeyModal, setRemovePasskeyModal] = useState<{
     id: string;
     nickname: string;
@@ -395,7 +444,10 @@ function Profile() {
     mutationFn: async () => {
       const options = await getPasskeyRegisterOptions();
       const credential = await startRegistration({ optionsJSON: options });
-      return verifyPasskeyRegistration(credential, passkeyNickname.trim() || undefined);
+      return verifyPasskeyRegistration(
+        credential,
+        passkeyNickname.trim() || undefined,
+      );
     },
     onSuccess: () => {
       setPasskeySuccess("Passkey registered successfully.");
@@ -408,7 +460,13 @@ function Profile() {
   });
 
   const removePasskeyMut = useMutation({
-    mutationFn: async ({ id, passphrase }: { id: string; passphrase: string }) => {
+    mutationFn: async ({
+      id,
+      passphrase,
+    }: {
+      id: string;
+      passphrase: string;
+    }) => {
       const { removePasskey } = await import("@/lib/api");
       return removePasskey(id, passphrase);
     },
@@ -418,14 +476,16 @@ function Profile() {
       refetchPasskeys();
       qc.invalidateQueries({ queryKey: ["security-events"] });
     },
-    onError: (e: any) => setRemovePasskeyError(e.message || "Failed to remove passkey."),
+    onError: (e: any) =>
+      setRemovePasskeyError(e.message || "Failed to remove passkey."),
   });
 
   // ─── TOTP mutations ────────────────────────────────────────────────────────
   const setupTotpMut = useMutation({
     mutationFn: setupTotp,
     onSuccess: (data) => setTotpQr(data.qrCodeDataUrl),
-    onError: (e: any) => setTotpSetupError(e.message || "Failed to start TOTP setup."),
+    onError: (e: any) =>
+      setTotpSetupError(e.message || "Failed to start TOTP setup."),
   });
 
   const enableTotpMut = useMutation({
@@ -449,14 +509,17 @@ function Profile() {
       qc.invalidateQueries({ queryKey: ["totp-status"] });
       qc.invalidateQueries({ queryKey: ["security-events"] });
     },
-    onError: (e: any) => setDisableTotpError(e.message || "Failed to disable TOTP."),
+    onError: (e: any) =>
+      setDisableTotpError(e.message || "Failed to disable TOTP."),
   });
 
   // ─── Passphrase change mutation ───────────────────────────────────────────
   const changePassMut = useMutation({
     mutationFn: () => changePassphrase(curPass, newPass),
     onSuccess: () => {
-      setPassSuccess("Passphrase updated. Other sessions have been signed out.");
+      setPassSuccess(
+        "Passphrase updated. Other sessions have been signed out.",
+      );
       setPassError("");
       setCurPass("");
       setNewPass("");
@@ -515,13 +578,16 @@ function Profile() {
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
           <div>
-            <p className="text-sm font-medium text-amber-300">Account scheduled for deletion</p>
+            <p className="text-sm font-medium text-amber-300">
+              Account scheduled for deletion
+            </p>
             <p className="mt-0.5 text-xs text-amber-300/80">
-              Due to inactivity, your account and all its data will be permanently deleted on{" "}
+              Due to inactivity, your account and all its data will be
+              permanently deleted on{" "}
               <strong>
-                {new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(
-                  new Date(meData.pendingDeletionAt),
-                )}
+                {new Intl.DateTimeFormat(undefined, {
+                  dateStyle: "long",
+                }).format(new Date(meData.pendingDeletionAt))}
               </strong>
               . Simply logging in resets the inactivity timer and cancels this.
             </p>
@@ -534,7 +600,10 @@ function Profile() {
         <div className="flex items-center gap-5 min-w-0">
           <div
             className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl shadow-lg"
-            style={{ background: "linear-gradient(135deg, var(--veil), var(--veil-glow))" }}
+            style={{
+              background:
+                "linear-gradient(135deg, var(--veil), var(--veil-glow))",
+            }}
           >
             <VeilGlyph className="h-8 w-8 text-ink-raised" />
           </div>
@@ -542,7 +611,9 @@ function Profile() {
             <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
               Your handle
             </label>
-            <p className="text-xl font-semibold text-foreground mt-1 truncate">@{user.handle}</p>
+            <p className="text-xl font-semibold text-foreground mt-1 truncate">
+              @{user.handle}
+            </p>
           </div>
         </div>
         <button
@@ -554,8 +625,6 @@ function Profile() {
         </button>
       </FrostedPanel>
 
-
-
       {/* ── Passkeys ──────────────────────────────────────────────────── */}
       <FrostedPanel className="p-6 mb-6">
         <div className="flex items-center gap-3 mb-1">
@@ -563,8 +632,8 @@ function Profile() {
           <h2 className="font-serif text-2xl">Passkeys</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Sign in with Face ID, fingerprint, or PIN — no passphrase needed. Removing a passkey
-          requires your current passphrase.
+          Sign in with Face ID, fingerprint, or PIN — no passphrase needed.
+          Removing a passkey requires your current passphrase.
         </p>
 
         {/* Existing passkeys list */}
@@ -576,7 +645,9 @@ function Profile() {
                 className="flex items-start sm:items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-medium">{pk.nickname || "Unnamed passkey"}</p>
+                  <p className="text-sm font-medium">
+                    {pk.nickname || "Unnamed passkey"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Added {formatTs(pk.createdAt)}
                     {pk.lastUsedAt && ` · Last used ${formatTs(pk.lastUsedAt)}`}
@@ -584,7 +655,10 @@ function Profile() {
                 </div>
                 <button
                   onClick={() =>
-                    setRemovePasskeyModal({ id: pk.id, nickname: pk.nickname || "this passkey" })
+                    setRemovePasskeyModal({
+                      id: pk.id,
+                      nickname: pk.nickname || "this passkey",
+                    })
                   }
                   className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/15"
                 >
@@ -645,8 +719,8 @@ function Profile() {
           </span>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Use an authenticator app (Google Authenticator, Authy, Bitwarden) for a second login
-          factor.
+          Use an authenticator app (Google Authenticator, Authy, Bitwarden) for
+          a second login factor.
         </p>
 
         {!isTotpEnabled && !totpQr && (
@@ -684,7 +758,11 @@ function Profile() {
                 inputMode="numeric"
                 maxLength={6}
                 value={totpSetupCode}
-                onChange={(e) => setTotpSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) =>
+                  setTotpSetupCode(
+                    e.target.value.replace(/\D/g, "").slice(0, 6),
+                  )
+                }
                 placeholder="000000"
                 className="flex-1 px-3 py-2.5 text-center font-mono text-lg tracking-widest input-surface"
               />
@@ -726,8 +804,8 @@ function Profile() {
           <h2 className="font-serif text-2xl">Change Passphrase</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Changing your passphrase invalidates all other active sessions. Must be ≥60 bits of
-          entropy and not found in known breaches.
+          Changing your passphrase invalidates all other active sessions. Must
+          be ≥60 bits of entropy and not found in known breaches.
         </p>
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-3 py-2.5 input-surface">
@@ -748,7 +826,11 @@ function Profile() {
               className="text-muted-foreground"
               aria-label={showCurPass ? "Hide passphrase" : "Show passphrase"}
             >
-              {showCurPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {showCurPass ? (
+                <EyeOff className="h-3.5 w-3.5" />
+              ) : (
+                <Eye className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
           <div className="flex items-center gap-2 px-3 py-2.5 input-surface">
@@ -767,9 +849,15 @@ function Profile() {
             <button
               onClick={() => setShowNewPass((v) => !v)}
               className="text-muted-foreground"
-              aria-label={showNewPass ? "Hide new passphrase" : "Show new passphrase"}
+              aria-label={
+                showNewPass ? "Hide new passphrase" : "Show new passphrase"
+              }
             >
-              {showNewPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {showNewPass ? (
+                <EyeOff className="h-3.5 w-3.5" />
+              ) : (
+                <Eye className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
           <button
@@ -802,11 +890,14 @@ function Profile() {
           <h2 className="font-serif text-2xl">Recovery Codes</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          If you lose your passphrase, recovery codes are your only way back in. Regenerating
-          invalidates all previous codes.
+          If you lose your passphrase, recovery codes are your only way back in.
+          Regenerating invalidates all previous codes.
         </p>
         {regenCodes ? (
-          <RecoveryCodesReveal codes={regenCodes} onDone={() => setRegenCodes(null)} />
+          <RecoveryCodesReveal
+            codes={regenCodes}
+            onDone={() => setRegenCodes(null)}
+          />
         ) : (
           <button
             id="regen-codes-btn"
@@ -829,8 +920,8 @@ function Profile() {
           <h2 className="font-serif text-2xl">Active Sessions</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Invalidate all tokens on every device. You will remain signed in on this device with a
-          fresh token.
+          Invalidate all tokens on every device. You will remain signed in on
+          this device with a fresh token.
         </p>
         <button
           id="logout-all-btn"
@@ -852,11 +943,13 @@ function Profile() {
           <h2 className="font-serif text-2xl">Security Events</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          All security-relevant actions on your account — the anonymity-preserving substitute for
-          email alerts.
+          All security-relevant actions on your account — the
+          anonymity-preserving substitute for email alerts.
         </p>
         {securityEvents.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No events recorded yet.</p>
+          <p className="text-sm text-muted-foreground">
+            No events recorded yet.
+          </p>
         ) : (
           <div
             className="relative border-l pl-6 ml-2 my-2 space-y-6"
@@ -876,7 +969,9 @@ function Profile() {
 
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 shrink-0 bg-white/[0.03] p-1.5 rounded-lg border border-white/[0.05]">
-                    {EVENT_ICONS[ev.type] ?? <Info className="h-4 w-4 text-muted-foreground" />}
+                    {EVENT_ICONS[ev.type] ?? (
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-foreground">
@@ -908,8 +1003,8 @@ function Profile() {
           <h2 className="font-serif text-2xl text-red-400">Danger Zone</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Permanently delete your account. This purges your handle, posts, comments, and messages.
-          Unrecoverable.
+          Permanently delete your account. This purges your handle, posts,
+          comments, and messages. Unrecoverable.
         </p>
         <button
           id="delete-account-btn"
@@ -931,14 +1026,19 @@ function Profile() {
           <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--veil-glow)]">
             Data & Privacy
           </p>
-          <h2 className="mt-2 font-serif text-3xl">What Social Space never collects.</h2>
+          <h2 className="mt-2 font-serif text-3xl">
+            What Social Space never collects.
+          </h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {neverCollected.map((n) => (
             <div
               key={n}
               className="flex items-center gap-3 rounded-2xl p-4 transition-all duration-200 hover:scale-[1.01]"
-              style={{ background: "var(--surface-bg)", border: "1px solid var(--surface-border)" }}
+              style={{
+                background: "var(--surface-bg)",
+                border: "1px solid var(--surface-border)",
+              }}
             >
               <div
                 className="h-2 w-2 shrink-0 rounded-full bg-[color:var(--danger)]"
@@ -1007,8 +1107,8 @@ function Profile() {
             >
               <h3 className="font-serif text-xl mb-2">Sign out all devices?</h3>
               <p className="text-xs text-muted-foreground mb-4">
-                All sessions on other devices will be immediately invalidated. You will stay signed
-                in here with a new token.
+                All sessions on other devices will be immediately invalidated.
+                You will stay signed in here with a new token.
               </p>
               {logoutAllError && (
                 <p className="text-xs text-red-400 mb-3 flex items-center gap-1.5">
@@ -1054,7 +1154,10 @@ function Profile() {
           createPortal(
             <div
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)" }}
+              style={{
+                background: "rgba(0,0,0,0.55)",
+                backdropFilter: "blur(12px)",
+              }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) closePremiumModal();
               }}
@@ -1110,8 +1213,9 @@ function Profile() {
                       Premium Membership
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      We are finalizing our privacy-first payment infrastructure. Join the waitlist
-                      and be the first to access Premium when we launch.
+                      We are finalizing our privacy-first payment
+                      infrastructure. Join the waitlist and be the first to
+                      access Premium when we launch.
                     </p>
                   </div>
 
@@ -1137,8 +1241,12 @@ function Profile() {
 
                   {/* Pricing pill */}
                   <div className="mb-6 flex items-center justify-center gap-2">
-                    <span className="font-serif text-3xl font-bold text-amber-400">₹149</span>
-                    <span className="text-sm text-muted-foreground">/ month</span>
+                    <span className="font-serif text-3xl font-bold text-amber-400">
+                      ₹149
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      / month
+                    </span>
                   </div>
 
                   {/* CTA Buttons */}

@@ -81,7 +81,8 @@ export function CustomCursor() {
         style={{
           width: hover ? 44 : 26,
           height: hover ? 44 : 26,
-          border: "1px solid color-mix(in oklab, var(--veil-glow) 55%, transparent)",
+          border:
+            "1px solid color-mix(in oklab, var(--veil-glow) 55%, transparent)",
           background: hover
             ? "color-mix(in oklab, var(--veil-glow) 6%, transparent)"
             : "transparent",
@@ -98,7 +99,8 @@ export function CustomCursor() {
           width: pressed ? 3 : 5,
           height: pressed ? 3 : 5,
           background: "var(--veil-glow)",
-          boxShadow: "0 0 12px color-mix(in oklab, var(--veil-glow) 60%, transparent)",
+          boxShadow:
+            "0 0 12px color-mix(in oklab, var(--veil-glow) 60%, transparent)",
           transition:
             "width 300ms cubic-bezier(0.22,1,0.36,1), height 300ms cubic-bezier(0.22,1,0.36,1)",
         }}

@@ -10,7 +10,8 @@ async function loadDetector(): Promise<FaceDetector | null> {
   if (detectorPromise) return detectorPromise;
   detectorPromise = (async () => {
     try {
-      const { FilesetResolver, FaceDetector } = await import("@mediapipe/tasks-vision");
+      const { FilesetResolver, FaceDetector } =
+        await import("@mediapipe/tasks-vision");
       const fileset = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm",
       );
@@ -40,7 +41,9 @@ export type FaceBox = {
   h: number;
 };
 
-export async function detectFace(image: HTMLImageElement): Promise<FaceBox | null> {
+export async function detectFace(
+  image: HTMLImageElement,
+): Promise<FaceBox | null> {
   const detector = await loadDetector();
   if (!detector) return null;
   try {

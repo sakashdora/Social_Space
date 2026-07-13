@@ -1,6 +1,9 @@
 import { cn } from "@/lib/utils";
 
-export function VeilGlyph({ className, ...rest }: React.SVGProps<SVGSVGElement>) {
+export function VeilGlyph({
+  className,
+  ...rest
+}: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 32 32"

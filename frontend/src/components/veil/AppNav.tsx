@@ -45,9 +45,7 @@ export function AppNav() {
         <nav className="mt-8 flex flex-1 flex-col gap-0.5 animate-fadeIn">
           {items.map((it) => {
             const active =
-              it.to === "/"
-                ? pathname === "/"
-                : pathname.startsWith(it.to);
+              it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
             const Icon = it.icon;
             return (
               <Link
@@ -55,7 +53,9 @@ export function AppNav() {
                 to={it.to}
                 className={cn(
                   "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  active
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 style={{
                   backgroundColor: active ? "var(--nav-active-bg)" : undefined,
@@ -66,7 +66,8 @@ export function AppNav() {
                       "var(--nav-item-hover)";
                 }}
                 onMouseLeave={(e) => {
-                  if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                  if (!active)
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "";
                 }}
               >
                 <Icon
@@ -109,7 +110,9 @@ export function AppNav() {
           }}
         >
           <p className="font-medium text-foreground">Social Space</p>
-          <p className="mt-1 opacity-75">Read, post, and share videos in a premium environment.</p>
+          <p className="mt-1 opacity-75">
+            Read, post, and share videos in a premium environment.
+          </p>
         </div>
       </aside>
 
@@ -125,9 +128,7 @@ export function AppNav() {
       >
         {items.map((it) => {
           const active =
-            it.to === "/"
-              ? pathname === "/"
-              : pathname.startsWith(it.to);
+            it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
           const Icon = it.icon;
           return (
             <Link
@@ -135,11 +136,15 @@ export function AppNav() {
               to={it.to}
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 min-w-0 py-2 text-[9px] min-[400px]:text-[10px] transition-colors min-h-[44px]",
-                active ? "text-[color:var(--veil-glow)]" : "text-muted-foreground",
+                active
+                  ? "text-[color:var(--veil-glow)]"
+                  : "text-muted-foreground",
               )}
             >
               <Icon className="h-4 w-4" />
-              <span className="truncate hidden min-[480px]:inline mt-0.5">{it.label}</span>
+              <span className="truncate hidden min-[480px]:inline mt-0.5">
+                {it.label}
+              </span>
             </Link>
           );
         })}

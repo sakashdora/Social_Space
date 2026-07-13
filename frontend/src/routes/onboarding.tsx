@@ -26,7 +26,10 @@ import {
 } from "@/lib/api";
 import { ThemeToggle } from "@/components/veil/ThemeToggle";
 import { cn } from "@/lib/utils";
-import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
+import {
+  startRegistration,
+  startAuthentication,
+} from "@simplewebauthn/browser";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -38,7 +41,10 @@ export const Route = createFileRoute("/onboarding")({
           "Sign up in about a minute. Choose a handle, set a passphrase — no email, no phone, no ID.",
       },
       { property: "og:title", content: "Get started — Social Space" },
-      { property: "og:description", content: "Choose a handle. Nothing else required." },
+      {
+        property: "og:description",
+        content: "Choose a handle. Nothing else required.",
+      },
     ],
   }),
   component: Onboarding,
@@ -67,7 +73,11 @@ function shannonEntropy(str: string): number {
   );
 }
 
-function entropyLabel(bits: number): { label: string; color: string; pct: number } {
+function entropyLabel(bits: number): {
+  label: string;
+  color: string;
+  pct: number;
+} {
   if (bits < 30) return { label: "Very weak", color: "var(--danger)", pct: 10 };
   if (bits < 45) return { label: "Weak", color: "#f59e0b", pct: 28 };
   if (bits < 60) return { label: "Moderate", color: "#eab308", pct: 55 };
@@ -97,7 +107,9 @@ function TotpInput({
           pattern="[0-9]*"
           maxLength={6}
           value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          onChange={(e) =>
+            setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+          }
           placeholder="000000"
           className="flex-1 bg-transparent text-lg tracking-widest outline-none placeholder:text-muted-foreground/50"
         />
@@ -119,7 +131,13 @@ function TotpInput({
 }
 
 // ─── Recovery code display grid ────────────────────────────────────────────────
-function RecoveryCodeGrid({ codes, onCopyAll }: { codes: string[]; onCopyAll: () => void }) {
+function RecoveryCodeGrid({
+  codes,
+  onCopyAll,
+}: {
+  codes: string[];
+  onCopyAll: () => void;
+}) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(codes.join("\n"));
@@ -135,7 +153,9 @@ function RecoveryCodeGrid({ codes, onCopyAll }: { codes: string[]; onCopyAll: ()
             key={i}
             className="flex items-center gap-2 rounded-lg border border-border bg-white/5 dark:bg-black/40 px-3 py-2"
           >
-            <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}.</span>
+            <span className="text-[10px] text-muted-foreground w-4 shrink-0">
+              {i + 1}.
+            </span>
             <span className="font-mono text-xs text-[color:var(--veil-glow)] select-all">
               {code}
             </span>
@@ -146,7 +166,11 @@ function RecoveryCodeGrid({ codes, onCopyAll }: { codes: string[]; onCopyAll: ()
         onClick={handleCopy}
         className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white/5 dark:bg-white/[0.03] px-4 py-2.5 text-sm text-muted-foreground transition hover:text-foreground"
       >
-        {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+        {copied ? (
+          <Check className="h-4 w-4 text-green-400" />
+        ) : (
+          <Copy className="h-4 w-4" />
+        )}
         {copied ? "Copied!" : "Copy all codes"}
       </button>
     </div>
@@ -185,7 +209,11 @@ function Onboarding() {
   const [recoveryNewPass, setRecoveryNewPass] = useState("");
 
   const entropy = shannonEntropy(passphrase);
-  const { label: entropyLbl, color: entropyColor, pct: entropyPct } = entropyLabel(entropy);
+  const {
+    label: entropyLbl,
+    color: entropyColor,
+    pct: entropyPct,
+  } = entropyLabel(entropy);
 
   const REG_STEPS = [
     "Choose a handle",
@@ -303,7 +331,8 @@ function Onboarding() {
 
   // ─── Passkey setup (optional, step 4) ────────────────────────────────────
   const handlePasskeySetup = async () => {
-    const { getPasskeyRegisterOptions, verifyPasskeyRegistration } = await import("@/lib/api");
+    const { getPasskeyRegisterOptions, verifyPasskeyRegistration } =
+      await import("@/lib/api");
     setIsLoading(true);
     setError("");
     try {
@@ -339,25 +368,31 @@ function Onboarding() {
       transition={{ duration: 0.35 }}
       className="max-w-xl"
     >
-      <h1 className="font-serif text-4xl leading-tight sm:text-5xl">Save your recovery codes.</h1>
+      <h1 className="font-serif text-4xl leading-tight sm:text-5xl">
+        Save your recovery codes.
+      </h1>
       <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2">
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
         <p className="text-sm text-amber-300">
           <strong>
-            Losing both your passphrase and these codes means permanent, unrecoverable account loss.
+            Losing both your passphrase and these codes means permanent,
+            unrecoverable account loss.
           </strong>{" "}
-          There is no reset mechanism — no email, no phone, no support team can help. Store these
-          somewhere safe.
+          There is no reset mechanism — no email, no phone, no support team can
+          help. Store these somewhere safe.
         </p>
       </div>
 
       <FrostedPanel className="mt-6 p-5 space-y-4">
         <p className="text-xs text-muted-foreground">
-          These 8 recovery codes are shown <strong>exactly once</strong>. Each code can be used once
-          to regain access and set a new passphrase. Store them offline (printed paper, password
-          manager).
+          These 8 recovery codes are shown <strong>exactly once</strong>. Each
+          code can be used once to regain access and set a new passphrase. Store
+          them offline (printed paper, password manager).
         </p>
-        <RecoveryCodeGrid codes={recoveryCodes} onCopyAll={() => setCodesCopied(true)} />
+        <RecoveryCodeGrid
+          codes={recoveryCodes}
+          onCopyAll={() => setCodesCopied(true)}
+        />
 
         <label className="flex cursor-pointer items-start gap-3 pt-2 border-t border-border">
           <div className="shrink-0 mt-0.5">
@@ -369,12 +404,15 @@ function Onboarding() {
               className="peer sr-only"
             />
             <span className="grid h-5 w-5 place-items-center rounded-md border border-border bg-white/5 dark:bg-black/30 transition peer-checked:border-[color:var(--veil-glow)] peer-checked:bg-[color:var(--veil-glow)]/20">
-              {codesAcknowledged && <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />}
+              {codesAcknowledged && (
+                <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />
+              )}
             </span>
           </div>
           <span className="text-sm leading-relaxed">
-            I have saved these codes securely. I understand that losing both my passphrase and these
-            codes means <strong>permanent, unrecoverable loss</strong> of my account.
+            I have saved these codes securely. I understand that losing both my
+            passphrase and these codes means{" "}
+            <strong>permanent, unrecoverable loss</strong> of my account.
           </span>
         </label>
       </FrostedPanel>
@@ -391,7 +429,10 @@ function Onboarding() {
         </Link>
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link to="/" className="text-xs text-muted-foreground transition hover:text-foreground">
+          <Link
+            to="/"
+            className="text-xs text-muted-foreground transition hover:text-foreground"
+          >
             Cancel
           </Link>
         </div>
@@ -413,10 +454,17 @@ function Onboarding() {
               >
                 {i < step ? <Check className="h-3 w-3" /> : i + 1}
               </span>
-              <span className={cn("hidden sm:inline", i === step && "inline text-foreground")}>
+              <span
+                className={cn(
+                  "hidden sm:inline",
+                  i === step && "inline text-foreground",
+                )}
+              >
                 {s}
               </span>
-              {i < 2 && <span className="mx-1.5 sm:mx-3 h-px w-4 sm:w-8 bg-border" />}
+              {i < 2 && (
+                <span className="mx-1.5 sm:mx-3 h-px w-4 sm:w-8 bg-border" />
+              )}
             </div>
           ))}
         </div>
@@ -440,7 +488,9 @@ function Onboarding() {
               transition={{ duration: 0.35 }}
               className="max-w-xl"
             >
-              <h1 className="font-serif text-4xl leading-tight sm:text-5xl">Enter the Veil.</h1>
+              <h1 className="font-serif text-4xl leading-tight sm:text-5xl">
+                Enter the Veil.
+              </h1>
               <p className="mt-4 text-muted-foreground">
                 Enter your handle and passphrase to sign in.
               </p>
@@ -474,7 +524,11 @@ function Onboarding() {
                       id="login-handle"
                       value={loginHandle}
                       onChange={(e) =>
-                        setLoginHandle(e.target.value.replace(/[^a-z0-9-]/gi, "").toLowerCase())
+                        setLoginHandle(
+                          e.target.value
+                            .replace(/[^a-z0-9-]/gi, "")
+                            .toLowerCase(),
+                        )
                       }
                       placeholder="quiet-linen"
                       className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground/50"
@@ -495,13 +549,19 @@ function Onboarding() {
                       onChange={(e) => setLoginPassphrase(e.target.value)}
                       placeholder="your passphrase"
                       className="flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground/50"
-                      onKeyDown={(e) => e.key === "Enter" && handlePassphraseLogin()}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && handlePassphraseLogin()
+                      }
                     />
                     <button
                       onClick={() => setShowLoginPass((v) => !v)}
                       className="text-muted-foreground"
                     >
-                      {showLoginPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showLoginPass ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -542,7 +602,11 @@ function Onboarding() {
                 Enter the 6-digit code from your authenticator app.
               </p>
               <FrostedPanel className="mt-8 p-5">
-                <TotpInput onSubmit={handleMfaVerify} isLoading={isLoading} error={mfaError} />
+                <TotpInput
+                  onSubmit={handleMfaVerify}
+                  isLoading={isLoading}
+                  error={mfaError}
+                />
               </FrostedPanel>
             </motion.div>
           )}
@@ -559,8 +623,8 @@ function Onboarding() {
             >
               <h1 className="font-serif text-4xl">Recover your account.</h1>
               <p className="mt-4 text-muted-foreground">
-                Enter one of your recovery codes and choose a new passphrase. The code will be
-                invalidated after use.
+                Enter one of your recovery codes and choose a new passphrase.
+                The code will be invalidated after use.
               </p>
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <div>
@@ -571,7 +635,9 @@ function Onboarding() {
                     <input
                       id="recovery-code-input"
                       value={recoveryCode}
-                      onChange={(e) => setRecoveryCode(e.target.value.toLowerCase())}
+                      onChange={(e) =>
+                        setRecoveryCode(e.target.value.toLowerCase())
+                      }
                       placeholder="word-word-word-word"
                       className="flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground/50"
                     />
@@ -623,7 +689,8 @@ function Onboarding() {
                 Pick a handle. That&rsquo;s the whole signup.
               </h1>
               <p className="mt-4 text-muted-foreground">
-                No email. No phone. Nothing that ties this account to the rest of your life.
+                No email. No phone. Nothing that ties this account to the rest
+                of your life.
               </p>
               <FrostedPanel className="mt-8 p-5">
                 <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -636,14 +703,22 @@ function Onboarding() {
                     id="register-handle"
                     value={handle}
                     onChange={(e) =>
-                      setHandle(e.target.value.replace(/[^a-z0-9-]/gi, "").toLowerCase())
+                      setHandle(
+                        e.target.value
+                          .replace(/[^a-z0-9-]/gi, "")
+                          .toLowerCase(),
+                      )
                     }
                     placeholder="quiet-linen"
                     className="flex-1 min-w-0 bg-transparent text-lg outline-none placeholder:text-muted-foreground/50"
                   />
                   <button
                     onClick={() =>
-                      setHandle(suggestions[Math.floor(Math.random() * suggestions.length)])
+                      setHandle(
+                        suggestions[
+                          Math.floor(Math.random() * suggestions.length)
+                        ],
+                      )
                     }
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/5 dark:bg-white/[0.03] px-2 sm:px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground shrink-0"
                   >
@@ -692,8 +767,8 @@ function Onboarding() {
                 <div>
                   <p className="text-sm font-medium">On-device estimation</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Confirms you&rsquo;re over the required age. That&rsquo;s the only signal we
-                    keep.
+                    Confirms you&rsquo;re over the required age. That&rsquo;s
+                    the only signal we keep.
                   </p>
                   <label className="mt-4 flex cursor-pointer items-center gap-3">
                     <input
@@ -707,7 +782,9 @@ function Onboarding() {
                         <Check className="h-3.5 w-3.5 text-[color:var(--veil-glow)]" />
                       )}
                     </span>
-                    <span className="text-sm">Run the on-device check and continue.</span>
+                    <span className="text-sm">
+                      Run the on-device check and continue.
+                    </span>
                   </label>
                 </div>
               </FrostedPanel>
@@ -728,8 +805,8 @@ function Onboarding() {
                 Set your passphrase.
               </h1>
               <p className="mt-4 text-muted-foreground">
-                This is your primary credential — choose something memorable but strong. It must
-                have at least ~60 bits of entropy.
+                This is your primary credential — choose something memorable but
+                strong. It must have at least ~60 bits of entropy.
               </p>
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <div>
@@ -763,7 +840,10 @@ function Onboarding() {
                       <div className="h-1.5 rounded-full bg-border overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${entropyPct}%`, background: entropyColor }}
+                          style={{
+                            width: `${entropyPct}%`,
+                            background: entropyColor,
+                          }}
                         />
                       </div>
                       <p className="text-xs" style={{ color: entropyColor }}>
@@ -773,9 +853,10 @@ function Onboarding() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tip: use a long phrase or mix of unrelated words. Your passphrase is hashed with
-                  Argon2id and checked against known breach databases — the full passphrase is never
-                  sent to a third party.
+                  Tip: use a long phrase or mix of unrelated words. Your
+                  passphrase is hashed with Argon2id and checked against known
+                  breach databases — the full passphrase is never sent to a
+                  third party.
                 </p>
               </FrostedPanel>
             </motion.div>
@@ -798,8 +879,9 @@ function Onboarding() {
                 Add a passkey for faster sign-in.
               </h1>
               <p className="mt-4 text-muted-foreground">
-                Passkeys use your device biometrics (Face ID, fingerprint, PIN) — no passphrase
-                needed next time. This step is optional but recommended.
+                Passkeys use your device biometrics (Face ID, fingerprint, PIN)
+                — no passphrase needed next time. This step is optional but
+                recommended.
               </p>
               <FrostedPanel className="mt-8 p-5 space-y-4">
                 <button
@@ -837,7 +919,9 @@ function Onboarding() {
             onClick={async () => {
               if (step === 2) {
                 if (entropy < 60) {
-                  setError("Passphrase is too weak. Aim for at least 60 bits of entropy.");
+                  setError(
+                    "Passphrase is too weak. Aim for at least 60 bits of entropy.",
+                  );
                   return;
                 }
                 await handleRegister();
@@ -853,7 +937,11 @@ function Onboarding() {
             }
             className="group inline-flex items-center gap-2 rounded-full bg-[color:var(--veil-glow)] px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-40"
           >
-            {isLoading ? "Creating account…" : step === 2 ? "Create account" : "Continue"}
+            {isLoading
+              ? "Creating account…"
+              : step === 2
+                ? "Create account"
+                : "Continue"}
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </button>
         )}
@@ -876,7 +964,9 @@ function Onboarding() {
           <button
             id="login-submit-btn"
             onClick={handlePassphraseLogin}
-            disabled={isLoading || loginHandle.length < 3 || loginPassphrase.length < 3}
+            disabled={
+              isLoading || loginHandle.length < 3 || loginPassphrase.length < 3
+            }
             className="group inline-flex items-center gap-2 rounded-full bg-[color:var(--veil-glow)] px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-40"
           >
             {isLoading ? "Signing in…" : "Enter Veil"}

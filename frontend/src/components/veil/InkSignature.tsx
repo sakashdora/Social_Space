@@ -41,7 +41,8 @@ export function InkSignature({
     const loop = () => {
       t += 0.008 + proximity * 0.02;
       // gently modulate the draw offset
-      const offset = (Math.sin(t) * 0.5 + 0.5) * len * (0.35 - proximity * 0.28);
+      const offset =
+        (Math.sin(t) * 0.5 + 0.5) * len * (0.35 - proximity * 0.28);
       path.style.strokeDashoffset = `${offset}`;
       path.style.opacity = `${0.55 + proximity * 0.45}`;
       raf = requestAnimationFrame(loop);
@@ -55,7 +56,10 @@ export function InkSignature({
   }, []);
 
   return (
-    <div ref={wrapRef} className={`inline-flex flex-col items-start ${className}`}>
+    <div
+      ref={wrapRef}
+      className={`inline-flex flex-col items-start ${className}`}
+    >
       <svg
         viewBox="0 0 360 90"
         className="h-[68px] w-[280px]"
@@ -70,7 +74,8 @@ export function InkSignature({
           strokeWidth={1.6}
           style={{
             color: "var(--veil-glow)",
-            filter: "drop-shadow(0 0 12px color-mix(in oklab, var(--veil-glow) 55%, transparent))",
+            filter:
+              "drop-shadow(0 0 12px color-mix(in oklab, var(--veil-glow) 55%, transparent))",
             transition: "opacity 400ms cubic-bezier(0.22,1,0.36,1)",
           }}
         />

@@ -23,7 +23,8 @@ function NotFoundComponent() {
         <p className="font-serif text-7xl">404</p>
         <h2 className="mt-4 text-lg font-medium">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you&rsquo;re looking for doesn&rsquo;t exist, or was never here to begin with.
+          The page you&rsquo;re looking for doesn&rsquo;t exist, or was never
+          here to begin with.
         </p>
         <div className="mt-6">
           <Link
@@ -45,7 +46,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-lg font-semibold tracking-tight">Something didn&rsquo;t load.</h1>
+        <h1 className="text-lg font-semibold tracking-tight">
+          Something didn&rsquo;t load.
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Nothing was sent anywhere. Try again, or head home.
         </p>
@@ -62,7 +65,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium text-foreground transition"
-            style={{ border: "1px solid var(--surface-border)", background: "var(--surface-bg)" }}
+            style={{
+              border: "1px solid var(--surface-border)",
+              background: "var(--surface-bg)",
+            }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.opacity = "0.8";
             }}
@@ -78,37 +84,43 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#212121" },
-      { title: "Social Space — Discover, Share, Connect" },
-      {
-        name: "description",
-        content:
-          "A premium social space to share news, articles, photos, and videos. Sign up frictionlessly without an email or phone number.",
-      },
-      { name: "author", content: "Social Space" },
-      { property: "og:title", content: "Social Space — Discover, Share, Connect" },
-      {
-        property: "og:description",
-        content: "Share your stories, read the latest news, and engage with the community.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-    ],
-  }),
-  shellComponent: RootShell,
-  component: RootComponent,
-  notFoundComponent: NotFoundComponent,
-  errorComponent: ErrorComponent,
-});
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
+  {
+    head: () => ({
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "theme-color", content: "#212121" },
+        { title: "Social Space — Discover, Share, Connect" },
+        {
+          name: "description",
+          content:
+            "A premium social space to share news, articles, photos, and videos. Sign up frictionlessly without an email or phone number.",
+        },
+        { name: "author", content: "Social Space" },
+        {
+          property: "og:title",
+          content: "Social Space — Discover, Share, Connect",
+        },
+        {
+          property: "og:description",
+          content:
+            "Share your stories, read the latest news, and engage with the community.",
+        },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      ],
+    }),
+    shellComponent: RootShell,
+    component: RootComponent,
+    notFoundComponent: NotFoundComponent,
+    errorComponent: ErrorComponent,
+  },
+);
 
 function RootShell({ children }: { children: ReactNode }) {
   return (

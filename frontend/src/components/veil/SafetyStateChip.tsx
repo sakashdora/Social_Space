@@ -5,7 +5,12 @@ export type SafetyState = "safe" | "warn" | "danger" | "neutral";
 
 const config: Record<
   SafetyState,
-  { icon: React.ComponentType<{ className?: string }>; ring: string; fg: string; bg: string }
+  {
+    icon: React.ComponentType<{ className?: string }>;
+    ring: string;
+    fg: string;
+    bg: string;
+  }
 > = {
   safe: {
     icon: Check,

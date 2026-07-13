@@ -40,10 +40,15 @@ export function ThemeToggle({ className }: { className?: string }) {
         style={{
           background: "var(--veil-glow)",
           color: "var(--primary-foreground)",
-          boxShadow: "0 2px 8px color-mix(in oklab, var(--veil) 50%, transparent)",
+          boxShadow:
+            "0 2px 8px color-mix(in oklab, var(--veil) 50%, transparent)",
         }}
       >
-        {isDark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+        {isDark ? (
+          <Moon className="h-3.5 w-3.5" />
+        ) : (
+          <Sun className="h-3.5 w-3.5" />
+        )}
       </motion.span>
     </motion.button>
   );
