@@ -14,23 +14,20 @@ import {
   changePassphraseSchema,
   sensitiveActionSchema,
 } from "../schemas/auth.schema.js";
+import { pgRateLimit } from "../config/rateLimiters.js";
 import {
-  loginLimiter,
-  registrationLimiter,
-  sensitiveActionLimiter,
-  recoveryLimiter,
   accountLockoutGuard,
 } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
 // ─── Public: Registration & Login ────────────────────────────────────────────
-router.post("/register", registrationLimiter, validateBody(registerSchema), register);
-router.post("/login", loginLimiter, validateBody(loginSchema), accountLockoutGuard, login);
-router.post("/login/totp", loginLimiter, validateBody(loginTotpSchema), loginVerifyTotp);
+router.post("/register", pgRateLimit("register", { skipSuccessful: true }), validateBody(registerSchema), register);
+router.post("/login", pgRateLimit("login"), validateBody(loginSchema), accountLockoutGuard, login);
+router.post("/login/totp", pgRateLimit("login"), validateBody(loginTotpSchema), loginVerifyTotp);
 
 // ─── Recovery code redemption (IP-capped, no session required) ───────────────
-router.post("/recovery-codes/redeem", recoveryLimiter, validateBody(redeemRecoveryCodeSchema), redeemRecoveryCode);
+router.post("/recovery-codes/redeem", pgRateLimit("recovery"), validateBody(redeemRecoveryCodeSchema), redeemRecoveryCode);
 
 // ─── Authenticated session management ────────────────────────────────────────
 router.post("/logout-all", requireAuth, logoutAll);
@@ -39,7 +36,7 @@ router.post("/logout-all", requireAuth, logoutAll);
 router.post(
   "/passphrase/change",
   requireAuth,
-  sensitiveActionLimiter,
+  pgRateLimit("sensitive"),
   validateBody(changePassphraseSchema),
   requireStepUp,
   changePassphrase
@@ -49,7 +46,7 @@ router.post(
 router.post(
   "/recovery-codes/regenerate",
   requireAuth,
-  sensitiveActionLimiter,
+  pgRateLimit("sensitive"),
   validateBody(sensitiveActionSchema),
   requireStepUp,
   regenerateRecoveryCodes
@@ -66,7 +63,7 @@ router.get("/security-events", requireAuth, getSecurityEvents);
 router.delete(
   "/account",
   requireAuth,
-  sensitiveActionLimiter,
+  pgRateLimit("sensitive"),
   validateBody(sensitiveActionSchema),
   requireStepUp,
   deleteAccount

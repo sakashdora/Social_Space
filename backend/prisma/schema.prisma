@@ -207,3 +207,18 @@ model Media {
 
   posts             Post[]     // relation target
 }
+
+// ─── Rate Limiting ────────────────────────────────────────────────────────────
+// Managed by rate-limiter-flexible (RateLimiterPostgres driver).
+// Schema is owned here for visibility; the driver handles counter upserts.
+// Stale rows (expire < now()) are purged by the retention cron every 10 minutes.
+model RateLimitCounter {
+  key       String   @id
+  points    Int      @default(0)
+  expire    BigInt                    // Unix epoch ms — window expiry timestamp
+  createdAt DateTime @default(now())
+
+  @@index([expire])
+  @@map("rate_limit_counters")
+}
+

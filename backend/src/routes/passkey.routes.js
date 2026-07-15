@@ -9,13 +9,13 @@ import {
   passkeyVerifyRegisterSchema,
   sensitiveActionSchema,
 } from "../schemas/auth.schema.js";
-import { loginLimiter, sensitiveActionLimiter } from "../middleware/rateLimiter.js";
+import { pgRateLimit } from "../config/rateLimiters.js";
 
 const router = Router();
 
 // ─── Discoverable login (no session required) ─────────────────────────────────
-router.post("/login-options", loginLimiter, getLoginOptions);
-router.post("/login-verify", loginLimiter, validateBody(passkeyVerifyLoginSchema), verifyLogin);
+router.post("/login-options", pgRateLimit("login"), getLoginOptions);
+router.post("/login-verify", pgRateLimit("login"), validateBody(passkeyVerifyLoginSchema), verifyLogin);
 
 // ─── Registration (session required) ─────────────────────────────────────────
 router.post("/register-options", requireAuth, getRegisterOptions);
@@ -24,11 +24,11 @@ router.post("/register-verify", requireAuth, validateBody(passkeyVerifyRegisterS
 // ─── Passkey management (session required) ────────────────────────────────────
 router.get("/", requireAuth, listPasskeys);
 
-// Remove passkey: sensitive action — requires passphrase step-up
+// Remove passkey: sensitive action -- requires passphrase step-up
 router.delete(
   "/:id",
   requireAuth,
-  sensitiveActionLimiter,
+  pgRateLimit("sensitive"),
   validateBody(sensitiveActionSchema),
   requireStepUp,
   removePasskey

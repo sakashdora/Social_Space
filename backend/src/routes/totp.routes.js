@@ -8,7 +8,7 @@ import {
 import { requireAuth, requireStepUp } from "../middleware/auth.middleware.js";
 import { validateBody } from "../middleware/validation.middleware.js";
 import { totpEnableSchema, sensitiveActionSchema } from "../schemas/auth.schema.js";
-import { totpVerifyLimiter, sensitiveActionLimiter } from "../middleware/rateLimiter.js";
+import { pgRateLimit } from "../config/rateLimiters.js";
 
 const router = Router();
 
@@ -17,12 +17,12 @@ router.use(requireAuth);
 
 router.get("/status", getTotpStatus);
 router.post("/setup", setupTotp);
-router.post("/enable", totpVerifyLimiter, validateBody(totpEnableSchema), enableTotp);
+router.post("/enable", pgRateLimit("totp"), validateBody(totpEnableSchema), enableTotp);
 
 // Disable TOTP: sensitive action — requires passphrase re-auth
 router.post(
   "/disable",
-  sensitiveActionLimiter,
+  pgRateLimit("sensitive"),
   validateBody(sensitiveActionSchema),
   requireStepUp,
   disableTotp

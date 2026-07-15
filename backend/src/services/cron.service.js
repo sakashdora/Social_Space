@@ -132,6 +132,19 @@ export function startRetentionCron() {
         });
         console.log(`[Retention Cron] Permanently purged expired video from storage and database: ${m.id}`);
       }
+
+      // -- Phase 4: Purge stale rate limit counters (expired windows) --------
+      // rate-limiter-flexible stores counters with `expire` as Unix epoch ms.
+      // Rows whose window has passed are safe to delete -- the next request
+      // for that key will create a fresh counter.
+      const staleCounters = await prisma.$executeRaw`
+        DELETE FROM "rate_limit_counters"
+        WHERE "expire" < ${BigInt(Date.now())}
+      `;
+      if (staleCounters > 0) {
+        console.log(`[Retention Cron] Purged ${staleCounters} stale rate limit counter(s).`);
+      }
+
     } catch (err) {
       console.error("[Retention Cron] Cleanup failed:", err.message);
     }

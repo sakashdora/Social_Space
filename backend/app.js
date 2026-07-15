@@ -14,6 +14,7 @@ import reactionsRoutes from "./src/routes/reactions.routes.js";
 import aiRoutes from "./src/routes/ai.routes.js";
 import rssRoutes from "./src/routes/rss.routes.js";
 import { startRetentionCron } from "./src/services/cron.service.js";
+import { initRateLimiters } from "./src/config/rateLimiters.js";
 import chatsRoutes from "./src/routes/chats.routes.js";
 import usersRoutes from "./src/routes/users.routes.js";
 import mediaRoutes from "./src/routes/media.routes.js";
@@ -156,10 +157,23 @@ app.use((err, req, res, next) => {
 const PORT = env.PORT || 3000;
 
 if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} [${env.NODE_ENV || "development"}]`);
-    startRetentionCron();
-  });
+  // Initialize Postgres-backed rate limiters before accepting requests.
+  // initRateLimiters resolves even if individual limiters fail (fail-open).
+  initRateLimiters()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT} [${env.NODE_ENV || "development"}]`);
+        startRetentionCron();
+      });
+    })
+    .catch((err) => {
+      // Unexpected fatal error during init -- log but still start the server
+      console.error("[boot] initRateLimiters fatal error:", err.message);
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT} [${env.NODE_ENV || "development"}] (rate limiters unavailable -- fail-open)`);
+        startRetentionCron();
+      });
+    });
 }
 
 export default app;
