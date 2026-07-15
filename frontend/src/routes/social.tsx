@@ -48,6 +48,7 @@ import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { ThemeToggle } from "@/components/veil/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 export const Route = createFileRoute("/social")({
   head: () => ({
@@ -569,9 +570,9 @@ function SocialComponent() {
                       </div>
 
                       {/* Card Body Content */}
-                      <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-wrap break-all break-words [word-break:break-all] [overflow-wrap:anywhere] mb-4">
-                        {post.body}
-                      </p>
+                      <div className="mb-4">
+                        <MarkdownRenderer content={post.body} />
+                      </div>
 
                       {/* Media container: fits media without cropping; type detected client-side */}
                       {(() => {
