@@ -310,7 +310,7 @@ Analyze the user post content and return a JSON object with this exact structure
     "violence": 0.0,
     "selfHarm": 0.0
   },
-  "reasoning": "A concise sentence explaining the evaluation reasoning.",
+  "reasoning": "Reasoning summary (maximum 15 words).",
   "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false },
   "labels": ["life", "confession"],
   "sentiment": { "score": 0.8, "sentiment": "positive" }
@@ -321,55 +321,91 @@ Rules for evaluation:
 - Set the corresponding boolean in "flags" to true if its score is >= 0.5.
 - For labels, pick 1-3 categories from: ["Life", "Mental Health", "Relationships", "Career", "Confessions", "Ideas", "Doubt", "Peace"].
 - For sentiment, score is between -1.0 (very negative) and 1.0 (very positive), and sentiment is "positive", "negative", "neutral", or "mixed".
+- The reasoning field MUST be a brief summary of maximum 15 words.
 
 Anonymous Platform Context Calibration (Few-Shot Examples):
 1. Distinguish safe venting/sadness from actual self-harm/suicide expressions.
    - Input: "Honestly I feel so lonely and exhausted lately. I just want to sleep for a week."
-   - Output: { "isFlagged": false, "flagReason": null, "scores": { "hateSpeech": 0.0, "harassment": 0.0, "explicit": 0.0, "violence": 0.0, "selfHarm": 0.1 }, "reasoning": "Venting exhaustion and loneliness is allowed. No active self-harm or suicidal intent.", "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false }, "labels": ["Mental Health", "Life"], "sentiment": { "score": -0.6, "sentiment": "negative" } }
+   - Output: { "isFlagged": false, "flagReason": null, "scores": { "hateSpeech": 0.0, "harassment": 0.0, "explicit": 0.0, "violence": 0.0, "selfHarm": 0.1 }, "reasoning": "Venting exhaustion and loneliness. No self-harm intent.", "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false }, "labels": ["Mental Health", "Life"], "sentiment": { "score": -0.6, "sentiment": "negative" } }
 2. Distinguish dark humor/sarcasm from actual harassment or violent threats.
    - Input: "My laptop died right before submission. I guess it couldn't handle my terrible code. RIP laptop, you will be missed."
-   - Output: { "isFlagged": false, "flagReason": null, "scores": { "hateSpeech": 0.0, "harassment": 0.0, "explicit": 0.0, "violence": 0.0, "selfHarm": 0.0 }, "reasoning": "Sarcastic dark humor about laptop dying. No violations.", "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false }, "labels": ["Life"], "sentiment": { "score": -0.2, "sentiment": "negative" } }
+   - Output: { "isFlagged": false, "flagReason": null, "scores": { "hateSpeech": 0.0, "harassment": 0.0, "explicit": 0.0, "violence": 0.0, "selfHarm": 0.0 }, "reasoning": "Sarcastic dark humor about laptop. No violations.", "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false }, "labels": ["Life"], "sentiment": { "score": -0.2, "sentiment": "negative" } }
 3. Flag explicit threats of violence/harassment.
    - Input: "If you don't shut up, I am going to find where you live and beat you to death."
-   - Output: { "isFlagged": true, "flagReason": "Direct physical violence threat", "scores": { "hateSpeech": 0.0, "harassment": 0.8, "explicit": 0.0, "violence": 1.0, "selfHarm": 0.0 }, "reasoning": "Clear threat of physical violence to locate and harm user.", "flags": { "hateSpeech": false, "harassment": true, "explicit": false, "violence": true }, "labels": ["Confessions"], "sentiment": { "score": -0.9, "sentiment": "negative" } }`;
+   - Output: { "isFlagged": true, "flagReason": "Direct physical violence threat", "scores": { "hateSpeech": 0.0, "harassment": 0.8, "explicit": 0.0, "violence": 1.0, "selfHarm": 0.0 }, "reasoning": "Physical violence threat to find and kill user.", "flags": { "hateSpeech": false, "harassment": true, "explicit": false, "violence": true }, "labels": ["Confessions"], "sentiment": { "score": -0.9, "sentiment": "negative" } }`;
 
   const parseModeration = (raw) => {
     try {
       return parseJsonSafe(raw);
     } catch (err) {
       console.error("Failed to parse moderation JSON:", err.message);
-      throw new Error("Invalid JSON moderation response");
+      console.error("Raw unparsed model response was:", raw);
+      throw err;
     }
   };
 
+  const defaultMaxTokens = options.maxTokens || 250;
+
   // Primary: Groq (low-latency primary)
   if (isGrokConfigured()) {
+    let raw;
     try {
       console.log("Orchestration: Analyzing content using Groq (Primary)...");
-      const raw = await callGrok(content, instruction, { 
+      raw = await callGrok(content, instruction, { 
         responseFormat: { type: "json_object" },
         temperature: 0.1,
-        maxTokens: options.maxTokens || 150, // default 150
+        maxTokens: defaultMaxTokens,
         timeout: 3000 // 3s timeout for primary call
       });
       return parseModeration(raw);
     } catch (err) {
+      // Truncation safety net: if raw output was retrieved but failed to parse, retry once with +100 tokens
+      if (raw !== undefined) {
+        console.warn(`Groq parsing failed. Retrying once with higher token limit (${defaultMaxTokens + 100})...`);
+        try {
+          const retryRaw = await callGrok(content, instruction, {
+            responseFormat: { type: "json_object" },
+            temperature: 0.1,
+            maxTokens: defaultMaxTokens + 100,
+            timeout: 4000
+          });
+          return parseModeration(retryRaw);
+        } catch (retryErr) {
+          console.error("Groq parsing retry failed:", retryErr.message);
+        }
+      }
       console.warn("Groq content analysis failed, trying Gemini fallback:", err.message);
     }
   }
 
   // Fallback: Gemini (robust secondary fallback)
   if (isGeminiConfigured()) {
+    let raw;
     try {
       console.log("Orchestration (Fallback): Analyzing content using Gemini...");
-      const raw = await callGemini(content, instruction, { 
+      raw = await callGemini(content, instruction, { 
         responseFormat: { type: "json_object" },
         temperature: 0.1,
-        maxTokens: options.maxTokens || 150, // default 150
+        maxTokens: defaultMaxTokens,
         timeout: 5000 // 5s timeout for fallback call
       });
       return parseModeration(raw);
     } catch (err) {
+      // Truncation safety net for fallback: retry once with +100 tokens
+      if (raw !== undefined) {
+        console.warn(`Gemini parsing failed. Retrying once with higher token limit (${defaultMaxTokens + 100})...`);
+        try {
+          const retryRaw = await callGemini(content, instruction, {
+            responseFormat: { type: "json_object" },
+            temperature: 0.1,
+            maxTokens: defaultMaxTokens + 100,
+            timeout: 6000
+          });
+          return parseModeration(retryRaw);
+        } catch (retryErr) {
+          console.error("Gemini parsing retry failed:", retryErr.message);
+        }
+      }
       console.warn("Gemini content analysis fallback failed:", err.message);
     }
   }
