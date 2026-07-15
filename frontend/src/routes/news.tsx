@@ -36,10 +36,12 @@ function NewsComponent() {
     queryFn: () => fetchNews("world"),
   });
 
+
   const handleOpenArticle = (article: any) => {
-    if (article.link) {
-      window.open(article.link, "_blank", "noopener,noreferrer");
-    }
+    setSelectedArticle(article);
+    setAiBriefing("");
+    setIframeLoading(true);
+    autoGenerateBriefing(article);
   };
 
   const handleCloseArticle = () => {
