@@ -110,7 +110,7 @@ async function callGemini(prompt, systemInstruction, options = {}) {
       Authorization: `Bearer ${getAiApiKey()}`,
       "Content-Type": "application/json"
     },
-    timeout: 30000 // 30s timeout
+    timeout: options.timeout || 30000 // default 30s
   });
 
   return response.data.choices[0].message.content;
@@ -144,7 +144,7 @@ async function callGrok(prompt, systemInstruction, options = {}) {
       Authorization: `Bearer ${getGrokApiKey()}`,
       "Content-Type": "application/json"
     },
-    timeout: 25000 // 25s timeout
+    timeout: options.timeout || 25000 // default 25s
   });
 
   return response.data.choices[0].message.content;
@@ -297,19 +297,41 @@ export async function getSuggestions(context) {
  * Performs content moderation, sentiment analysis, and auto-tagging.
  * Primary: Gemini, Fallback: Grok, Second Fallback: Local rule engine.
  */
-export async function analyzeContent(content) {
+export async function analyzeContent(content, options = {}) {
   const instruction = `You are an AI content moderator and analyzer for the Social Space platform.
 Analyze the user post content and return a JSON object with this exact structure:
 {
   "isFlagged": false,
   "flagReason": null,
+  "scores": {
+    "hateSpeech": 0.0,
+    "harassment": 0.0,
+    "explicit": 0.0,
+    "violence": 0.0,
+    "selfHarm": 0.0
+  },
+  "reasoning": "A concise sentence explaining the evaluation reasoning.",
   "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false },
   "labels": ["life", "confession"],
   "sentiment": { "score": 0.8, "sentiment": "positive" }
 }
-Rule: Set isFlagged to true and flagReason if the content contains hate speech, violent threats, extreme harassment, or highly explicit/unsafe content. Otherwise isFlagged is false.
-For labels, pick 1-3 categories from: ["Life", "Mental Health", "Relationships", "Career", "Confessions", "Ideas", "Doubt", "Peace"].
-For sentiment, score is between -1.0 (very negative) and 1.0 (very positive), and sentiment is "positive", "negative", "neutral", or "mixed".`;
+
+Rules for evaluation:
+- Set isFlagged to true and a non-null flagReason if any category's confidence score in "scores" is >= 0.5.
+- Set the corresponding boolean in "flags" to true if its score is >= 0.5.
+- For labels, pick 1-3 categories from: ["Life", "Mental Health", "Relationships", "Career", "Confessions", "Ideas", "Doubt", "Peace"].
+- For sentiment, score is between -1.0 (very negative) and 1.0 (very positive), and sentiment is "positive", "negative", "neutral", or "mixed".
+
+Anonymous Platform Context Calibration (Few-Shot Examples):
+1. Distinguish safe venting/sadness from actual self-harm/suicide expressions.
+   - Input: "Honestly I feel so lonely and exhausted lately. I just want to sleep for a week."
+   - Output: { "isFlagged": false, "flagReason": null, "scores": { "hateSpeech": 0.0, "harassment": 0.0, "explicit": 0.0, "violence": 0.0, "selfHarm": 0.1 }, "reasoning": "Venting exhaustion and loneliness is allowed. No active self-harm or suicidal intent.", "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false }, "labels": ["Mental Health", "Life"], "sentiment": { "score": -0.6, "sentiment": "negative" } }
+2. Distinguish dark humor/sarcasm from actual harassment or violent threats.
+   - Input: "My laptop died right before submission. I guess it couldn't handle my terrible code. RIP laptop, you will be missed."
+   - Output: { "isFlagged": false, "flagReason": null, "scores": { "hateSpeech": 0.0, "harassment": 0.0, "explicit": 0.0, "violence": 0.0, "selfHarm": 0.0 }, "reasoning": "Sarcastic dark humor about laptop dying. No violations.", "flags": { "hateSpeech": false, "harassment": false, "explicit": false, "violence": false }, "labels": ["Life"], "sentiment": { "score": -0.2, "sentiment": "negative" } }
+3. Flag explicit threats of violence/harassment.
+   - Input: "If you don't shut up, I am going to find where you live and beat you to death."
+   - Output: { "isFlagged": true, "flagReason": "Direct physical violence threat", "scores": { "hateSpeech": 0.0, "harassment": 0.8, "explicit": 0.0, "violence": 1.0, "selfHarm": 0.0 }, "reasoning": "Clear threat of physical violence to locate and harm user.", "flags": { "hateSpeech": false, "harassment": true, "explicit": false, "violence": true }, "labels": ["Confessions"], "sentiment": { "score": -0.9, "sentiment": "negative" } }`;
 
   const parseModeration = (raw) => {
     try {
@@ -320,32 +342,35 @@ For sentiment, score is between -1.0 (very negative) and 1.0 (very positive), an
     }
   };
 
-  // Primary: Gemini
-  if (isGeminiConfigured()) {
-    try {
-      console.log("Orchestration: Analyzing content using Gemini...");
-      const raw = await callGemini(content, instruction, { 
-        responseFormat: { type: "json_object" },
-        temperature: 0.1,
-        maxTokens: 500
-      });
-      return parseModeration(raw);
-    } catch (err) {
-      console.warn("Gemini content analysis failed, trying Grok fallback:", err.message);
-    }
-  }
-
-  // Fallback: Grok
+  // Primary: Groq (low-latency primary)
   if (isGrokConfigured()) {
     try {
+      console.log("Orchestration: Analyzing content using Groq (Primary)...");
       const raw = await callGrok(content, instruction, { 
         responseFormat: { type: "json_object" },
         temperature: 0.1,
-        maxTokens: 500
+        maxTokens: options.maxTokens || 150, // default 150
+        timeout: 3000 // 3s timeout for primary call
       });
       return parseModeration(raw);
     } catch (err) {
-      console.warn("Grok/Groq content analysis fallback failed:", err.message);
+      console.warn("Groq content analysis failed, trying Gemini fallback:", err.message);
+    }
+  }
+
+  // Fallback: Gemini (robust secondary fallback)
+  if (isGeminiConfigured()) {
+    try {
+      console.log("Orchestration (Fallback): Analyzing content using Gemini...");
+      const raw = await callGemini(content, instruction, { 
+        responseFormat: { type: "json_object" },
+        temperature: 0.1,
+        maxTokens: options.maxTokens || 150, // default 150
+        timeout: 5000 // 5s timeout for fallback call
+      });
+      return parseModeration(raw);
+    } catch (err) {
+      console.warn("Gemini content analysis fallback failed:", err.message);
     }
   }
 
@@ -414,10 +439,26 @@ For sentiment, score is between -1.0 (very negative) and 1.0 (very positive), an
     detectedCategories.push("Life");
   }
 
+  // 4. Map to new schema structure
+  const scores = {
+    hateSpeech: flags.hateSpeech ? 1.0 : 0.0,
+    harassment: flags.harassment ? 1.0 : 0.0,
+    explicit: flags.explicit ? 1.0 : 0.0,
+    violence: flags.violence ? 1.0 : 0.0,
+    selfHarm: lower.includes("kill myself") || lower.includes("suicide") ? 1.0 : 0.0
+  };
+
+  const selfHarmFlag = scores.selfHarm >= 0.5;
+
   return {
-    isFlagged,
-    flagReason,
-    flags,
+    isFlagged: isFlagged || selfHarmFlag,
+    flagReason: flagReason || (selfHarmFlag ? "Self harm intent detected locally" : null),
+    scores,
+    reasoning: "Evaluated locally by the fallback rule engine.",
+    flags: {
+      ...flags,
+      selfHarm: selfHarmFlag
+    },
     labels: detectedCategories.slice(0, 3),
     sentiment: {
       score: sentimentScore,
