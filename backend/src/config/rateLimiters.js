@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/config/rateLimiters.js
  *
  * Postgres-backed rate limiters via rate-limiter-flexible (RateLimiterPostgres).
@@ -25,26 +25,44 @@ import { pgPool } from "./pgPool.js";
 
 function makePgLimiter(opts) {
   return new Promise((resolve) => {
-    const limiter = new RateLimiterPostgres(
-      {
-        storeClient:   pgPool,
-        tableCreated:  true,                    // table created by Prisma migration 20260715200000
-        tableName:     "rate_limit_counters",
-        keyPrefix:     opts.keyPrefix,
-        points:        opts.points,
-        duration:      opts.duration,           // seconds
-        blockDuration: opts.blockDuration ?? 0, // 0 = no separate block period (window expiry handles it)
-      },
-      (err) => {
-        if (err) {
-          // Non-fatal: boot continues -- this limiter will fail-open
-          console.error(`[RateLimiter] Failed to initialize '${opts.keyPrefix}':`, err.message);
-          resolve(null);
-        } else {
-          resolve(limiter);
+    let resolved = false;
+    let limiter;
+    try {
+      limiter = new RateLimiterPostgres(
+        {
+          storeClient:   pgPool,
+          tableCreated:  true,                    // table created by Prisma migration 20260715200000
+          tableName:     "rate_limit_counters",
+          keyPrefix:     opts.keyPrefix,
+          points:        opts.points,
+          duration:      opts.duration,           // seconds
+          blockDuration: opts.blockDuration ?? 0, // 0 = no separate block period (window expiry handles it)
+        },
+        (err) => {
+          if (err) {
+            console.error(`[RateLimiter] Failed to initialize '${opts.keyPrefix}':`, err.message);
+            resolved = true;
+            resolve(null);
+          } else {
+            // If callback is async, resolve now
+            if (limiter && !resolved) {
+              resolved = true;
+              resolve(limiter);
+            }
+          }
         }
+      );
+      // If callback is sync, resolve now
+      if (!resolved) {
+        resolved = true;
+        resolve(limiter);
       }
-    );
+    } catch (e) {
+      console.error(`[RateLimiter] Exception during instantiation of '${opts.keyPrefix}':`, e.message);
+      if (!resolved) {
+        resolve(null);
+      }
+    }
   });
 }
 
