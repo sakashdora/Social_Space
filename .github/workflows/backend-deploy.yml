@@ -53,7 +53,7 @@ jobs:
         with:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           resourceGroup: ${{ env.RESOURCE_GROUP }}
-          imageToBuild: ${{ env.ACR_NAME }}.azurecr.io/veil-backend:${{ github.sha }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/veil-backend:${{ github.sha }}
           registryUrl: ${{ env.ACR_NAME }}.azurecr.io
           registryUsername: ${{ secrets.ACR_USERNAME }}
           registryPassword: ${{ secrets.ACR_PASSWORD }}
