@@ -158,10 +158,27 @@ export async function generateArticle(prompt) {
   let grokDraft = null;
   let critiqueResult = null;
 
+  const groqWriterPrompt = `You are an intelligent, domain-expert article writer. Write a detailed, engaging draft of the article.
+Intelligently decide the best structure based on the topic.
+Write naturally like an experienced human. Never sound robotic, never repeat yourself, and never use unnecessary filler. Avoid generic AI phrases (e.g. "As an AI...", "Certainly!", "Here's a rewritten version.", "I'd be happy to.", "In conclusion...").
+Format beautifully using Markdown. Use headings, bullet lists, code blocks, or tables where appropriate. Break long paragraphs and keep them to 2-5 lines. Never produce walls of text.
+Never explain how it was written, never critique your own output, never explain formatting choices, and never say 'Here is the rewritten version' or expose internal reasoning. Every response should feel like it was written by a top domain expert specifically for that topic.`;
+
+  const geminiEditorPrompt = `You are an intelligent, expert editor. Critique the draft and rewrite it to improve readability, style, formatting in clean Markdown, and engagement. Return the complete polished article.
+Write naturally like an experienced human. Never sound robotic, never repeat yourself, and never use unnecessary filler. Avoid generic AI phrases (e.g. "As an AI...", "Certainly!", "Here's a rewritten version.", "I'd be happy to.", "In conclusion...").
+Format beautifully using Markdown. Use headings, bullet lists, code blocks, or tables where appropriate. Break long paragraphs and keep them to 2-5 lines. Never produce walls of text.
+Never explain how it was written or edited, never critique your own output, never explain formatting choices, and never say 'Here is the rewritten version' or expose internal reasoning. Every response should feel like it was written by a top domain editor.`;
+
+  const geminiWriterPrompt = `You are an intelligent, domain-expert article writer. Write a high-quality article in clean Markdown.
+Intelligently decide the best structure based on the topic.
+Write naturally like an experienced human. Never sound robotic, never repeat yourself, and never use unnecessary filler. Avoid generic AI phrases (e.g. "As an AI...", "Certainly!", "Here's a rewritten version.", "I'd be happy to.", "In conclusion...").
+Format beautifully using Markdown. Use headings, bullet lists, code blocks, or tables where appropriate. Break long paragraphs and keep them to 2-5 lines. Never produce walls of text.
+Never explain how it was written, never critique your own output, never explain formatting choices, and never say 'Here is the rewritten version' or expose internal reasoning. Every response should feel like it was written by a top domain expert.`;
+
   // Try to generate initial draft with Grok
   if (isGrokConfigured()) {
     try {
-      grokDraft = await callGrok(prompt, "You are an expert article writer. Write a detailed, engaging draft of the article.", {
+      grokDraft = await callGrok(prompt, groqWriterPrompt, {
         temperature: 0.7,
         maxTokens: 1500
       });
@@ -176,7 +193,7 @@ export async function generateArticle(prompt) {
       console.log("Orchestration: Critique and edit draft using Gemini...");
       critiqueResult = await callGemini(
         `Original Prompt: ${prompt}\nDraft:\n${grokDraft}`,
-        "You are an expert editor. Critique the draft and rewrite it to improve readability, style, formatting in clean Markdown, and engagement. Return the complete polished article.",
+        geminiEditorPrompt,
         { temperature: 0.5, maxTokens: 1500 }
       );
       return critiqueResult;
@@ -191,7 +208,7 @@ export async function generateArticle(prompt) {
   if (!grokDraft && isGeminiConfigured()) {
     try {
       console.log("Orchestration (Fallback): Generating article from scratch using Gemini...");
-      return await callGemini(prompt, "You are an expert article writer. Write a high-quality article in clean Markdown.", {
+      return await callGemini(prompt, geminiWriterPrompt, {
         temperature: 0.7,
         maxTokens: 1500
       });
@@ -214,7 +231,9 @@ export async function generateArticle(prompt) {
  * Corrects grammar and suggests improvements using Grok (fallback to Gemini)
  */
 export async function correctGrammar(text) {
-  const instruction = "You are an expert editor. Correct the grammar and improve the flow of the following text, keeping the original meaning.";
+  const instruction = `You are an expert editor. Correct the grammar and improve the flow of the following text, keeping the original meaning.
+Write naturally like an experienced human. Return ONLY the corrected text.
+Never explain how it was written or corrected, never explain formatting choices, never say "Here is the corrected version", and do not include any conversational filler or prefaces.`;
   
   if (isGrokConfigured()) {
     try {
