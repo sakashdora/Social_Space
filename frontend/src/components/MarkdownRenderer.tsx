@@ -111,46 +111,46 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
   const components = {
     // Responsive table wrappers
-    table: ({ children, ...props }: any) => (
+    table: ({ node, children, ...props }: any) => (
       <div className="my-4 w-full overflow-x-auto rounded-xl border border-white/10 shadow-md">
         <table className="w-full text-left text-sm border-collapse" {...props}>
           {children}
         </table>
       </div>
     ),
-    thead: ({ children, ...props }: any) => (
+    thead: ({ node, children, ...props }: any) => (
       <thead className="bg-white/5 border-b border-white/10 text-xs font-semibold uppercase tracking-wider sticky top-0" {...props}>
         {children}
       </thead>
     ),
-    th: ({ children, ...props }: any) => (
+    th: ({ node, children, ...props }: any) => (
       <th className="px-4 py-3 font-semibold text-foreground/90" {...props}>
         {children}
       </th>
     ),
-    td: ({ children, ...props }: any) => (
+    td: ({ node, children, ...props }: any) => (
       <td className="px-4 py-3 border-b border-white/5 text-foreground/80" {...props}>
         {children}
       </td>
     ),
-    tr: ({ children, ...props }: any) => (
+    tr: ({ node, children, ...props }: any) => (
       <tr className="hover:bg-white/[0.02] transition-colors" {...props}>
         {children}
       </tr>
     ),
 
     // Styled lists
-    ul: ({ children, ...props }: any) => (
+    ul: ({ node, children, ...props }: any) => (
       <ul className="my-3 list-disc pl-6 space-y-1.5 leading-relaxed text-foreground/90" {...props}>
         {children}
       </ul>
     ),
-    ol: ({ children, ...props }: any) => (
+    ol: ({ node, children, ...props }: any) => (
       <ol className="my-3 list-decimal pl-6 space-y-1.5 leading-relaxed text-foreground/90" {...props}>
         {children}
       </ol>
     ),
-    li: ({ children, checked, ...props }: any) => {
+    li: ({ node, children, checked, ...props }: any) => {
       if (checked !== undefined) {
         return (
           <li className="flex items-start gap-2 list-none py-0.5" {...props}>
@@ -168,29 +168,29 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     },
 
     // Headings
-    h1: ({ children, ...props }: any) => (
+    h1: ({ node, children, ...props }: any) => (
       <h1 className="mt-6 mb-4 font-serif text-2xl font-bold tracking-tight border-b border-white/5 pb-2 text-foreground" {...props}>
         {children}
       </h1>
     ),
-    h2: ({ children, ...props }: any) => (
+    h2: ({ node, children, ...props }: any) => (
       <h2 className="mt-5 mb-3 font-serif text-xl font-bold tracking-tight text-foreground" {...props}>
         {children}
       </h2>
     ),
-    h3: ({ children, ...props }: any) => (
+    h3: ({ node, children, ...props }: any) => (
       <h3 className="mt-4 mb-2 font-sans text-base font-bold text-foreground" {...props}>
         {children}
       </h3>
     ),
-    h4: ({ children, ...props }: any) => (
+    h4: ({ node, children, ...props }: any) => (
       <h4 className="mt-3 mb-1.5 font-sans text-sm font-bold text-foreground" {...props}>
         {children}
       </h4>
     ),
 
     // Blockquotes
-    blockquote: ({ children, ...props }: any) => (
+    blockquote: ({ node, children, ...props }: any) => (
       <blockquote className="my-4 border-l-4 border-amber-500 bg-white/5 px-4 py-3 text-foreground/90 italic rounded-r-lg" {...props}>
         {children}
       </blockquote>
@@ -199,7 +199,8 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     // Code rendering (inline vs block)
     code: ({ node, inline, className: codeClassName, children, ...props }: any) => {
       const match = /language-(\w+)/.exec(codeClassName || "");
-      const isInline = !match;
+      // Detect block code based on whether a newline character is present
+      const isInline = !match && !String(children).includes("\n");
       if (isInline) {
         return (
           <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-amber-500 font-semibold" {...props}>
@@ -209,7 +210,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
       }
       return (
         <CodeBlock
-          language={match[1]}
+          language={match ? match[1] : "text"}
           value={String(children).replace(/\n$/, "")}
           theme={theme}
         />
@@ -217,7 +218,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     },
 
     // Safe Links
-    a: ({ href, children, ...props }: any) => {
+    a: ({ node, href, children, ...props }: any) => {
       const isExternal = href?.startsWith("http");
       return (
         <a
@@ -232,12 +233,12 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     },
 
     // Horizontal Rule
-    hr: ({ ...props }: any) => (
+    hr: ({ node, ...props }: any) => (
       <hr className="my-6 border-t border-white/10" {...props} />
     ),
 
     // Paragraph margins
-    p: ({ children, ...props }: any) => (
+    p: ({ node, children, ...props }: any) => (
       <p className="my-2.5 leading-relaxed break-words text-foreground/90" {...props}>
         {children}
       </p>
