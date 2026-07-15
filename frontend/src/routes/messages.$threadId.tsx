@@ -23,6 +23,7 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 export const Route = createFileRoute("/messages/$threadId")({
   component: Thread,
@@ -501,7 +502,7 @@ function Thread() {
                     </div>
                   )}
                   {m.body && (
-                    <p className="break-words whitespace-pre-wrap">{m.body}</p>
+                    <MarkdownRenderer content={m.body} />
                   )}
                   <span className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-50 select-none">
                     {m.sending ? (

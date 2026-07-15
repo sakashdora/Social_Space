@@ -6,6 +6,7 @@ import { ExternalLink, X, Sparkles, Share2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 export const Route = createFileRoute("/news")({
   component: NewsComponent,
@@ -288,8 +289,8 @@ function NewsComponent() {
                       )}
 
                       {aiBriefing && (
-                        <div className="rounded-xl border border-[color:var(--primary)]/15 bg-[color:var(--primary)]/5 p-3.5 text-xs leading-relaxed text-foreground animate-fade-in font-medium">
-                          {aiBriefing}
+                        <div className="rounded-xl border border-[color:var(--primary)]/15 bg-[color:var(--primary)]/5 p-3.5 leading-relaxed text-foreground animate-fade-in font-medium">
+                          <MarkdownRenderer content={aiBriefing} className="text-xs" />
                         </div>
                       )}
                     </div>
