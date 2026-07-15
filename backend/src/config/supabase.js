@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { env } from "./env.js";
 
-// Verify presence at startup to prevent running with empty values
+// SUPABASE_URL is required in production (no hard-coded fallback — see env.js Fix C).
+// In dev, if missing, storage operations degrade to local base64 fallback in media.routes.js.
 if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
   console.warn(
     "[Supabase Config] WARNING: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing. " +

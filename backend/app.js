@@ -29,8 +29,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Trust all proxy hops — required for Azure Container Apps which injects multiple proxy headers
-app.set("trust proxy", true);
+// Trust exactly 1 proxy hop — Azure Container Apps injects a single hop.
+// Using `true` would trust all X-Forwarded-For hops, allowing IP spoofing to bypass rate limiters.
+app.set("trust proxy", 1);
 
 // ─── Phase 2 Fix #8: Explicit CORS allowlist ──────────────────────────────────
 // Parse FRONTEND_ORIGIN as a comma-separated list (supports staging + prod simultaneously)
@@ -140,6 +141,10 @@ app.use("/media", mediaRoutes);
 
 // ─── Global Error Handler (no stack trace leakage in production) ──────────────
 app.use((err, req, res, next) => {
+  // Fix B: JSON body parse errors are client errors (400), not server errors (500)
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "Invalid JSON in request body." });
+  }
   // Surface CORS errors with a clear 403 instead of a 500
   if (err.message && err.message.startsWith("CORS:")) {
     return res.status(403).json({ error: err.message });

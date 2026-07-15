@@ -89,6 +89,12 @@ if (isProd && !process.env.FRONTEND_ORIGIN) {
   errors.push("  ✗ FRONTEND_ORIGIN must be set in production.");
 }
 
+// Fix C: SUPABASE_URL must be explicitly set in production — no hard-coded project fallback.
+// A missing SUPABASE_URL in a new/staging deployment would otherwise silently target production storage.
+if (isProd && !process.env.SUPABASE_URL) {
+  errors.push("  ✗ SUPABASE_URL must be set in production. Do not rely on the dev fallback.");
+}
+
 // In production, UPSTASH_REDIS_REST_URL and token are optional but recommended
 if (isProd && (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)) {
   warnings.push("  ⚠ UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is missing in production. Falling back to in-memory store.");
@@ -130,7 +136,9 @@ export const env = {
   TOTP_ISSUER: process.env.TOTP_ISSUER || "Social Space",
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
-  SUPABASE_URL: process.env.SUPABASE_URL || "https://qaovcjwalukixbvhgzel.supabase.co",
+  // Fix C: No hard-coded fallback — SUPABASE_URL must be explicitly set.
+  // In dev, warn if missing (handled above). In prod, this is a startup error.
+  SUPABASE_URL: process.env.SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   // Storage bucket name — defaults to "veil-media" (the production bucket).
   // Override to "staging" in dev or test if you want to isolate uploads.
