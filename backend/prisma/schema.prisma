@@ -167,6 +167,7 @@ model ThreadParticipant {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([threadId, userId])
+  @@index([userId])
 }
 
 model Message {
@@ -179,6 +180,9 @@ model Message {
   expiresAt DateTime
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
   thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt(sort: Asc)])
+  @@index([expiresAt])
 }
 
 enum MediaType {
@@ -206,6 +210,9 @@ model Media {
   createdAt         DateTime   @default(now())
 
   posts             Post[]     // relation target
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────

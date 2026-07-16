@@ -146,6 +146,10 @@ app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
     return res.status(400).json({ error: "Invalid JSON in request body." });
   }
+  // Fix: Payload too large (body-parser limit exceeded) must return 413 not 500
+  if (err.type === "entity.too.large" || err.status === 413) {
+    return res.status(413).json({ error: "Request body too large. Maximum allowed size is 100KB for JSON requests." });
+  }
   // Surface CORS errors with a clear 403 instead of a 500
   if (err.message && err.message.startsWith("CORS:")) {
     return res.status(403).json({ error: err.message });

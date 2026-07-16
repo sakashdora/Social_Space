@@ -64,7 +64,6 @@ function MessagesLayout() {
 
         if (!record) {
           if (!activeUser.chatPublicKey) {
-            console.log("Generating new chat keypair...");
             const keyPair = await generateChatKeyPair();
             const pubKeyB64 = await exportPublicKeyBase64(keyPair.publicKey);
             await saveKeyRecord(activeUser.id, {
@@ -81,7 +80,6 @@ function MessagesLayout() {
           }
         } else {
           if (!activeUser.chatPublicKey) {
-            console.log("Re-uploading chat public key to server...");
             await updateChatPublicKey(record.publicKeyBase64);
             queryClient.invalidateQueries({ queryKey: ["me"] });
           } else if (record.publicKeyBase64 !== activeUser.chatPublicKey) {
@@ -105,7 +103,6 @@ function MessagesLayout() {
     try {
       const { generateChatKeyPair, exportPublicKeyBase64, saveKeyRecord } =
         await import("@/lib/crypto");
-      console.log("Resetting chat keys...");
       const keyPair = await generateChatKeyPair();
       const pubKeyB64 = await exportPublicKeyBase64(keyPair.publicKey);
       await saveKeyRecord(currentMe.id, {
