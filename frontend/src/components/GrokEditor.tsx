@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Sparkles, Check, Wand2 } from "lucide-react";
+import { Sparkles, Check, Wand2, Eye, Edit3 } from "lucide-react";
 import { generateArticle, correctGrammar, getSuggestions } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 interface GrokEditorProps {
   value: string;
@@ -15,6 +16,7 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -24,6 +26,7 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
       const data = await generateArticle(prompt, value);
       onChange(value ? `${value}\n\n${data.article}` : data.article);
       setPrompt("");
+      setActiveTab("preview");
     } catch (err: any) {
       setError(err.message || "Failed to generate article.");
     } finally {
@@ -89,15 +92,65 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
         </button>
       </div>
 
-      {/* Text Area */}
+      {/* Edit / Preview Tabs */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
+          <button
+            type="button"
+            onClick={() => setActiveTab("edit")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer",
+              activeTab === "edit"
+                ? "bg-white/10 text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+            Write
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("preview")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer",
+              activeTab === "preview"
+                ? "bg-white/10 text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Preview
+          </button>
+        </div>
+        {activeTab === "preview" && (
+          <span className="text-[11px] text-muted-foreground italic flex items-center gap-1">
+            <Sparkles className="h-3 w-3 text-amber-400" />
+            Veil-style Render
+          </span>
+        )}
+      </div>
+
+      {/* Text Area & Preview Panel */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-4 focus-within:border-[color:var(--primary)] transition-colors">
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Write your article here..."
-          rows={10}
-          className="w-full resize-y bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/60"
-        />
+        {activeTab === "edit" ? (
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Write your article here..."
+            rows={10}
+            className="w-full resize-y bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/60"
+          />
+        ) : (
+          <div className="min-h-[250px] max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
+            {value.trim() ? (
+              <MarkdownRenderer content={value} />
+            ) : (
+              <p className="text-sm text-muted-foreground italic py-8 text-center">
+                No content to preview yet. Generate or type some content in the Write tab.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Grok Actions Toolbar */}
         <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
@@ -132,9 +185,11 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
               <li
                 key={idx}
                 className="cursor-pointer rounded-lg bg-white/5 p-3 text-sm text-foreground/90 transition hover:bg-white/10"
-                onClick={() =>
-                  onChange(value ? `${value}\n\n${suggestion}` : suggestion)
-                }
+                onClick={() => {
+                  onChange(value ? `${value}\n\n${suggestion}` : suggestion);
+                  // Optionally switch to preview if suggestions are applied
+                  setActiveTab("preview");
+                }}
               >
                 {suggestion}
               </li>

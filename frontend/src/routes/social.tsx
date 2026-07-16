@@ -16,6 +16,8 @@ import {
   fetchChats,
   detectMediaType,
   deletePost,
+  fetchTrendingTopics,
+  fetchWhoToFollow,
 } from "@/lib/api";
 import type { ApiComment, ApiChat } from "@/lib/api";
 import {
@@ -69,7 +71,7 @@ const categories = [
   "Confessions",
 ];
 
-const trendingTopics = [
+const defaultTrendingTopics = [
   {
     id: 1,
     title: "AI is changing the world",
@@ -102,7 +104,7 @@ const trendingTopics = [
   },
 ];
 
-const whoToFollow = [
+const defaultWhoToFollow = [
   {
     name: "silent_wanderer",
     handle: "@silent_wanderer",
@@ -198,6 +200,26 @@ function SocialComponent() {
 
   const authed = isAuthenticated();
   const currentUser = getCurrentUser();
+
+  // Fetch trending topics dynamically
+  const { data: trendingTopicsData } = useQuery({
+    queryKey: ["trendingTopics"],
+    queryFn: fetchTrendingTopics,
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch who to follow recommendations dynamically
+  const { data: whoToFollowData } = useQuery({
+    queryKey: ["whoToFollow"],
+    queryFn: fetchWhoToFollow,
+    refetchOnWindowFocus: false,
+  });
+
+  const trendingTopics = trendingTopicsData || defaultTrendingTopics;
+  const whoToFollow = whoToFollowData || defaultWhoToFollow;
+
+  // Local state to track followed handles (interactive simulation)
+  const [followedHandles, setFollowedHandles] = useState<string[]>([]);
 
   // Reset pagination when category changes
   useEffect(() => {
@@ -907,35 +929,62 @@ function SocialComponent() {
             </div>
 
             <div className="space-y-4">
-              {whoToFollow.map((user) => (
-                <div
-                  key={user.name}
-                  className="flex items-center justify-between gap-2.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-10 w-10 rounded-full flex items-center justify-center text-lg ${user.color} border border-white/5 font-serif`}
-                    >
-                      🎭
+              {whoToFollow.map((user) => {
+                const isFollowing = followedHandles.includes(user.name);
+                return (
+                  <div
+                    key={user.name}
+                    className="flex items-center justify-between gap-2.5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`h-10 w-10 rounded-full flex items-center justify-center text-lg ${user.color} border border-white/5 font-serif`}
+                      >
+                        🎭
+                      </div>
+                      <div>
+                        <p className="font-semibold text-xs text-foreground leading-none">
+                          {user.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {user.handle}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-xs text-foreground leading-none">
-                        {user.name}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {user.handle}
-                      </p>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleStartChat(user.name)}
+                        className="rounded-full border border-white/10 bg-white/5 p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground cursor-pointer shrink-0"
+                        title={`Message ${user.handle}`}
+                        aria-label={`Message ${user.handle}`}
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (isFollowing) {
+                            setFollowedHandles((prev) => prev.filter((h) => h !== user.name));
+                            showToast(`Unfollowed ${user.handle}`);
+                          } else {
+                            setFollowedHandles((prev) => [...prev, user.name]);
+                            showToast(`Following ${user.handle}`);
+                          }
+                        }}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-[10px] font-semibold transition shrink-0 cursor-pointer",
+                          isFollowing
+                            ? "border-[color:var(--primary)] bg-[color:var(--primary)]/10 text-[color:var(--primary)] hover:bg-[color:var(--primary)]/20"
+                            : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                        )}
+                      >
+                        {isFollowing ? "Following" : "Follow"}
+                      </button>
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => handleStartChat(user.name)}
-                    className="rounded-full border border-amber-500/30 hover:border-amber-500/60 bg-amber-500/5 hover:bg-amber-500/10 px-4 py-1.5 text-[10px] font-bold text-amber-500 transition cursor-pointer"
-                  >
-                    Follow
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </FrostedPanel>
 

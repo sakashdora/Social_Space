@@ -325,3 +325,130 @@ export async function deletePost(req, res) {
   }
 }
 
+/**
+ * Retrieve trending topics (hashtags, categories, AI labels).
+ * GET /v1/posts/trending
+ */
+export async function getTrendingTopics(req, res) {
+  try {
+    const posts = await prisma.post.findMany({
+      where: { isDeleted: false },
+      select: {
+        content: true,
+        category: true,
+        aiLabels: true
+      }
+    });
+
+    const frequencyMap = {};
+
+    const defaultTopics = [
+      { id: 1, title: "AI is changing the world", posts: 12500, gradient: "from-purple-500/20 to-indigo-500/20" },
+      { id: 2, title: "Healing in silence", posts: 9800, gradient: "from-blue-500/20 to-cyan-500/20" },
+      { id: 3, title: "Late night thoughts", posts: 8200, gradient: "from-pink-500/20 to-rose-500/20" },
+      { id: 4, title: "Building in public", posts: 6700, gradient: "from-amber-500/20 to-orange-500/20" },
+      { id: 5, title: "The power of mindset", posts: 5300, gradient: "from-teal-500/20 to-emerald-500/20" }
+    ];
+
+    const gradients = [
+      "from-purple-500/20 to-indigo-500/20",
+      "from-blue-500/20 to-cyan-500/20",
+      "from-pink-500/20 to-rose-500/20",
+      "from-amber-500/20 to-orange-500/20",
+      "from-teal-500/20 to-emerald-500/20"
+    ];
+
+    const addTopic = (name, count = 1) => {
+      if (!name) return;
+      const cleanName = name.trim();
+      if (!cleanName || cleanName.length < 2) return;
+      const key = cleanName.toLowerCase();
+      if (frequencyMap[key]) {
+        frequencyMap[key].count += count;
+      } else {
+        frequencyMap[key] = {
+          title: cleanName,
+          count: count
+        };
+      }
+    };
+
+    for (const post of posts) {
+      if (post.category) {
+        addTopic(post.category);
+      }
+
+      const hashtagRegex = /#([a-zA-Z0-9_-]+)/g;
+      let match;
+      while ((match = hashtagRegex.exec(post.content)) !== null) {
+        addTopic(`#${match[1]}`);
+      }
+
+      if (post.aiLabels) {
+        try {
+          const labels = JSON.parse(post.aiLabels);
+          if (Array.isArray(labels)) {
+            labels.forEach(label => addTopic(label));
+          } else if (labels && Array.isArray(labels.labels)) {
+            labels.labels.forEach(label => addTopic(label));
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
+    }
+
+    let topics = Object.values(frequencyMap).sort((a, b) => b.count - a.count);
+
+    const mergedTopicsMap = {};
+    
+    topics.forEach(t => {
+      mergedTopicsMap[t.title.toLowerCase()] = {
+        title: t.title,
+        postsCount: t.count
+      };
+    });
+
+    let backfillIndex = 0;
+    while (Object.keys(mergedTopicsMap).length < 5 && backfillIndex < defaultTopics.length) {
+      const def = defaultTopics[backfillIndex];
+      const key = def.title.toLowerCase();
+      if (!mergedTopicsMap[key]) {
+        mergedTopicsMap[key] = {
+          title: def.title,
+          postsCount: def.posts
+        };
+      }
+      backfillIndex++;
+    }
+
+    const finalTopics = Object.values(mergedTopicsMap)
+      .sort((a, b) => b.postsCount - a.postsCount)
+      .slice(0, 5);
+
+    const result = finalTopics.map((t, idx) => {
+      const gradient = gradients[idx % gradients.length];
+      let postsStr = `${t.postsCount} posts`;
+      if (t.postsCount >= 1000) {
+        postsStr = `${(t.postsCount / 1000).toFixed(1).replace(/\.0$/, "")}K posts`;
+      }
+      return {
+        id: idx + 1,
+        title: t.title,
+        posts: postsStr,
+        gradient: gradient
+      };
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Get trending topics error:", error);
+    return res.status(500).json({
+      error: {
+        message: "Failed to retrieve trending topics.",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    });
+  }
+}
+

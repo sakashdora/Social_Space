@@ -733,3 +733,30 @@ export async function getUserPublicKey(userId: string): Promise<{
   });
   return handleResponse(res);
 }
+
+export interface TrendingTopic {
+  id: number;
+  title: string;
+  posts: string;
+  gradient: string;
+}
+
+export interface WhoToFollowUser {
+  name: string;
+  handle: string;
+  color: string;
+}
+
+export async function fetchTrendingTopics(): Promise<TrendingTopic[]> {
+  const res = await fetch(`${API_BASE}/v1/posts/trending`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function fetchWhoToFollow(): Promise<WhoToFollowUser[]> {
+  const res = await fetch(`${API_BASE}/v1/users/who-to-follow`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
