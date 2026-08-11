@@ -149,9 +149,19 @@ app.use("/api/media", mediaRoutes);
 app.use("/media", mediaRoutes);
 
 // ─── Frontend Static Assets & SSR Catch-All ──────────────────────────────────
-if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
-}
+app.use((req, res, next) => {
+  const activeClientDist = [
+    path.resolve(__dirname, "../frontend/dist/client"),
+    path.resolve(process.cwd(), "frontend/dist/client"),
+    path.resolve(process.cwd(), "dist/client"),
+  ].find((p) => fs.existsSync(p));
+
+  if (activeClientDist) {
+    express.static(activeClientDist)(req, res, next);
+  } else {
+    next();
+  }
+});
 
 app.get("*", async (req, res, next) => {
   if (
@@ -164,9 +174,21 @@ app.get("*", async (req, res, next) => {
     return res.status(404).json({ error: "API endpoint not found." });
   }
 
-  if (fs.existsSync(ssrServerPath)) {
+  const activeClientDist = [
+    path.resolve(__dirname, "../frontend/dist/client"),
+    path.resolve(process.cwd(), "frontend/dist/client"),
+    path.resolve(process.cwd(), "dist/client"),
+  ].find((p) => fs.existsSync(p));
+
+  const activeSsrServer = [
+    path.resolve(__dirname, "../frontend/dist/server/server.js"),
+    path.resolve(process.cwd(), "frontend/dist/server/server.js"),
+    path.resolve(process.cwd(), "dist/server/server.js"),
+  ].find((p) => fs.existsSync(p));
+
+  if (activeSsrServer) {
     try {
-      const ssrModule = await import(`file://${ssrServerPath}`);
+      const ssrModule = await import(`file://${activeSsrServer}`);
       const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
       const host = req.headers["x-forwarded-host"] || req.get("host") || "localhost";
       const fullUrl = `${protocol}://${host}${req.originalUrl}`;
@@ -197,12 +219,20 @@ app.get("*", async (req, res, next) => {
     }
   }
 
-  const indexPath = path.join(clientDistPath, "index.html");
-  if (fs.existsSync(indexPath)) {
-    return res.sendFile(indexPath);
+  if (activeClientDist) {
+    const indexPath = path.join(activeClientDist, "index.html");
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
   }
 
-  res.status(404).send("Page not found");
+  res.status(404).json({
+    error: "Page not found",
+    cwd: process.cwd(),
+    dirname: __dirname,
+    activeClientDist,
+    activeSsrServer,
+  });
 });
 
 // ─── Global Error Handler (no stack trace leakage in production) ──────────────
