@@ -5,6 +5,14 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, "../frontend/dist/client");
+const ssrServerPath = path.resolve(__dirname, "../frontend/dist/server/server.js");
 
 import authRoutes from "./src/routes/auth.routes.js";
 import totpRoutes from "./src/routes/totp.routes.js";
@@ -30,7 +38,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Trust exactly 1 proxy hop — Azure Container Apps injects a single hop.
+// Trust exactly 1 proxy hop (e.g. reverse proxy / ingress controller).
 // Using `true` would trust all X-Forwarded-For hops, allowing IP spoofing to bypass rate limiters.
 app.set("trust proxy", 1);
 
@@ -140,6 +148,63 @@ app.use("/rss", rssRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/media", mediaRoutes);
 
+// ─── Frontend Static Assets & SSR Catch-All ──────────────────────────────────
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+}
+
+app.get("*", async (req, res, next) => {
+  if (
+    req.path.startsWith("/api") ||
+    req.path.startsWith("/v1") ||
+    req.path.startsWith("/media") ||
+    req.path.startsWith("/rss") ||
+    req.path.startsWith("/ai")
+  ) {
+    return res.status(404).json({ error: "API endpoint not found." });
+  }
+
+  if (fs.existsSync(ssrServerPath)) {
+    try {
+      const ssrModule = await import(`file://${ssrServerPath}`);
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+      const host = req.headers["x-forwarded-host"] || req.get("host") || "localhost";
+      const fullUrl = `${protocol}://${host}${req.originalUrl}`;
+
+      const headers = new Headers();
+      for (const [key, val] of Object.entries(req.headers)) {
+        if (val) {
+          if (Array.isArray(val)) {
+            val.forEach((v) => headers.append(key, v));
+          } else {
+            headers.set(key, val);
+          }
+        }
+      }
+
+      const webReq = new Request(fullUrl, {
+        method: req.method,
+        headers,
+      });
+
+      const webRes = await ssrModule.default.fetch(webReq);
+      res.status(webRes.status);
+      webRes.headers.forEach((val, key) => res.setHeader(key, val));
+      const arrayBuf = await webRes.arrayBuffer();
+      return res.send(Buffer.from(arrayBuf));
+    } catch (ssrErr) {
+      console.error("[SSR Error]", ssrErr);
+    }
+  }
+
+  const indexPath = path.join(clientDistPath, "index.html");
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  res.status(404).send("Page not found");
+});
+
 // ─── Global Error Handler (no stack trace leakage in production) ──────────────
 app.use((err, req, res, next) => {
   // Fix B: JSON body parse errors are client errors (400), not server errors (500)
@@ -160,7 +225,12 @@ app.use((err, req, res, next) => {
 
 const PORT = env.PORT || 3000;
 
-if (process.env.NODE_ENV !== "test") {
+if (process.env.VERCEL) {
+  // On Vercel Serverless Functions, initialize limiters asynchronously without starting HTTP listener
+  initRateLimiters().catch((err) => {
+    console.error("[vercel-boot] initRateLimiters error:", err.message);
+  });
+} else if (process.env.NODE_ENV !== "test") {
   // Initialize Postgres-backed rate limiters before accepting requests.
   // initRateLimiters resolves even if individual limiters fail (fail-open).
   initRateLimiters()

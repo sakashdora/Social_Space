@@ -46,7 +46,7 @@ VEIL is designed as a secure, anonymous AI social platform. Security architectur
 
 - **Secrets Handling**: Zero credentials, tokens, or private connection strings are hardcoded in the codebase. All variables are dynamically read from process environments.
 - **Boot-time Validation**: `backend/src/config/env.js` strictly validates that all essential production variables (JWT secrets, DB connection URLs, Supabase API keys) are populated and of the correct format at startup. The application throws a fatal error and aborts boot if placeholders or short keys are detected.
-- **Azure Container App Integration**: Secrets are injected as encrypted Container App Secrets and referenced as environment variables, keeping them out of source control.
+- **Container & Service Integration**: Secrets are injected as encrypted environment variables at container or service runtime, keeping them out of source control.
 
 ---
 
@@ -72,11 +72,11 @@ VEIL is designed as a secure, anonymous AI social platform. Security architectur
 | **A06:2021-Vulnerable Components** | ✅ SECURE | Dependency check completed; packages up to date. |
 | **A07:2021-Identification & Auth** | ✅ SECURE | Passkey support, TOTP MFA, and per-account rate limit lockout. |
 | **A08:2021-Software & Data Integrity** | ✅ SECURE | Dynamic validation of file formats and signatures during upload. |
-| **A09:2021-Security Logging & Monitoring**| ✅ SECURE | Actions and failures logged cleanly to Azure Log Analytics. |
+| **A09:2021-Security Logging & Monitoring**| ✅ SECURE | Application actions and security events logged cleanly. |
 | **A10:2021-Server-Side Request Forgery** | ✅ SECURE | No endpoints accepting unvalidated destination URLs. |
 
 ---
 
 ## 7. Security Recommendations
-1. **Move to Managed Identity**: Use an Azure system-assigned managed identity to authenticate container instances to Azure Key Vault, bypassing the need for registry and database passwords to be manually stored.
+1. **Move to Managed Secrets Service**: Use a secure cloud key vault or secret manager to inject container runtime secrets.
 2. **CSP (Content Security Policy)**: Extend Helmet configs to include fine-grained CSP rules restricting scripts and stylesheets exclusively to self and trusted API domains.

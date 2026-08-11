@@ -8,7 +8,7 @@
  *
  * SECURITY: The AI endpoints consume the Grok API key (paid quota). Protected by
  * pgRateLimit("ai") -- 20 requests per IP per minute via Postgres-backed counters.
- * Multi-replica safe: all Azure Container Apps replicas share the same counter state.
+ * Multi-replica safe: all server replicas share the same counter state.
  */
 import { Router } from "express";
 import { generate, correct, suggest } from "../controllers/ai.controller.js";

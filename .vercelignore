@@ -1,0 +1,10 @@
+.git
+.github
+*.ps1
+*.sh
+*.log
+backend/dev.db
+backend/dev.db-journal
+backend/prisma/dev.db
+backend/node_modules
+frontend/node_modules
