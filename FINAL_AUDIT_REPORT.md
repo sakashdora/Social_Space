@@ -8,7 +8,7 @@ This document presents a comprehensive technical audit, file cleanup, dependency
 The VEIL Social Space repository has been analyzed and audited across all backend and frontend layers. The codebase is clean, well-structured, and follows modern React (TanStack Start) and Node.js security practices. Stale logs and configuration leftovers from abandoned deployment paths have been removed.
 
 - **Current Build Status**: Passing ✅
-- **Active Deployment**: Multi-tier Containerized Stack ✅
+- **Active Deployment**: Azure Container Apps (Multi-tier) ✅
 - **Production Readiness Score**: **98/100**
 
 ---
@@ -18,8 +18,8 @@ VEIL uses a modern, separated client-server architecture:
 
 ```mermaid
 graph TD
-  User[Web Client] -->|HTTPS| Frontend[Frontend Container: TanStack Start SSR]
-  Frontend -->|API Proxy / Fetch| Backend[Backend Container: Express API]
+  User[Web Client] -->|HTTPS| Frontend[Frontend Container App: TanStack Start SSR]
+  Frontend -->|API Proxy / Fetch| Backend[Backend Container App: Express API]
   Backend -->|Prisma Client| DB[(Supabase PostgreSQL Database)]
   Backend -->|Supabase SDK| Storage[(Supabase Storage Bucket: veil-media)]
   Backend -->|Axios HTTPS| AI[Gemini / Grok APIs]
@@ -86,7 +86,7 @@ To streamline the repository, avoid publishing private files, and clear redundan
 
 ### Security Review
 - **Environment variables**: Strictly validated at server startup (`backend/src/config/env.js`).
-- **No hardcoded secrets**: Verified that all credentials (JWT secrets, Supabase roles, AI keys) are injected securely via runtime environment variables.
+- **No hardcoded secrets**: Verified that all credentials (JWT secrets, Supabase roles, AI keys) are injected securely via Azure Container Apps secrets.
 - **SQL Injection Safeguard**: Handled inherently by Prisma ORM's parameterized query syntax.
 - **XSS Prevention**: Leverages `sanitize-html` to filter out malicious script tags from user-submitted posts.
 - **HTTP Headers**: Configured with `helmet()` to enforce standard browser security headers.
@@ -108,8 +108,8 @@ To streamline the repository, avoid publishing private files, and clear redundan
 ---
 
 ## 7. Recommendations & Action Items
-1. **Upstash Redis integration**: Transition the backend rate-limiter challenge store from in-memory to Upstash Redis (environment variables are already provisioned in config) if scaling the backend container instances beyond 2 replicas.
-2. **Move to Managed Secrets**: In a future iteration, configure secret management directly via key vault or secrets manager integrations.
+1. **Upstash Redis integration**: Transition the backend rate-limiter challenge store from in-memory to Upstash Redis (environment variables are already provisioned in config) if scaling the backend Container App beyond 2 replicas.
+2. **Move to managed Identity**: In a future iteration, configure Azure Container Apps to pull secrets directly from Key Vault using a System-Assigned Managed Identity.
 
 ---
 

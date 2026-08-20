@@ -1,76 +1,124 @@
-# Vercel Production Deployment Guide — VEIL Social Space
+# Vercel Deployment Guide for VEIL Social Space
 
-This guide outlines how to deploy VEIL Social Space (TanStack Start React 19 Frontend + Express Serverless API) to Vercel.
-
----
-
-## 1. How the 404: NOT_FOUND Was Resolved
-
-The initial `404: NOT_FOUND` error occurred because Vercel was configured with an isolated static output directory (`frontend/dist`) while the application uses **TanStack Start Server-Side Rendering (SSR)** alongside an Express API.
-
-### Fix Applied:
-1. **Unified Serverless Adapter ([api/index.js](file:///e:/VEIL_SOCIAL/api/index.js))**: Routes all incoming traffic through Express.
-2. **Integrated SSR & Static Assets ([backend/app.js](file:///e:/VEIL_SOCIAL/backend/app.js))**: Express serves both client static assets (`frontend/dist/client`) and executes TanStack Start SSR (`frontend/dist/server/server.js`) for all frontend page routes, while preserving all Express REST API endpoints (`/api/*`, `/v1/*`, `/media/*`).
-3. **Vercel Catch-All Rewrite ([vercel.json](file:///e:/VEIL_SOCIAL/vercel.json))**: Rewrites `/(.*)` to `/api/index.js`.
+This guide details how to deploy the **VEIL Social Space** application to Vercel in a production-ready serverless environment.
 
 ---
 
-## 2. Redeploying to Vercel
+## Architecture Overview
 
-To apply this update and fix the 404 error on your live deployment:
+The repository is structured as a monorepo containing:
+- **`frontend/`**: Vite + React 19 + TanStack Start frontend.
+- **`backend/`**: Express.js REST API with Prisma ORM and Supabase storage.
+- **`api/index.js`**: Serverless Function bridge exporting the Express app for Vercel.
 
-### Option A: Via GitHub Push (Automatic)
-Commit and push these updated files to your GitHub `main` branch:
-```bash
-git add .
-git commit -m "Fix Vercel 404 routing with unified SSR + Express serverless handler"
-git push origin main
-```
-Vercel will trigger a new build and deploy automatically.
-
----
-
-### Option B: Via Vercel CLI
-Run in your project root:
-```bash
-npx vercel --prod
-```
+When deployed on Vercel:
+- Static frontend assets are served directly via Vercel's Edge CDN (`frontend/dist/client`).
+- API requests (`/api/*`, `/v1/*`, `/healthz`) are routed to the Vercel Serverless Function (`api/index.js`).
+- Background cleanup routines are triggered every 10 minutes via Vercel Cron (`/api/cron/retention`).
 
 ---
 
-## 3. Environment Variables Checklist
+## Step 1: Database Setup (Managed PostgreSQL)
 
-Set the following environment variables in **Vercel Dashboard** -> **Project Settings** -> **Environment Variables**:
+> [!IMPORTANT]
+> Vercel Serverless Functions are stateless. Local SQLite (`dev.db`) will **not** persist. You must use a remote PostgreSQL database (such as **Supabase PostgreSQL**, **Neon**, or **AWS RDS**).
 
-| Variable Name | Description | Example / Location |
-|---|---|---|
-| `NODE_ENV` | Production mode switch | `production` |
-| `DATABASE_URL` | Supabase Postgres Connection Pooler URL | `postgresql://postgres.[ref]:[pass]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true` |
-| `DIRECT_URL` | Supabase Postgres Direct Connection URL | `postgresql://postgres.[ref]:[pass]@aws-0-[region].pooler.supabase.com:5432/postgres` |
-| `SUPABASE_URL` | Supabase Project API Endpoint | `https://[ref].supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Secret Service Role Key | `eyJ...` |
-| `SUPABASE_STORAGE_BUCKET` | Media storage bucket name | `veil-media` |
-| `JWT_SECRET` | Secret hash for signing JWT tokens | 64-char random hex string |
-| `ENCRYPTION_KEY` | AES-256 data encryption key | 64-char random hex string |
-| `RECOVERY_CODE_SECRET` | Secret hash for recovery codes | 64-char random hex string |
-| `AI_API_KEY` | Google Gemini API Key | `AIzaSy...` |
-| `AI_API_URL` | Gemini OpenAI-compatible Chat API Endpoint | `https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions` |
-| `AI_MODEL` | Gemini Model Identifier | `gemini-2.5-flash` |
-| `GROK_API_KEY` | xAI Grok API Key | `xai-...` |
-| `FRONTEND_ORIGIN` | Allowed production origin for CORS | `https://your-app.vercel.app` |
+1. Create a PostgreSQL database instance (e.g. on [Supabase](https://supabase.com) or [Neon](https://neon.tech)).
+2. Retrieve your connection strings:
+   - **`DATABASE_URL`**: Pooled connection URL (transaction mode, e.g. `postgres://...:6543/postgres?pgbouncer=true`).
+   - **`DIRECT_URL`**: Direct connection URL (used by Prisma migrations/DDL, e.g. `postgres://...:5432/postgres`).
+3. Run migrations on your target database before deploying:
+   ```bash
+   cd backend
+   npx prisma db push
+   ```
 
 ---
 
-## 4. Architecture Diagram
+## Step 2: Configure Vercel Environment Variables
 
-```mermaid
-graph TD
-  User[Browser / Client] -->|HTTPS Request| Vercel[Vercel Serverless Function: api/index.js]
-  Vercel --> Express[Express Server: backend/app.js]
-  Express -->|/api/* & /v1/*| API[Express API Controllers]
-  Express -->|Static Asset| Assets[frontend/dist/client]
-  Express -->|Page Route / | SSR[TanStack Start SSR: frontend/dist/server/server.js]
-  API -->|Prisma Client| SupabaseDB[(Supabase PostgreSQL)]
-  API -->|Supabase SDK| SupabaseStorage[(Supabase Storage)]
-  API -->|Axios HTTPS| AI[Gemini / Grok APIs]
-```
+In your Vercel Project Dashboard (**Settings > Environment Variables**), add the following required secrets:
+
+| Variable Name | Required | Example / Format | Purpose |
+| :--- | :---: | :--- | :--- |
+| `NODE_ENV` | Yes | `production` | Enables production mode & strict validations |
+| `DATABASE_URL` | Yes | `postgres://user:pass@host:6543/db?pgbouncer=true` | Pooled DB connection string for Prisma |
+| `DIRECT_URL` | Yes | `postgres://user:pass@host:5432/db` | Direct DB connection string for Prisma DDL |
+| `JWT_SECRET` | Yes | 32+ character random string | JWT signing key |
+| `ENCRYPTION_KEY` | Yes | Exactly 64 hex characters (32 bytes) | AES data encryption key |
+| `RECOVERY_CODE_SECRET` | Yes | 32+ character random string | HMAC secret for recovery codes |
+| `SUPABASE_URL` | Yes | `https://your-project.supabase.co` | Supabase project URL for storage |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | `eyJhbG...` | Supabase admin key for media bucket ops |
+| `SUPABASE_STORAGE_BUCKET` | Optional | `veil-media` | Bucket name (defaults to `veil-media`) |
+| `FRONTEND_ORIGIN` | Yes | `https://your-app.vercel.app` | CORS allowed origin(s), comma-separated |
+| `AI_API_KEY` | Optional | `AIzaSy...` | Gemini AI key for moderation & AI labels |
+| `AI_MODEL` | Optional | `gemini-2.5-flash` | Gemini model name |
+| `CRON_SECRET` | Optional | Random secret string | Authorization for Vercel Cron endpoint |
+
+---
+
+## Step 3: Deployment Options
+
+### Option A: Vercel Dashboard (Git Integration - Recommended)
+
+1. Push your code to GitHub / GitLab / Bitbucket.
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New Project**.
+3. Import your repository.
+4. Keep the **Root Directory** as `./` (project root).
+5. Vercel will automatically detect `vercel.json`. Verify build settings:
+   - **Framework Preset**: `Other`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `frontend/dist/client`
+6. Add your **Environment Variables** (from Step 2).
+7. Click **Deploy**.
+
+---
+
+### Option B: Vercel CLI Deployment
+
+1. Install the Vercel CLI:
+   ```bash
+   npm i -g vercel
+   ```
+2. Log in to Vercel:
+   ```bash
+   vercel login
+   ```
+3. Deploy to Preview:
+   ```bash
+   vercel
+   ```
+4. Deploy to Production:
+   ```bash
+   vercel --prod
+   ```
+
+---
+
+## Step 4: Verification & Post-Deployment Checklist
+
+After deployment completes:
+
+1. **Verify Health Endpoint**:
+   Visit `https://<your-app>.vercel.app/healthz`. Expected response:
+   ```json
+   {
+     "status": "OK",
+     "timestamp": "2026-08-20T19:20:00.000Z",
+     "services": { "database": "UP" }
+   }
+   ```
+
+2. **Verify Frontend**:
+   Open `https://<your-app>.vercel.app/` in browser to confirm static bundle loads and routes function properly.
+
+3. **Verify Vercel Cron Job**:
+   In Vercel Dashboard, go to **Settings > Crons** to confirm the retention cleanup schedule (`/api/cron/retention`) is active.
+
+---
+
+## Troubleshooting
+
+- **500 Error on Database Query**: Ensure `DATABASE_URL` is correct and PostgreSQL database is accessible from Vercel's IP ranges (enable SSL mode `?sslmode=require` if required by host).
+- **Prisma Client Missing**: The build command `npm run build` automatically executes `npx prisma generate`. If Prisma client errors occur, verify `package.json` build scripts.
+- **CORS Error**: Ensure `FRONTEND_ORIGIN` matches your exact Vercel deployment domain (including `https://`).

@@ -4,7 +4,7 @@
  * Postgres-backed rate limiters via rate-limiter-flexible (RateLimiterPostgres).
  *
  * All counters are stored in the `rate_limit_counters` table in Supabase Postgres.
- * Multi-replica safe: all application replicas read/write the same counter rows.
+ * Multi-replica safe: all Azure Container Apps replicas read/write the same counter rows.
  *
  * FAIL-OPEN POLICY (confirmed by owner 2026-07-15 -- see implementation_plan.md):
  *   If a counter read/write fails (DB timeout, pool exhaustion), the request is ALLOWED.

@@ -5,14 +5,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const clientDistPath = path.resolve(__dirname, "../frontend/dist/client");
-const ssrServerPath = path.resolve(__dirname, "../frontend/dist/server/server.js");
 
 import authRoutes from "./src/routes/auth.routes.js";
 import totpRoutes from "./src/routes/totp.routes.js";
@@ -26,6 +18,7 @@ import { initRateLimiters } from "./src/config/rateLimiters.js";
 import chatsRoutes from "./src/routes/chats.routes.js";
 import usersRoutes from "./src/routes/users.routes.js";
 import mediaRoutes from "./src/routes/media.routes.js";
+import cronRoutes from "./src/routes/cron.routes.js";
 import prisma from "./src/config/prisma.js";
 
 const app = express();
@@ -38,7 +31,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Trust exactly 1 proxy hop (e.g. reverse proxy / ingress controller).
+// Trust exactly 1 proxy hop — Azure Container Apps injects a single hop.
 // Using `true` would trust all X-Forwarded-For hops, allowing IP spoofing to bypass rate limiters.
 app.set("trust proxy", 1);
 
@@ -148,92 +141,9 @@ app.use("/rss", rssRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/media", mediaRoutes);
 
-// ─── Frontend Static Assets & SSR Catch-All ──────────────────────────────────
-app.use((req, res, next) => {
-  const activeClientDist = [
-    path.resolve(__dirname, "../frontend/dist/client"),
-    path.resolve(process.cwd(), "frontend/dist/client"),
-    path.resolve(process.cwd(), "dist/client"),
-  ].find((p) => fs.existsSync(p));
-
-  if (activeClientDist) {
-    express.static(activeClientDist)(req, res, next);
-  } else {
-    next();
-  }
-});
-
-app.get("*", async (req, res, next) => {
-  if (
-    req.path.startsWith("/api") ||
-    req.path.startsWith("/v1") ||
-    req.path.startsWith("/media") ||
-    req.path.startsWith("/rss") ||
-    req.path.startsWith("/ai")
-  ) {
-    return res.status(404).json({ error: "API endpoint not found." });
-  }
-
-  const activeClientDist = [
-    path.resolve(__dirname, "../frontend/dist/client"),
-    path.resolve(process.cwd(), "frontend/dist/client"),
-    path.resolve(process.cwd(), "dist/client"),
-  ].find((p) => fs.existsSync(p));
-
-  const activeSsrServer = [
-    path.resolve(__dirname, "../frontend/dist/server/server.js"),
-    path.resolve(process.cwd(), "frontend/dist/server/server.js"),
-    path.resolve(process.cwd(), "dist/server/server.js"),
-  ].find((p) => fs.existsSync(p));
-
-  if (activeSsrServer) {
-    try {
-      const ssrModule = await import(`file://${activeSsrServer}`);
-      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
-      const host = req.headers["x-forwarded-host"] || req.get("host") || "localhost";
-      const fullUrl = `${protocol}://${host}${req.originalUrl}`;
-
-      const headers = new Headers();
-      for (const [key, val] of Object.entries(req.headers)) {
-        if (val) {
-          if (Array.isArray(val)) {
-            val.forEach((v) => headers.append(key, v));
-          } else {
-            headers.set(key, val);
-          }
-        }
-      }
-
-      const webReq = new Request(fullUrl, {
-        method: req.method,
-        headers,
-      });
-
-      const webRes = await ssrModule.default.fetch(webReq);
-      res.status(webRes.status);
-      webRes.headers.forEach((val, key) => res.setHeader(key, val));
-      const arrayBuf = await webRes.arrayBuffer();
-      return res.send(Buffer.from(arrayBuf));
-    } catch (ssrErr) {
-      console.error("[SSR Error]", ssrErr);
-    }
-  }
-
-  if (activeClientDist) {
-    const indexPath = path.join(activeClientDist, "index.html");
-    if (fs.existsSync(indexPath)) {
-      return res.sendFile(indexPath);
-    }
-  }
-
-  res.status(404).json({
-    error: "Page not found",
-    cwd: process.cwd(),
-    dirname: __dirname,
-    activeClientDist,
-    activeSsrServer,
-  });
-});
+// Cron Routes (Vercel Cron target)
+app.use("/api/cron", cronRoutes);
+app.use("/cron", cronRoutes);
 
 // ─── Global Error Handler (no stack trace leakage in production) ──────────────
 app.use((err, req, res, next) => {
@@ -255,12 +165,9 @@ app.use((err, req, res, next) => {
 
 const PORT = env.PORT || 3000;
 
-if (process.env.VERCEL) {
-  // On Vercel Serverless Functions, initialize limiters asynchronously without starting HTTP listener
-  initRateLimiters().catch((err) => {
-    console.error("[vercel-boot] initRateLimiters error:", err.message);
-  });
-} else if (process.env.NODE_ENV !== "test") {
+// On Vercel Serverless Functions, process.env.VERCEL is set automatically.
+// We skip starting the HTTP server listener and background cron interval loop.
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
   // Initialize Postgres-backed rate limiters before accepting requests.
   // initRateLimiters resolves even if individual limiters fail (fail-open).
   initRateLimiters()

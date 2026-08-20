@@ -1,19 +1,40 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "framework": "vite",
   "buildCommand": "npm run build",
-  "installCommand": "npm run install:all",
+  "outputDirectory": "frontend/dist/client",
+  "framework": null,
   "functions": {
     "api/index.js": {
-      "includeFiles": "frontend/dist/**, backend/prisma/**",
-      "maxDuration": 30
+      "includeFiles": "backend/**"
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/retention",
+      "schedule": "*/10 * * * *"
+    }
+  ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/cron/(.*)",
       "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/v1/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/healthz",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
