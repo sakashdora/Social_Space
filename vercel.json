@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "npm run build",
+  "installCommand": "npm install --prefix backend && npm install --prefix frontend",
+  "buildCommand": "cd backend && npx prisma generate && cd ../frontend && npm run build",
   "outputDirectory": "frontend/dist/client",
   "framework": null,
   "functions": {

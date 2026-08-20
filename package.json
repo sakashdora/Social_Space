@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
     "build": "cd backend && npx prisma generate && cd ../frontend && npm run build",
     "vercel-build": "cd backend && npx prisma generate && cd ../frontend && npm run build",
     "prisma:generate": "cd backend && npx prisma generate"
