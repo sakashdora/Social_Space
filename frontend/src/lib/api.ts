@@ -389,28 +389,68 @@ export async function getSuggestions(text: string) {
   return handleResponse(res);
 }
 
+async function getVideoDurationInBrowser(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(video.duration || 0);
+    };
+    video.onerror = () => resolve(0);
+    video.src = URL.createObjectURL(file);
+  });
+}
+
 export async function uploadMedia(
   file: File,
 ): Promise<{ url: string; type: MediaKind }> {
-  const formData = new FormData();
-  formData.append("file", file);
+  const isVideo = file.type.startsWith("video/");
+  let durationSeconds = 0;
+  if (isVideo && typeof window !== "undefined") {
+    durationSeconds = await getVideoDurationInBrowser(file);
+  }
 
-  const headers: Record<string, string> = {};
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("veil_auth_token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+  // Step 1: Request presigned upload URL
+  const initRes = await fetch(`${API_BASE}/api/media/upload-url`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      filename: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    }),
+  });
+  const initData = await handleResponse(initRes);
+
+  // Step 2: Upload file directly to Supabase if signedUrl provided
+  if (initData.signedUrl) {
+    const uploadRes = await fetch(initData.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      throw new Error(`Direct storage upload failed with status ${uploadRes.status}`);
     }
   }
 
-  const res = await fetch(`${API_BASE}/api/media/upload`, {
+  // Step 3: Confirm media upload in backend
+  const confirmRes = await fetch(`${API_BASE}/api/media/confirm`, {
     method: "POST",
-    headers,
-    body: formData,
+    headers: getHeaders(),
+    body: JSON.stringify({
+      mediaId: initData.mediaId,
+      storagePath: initData.storagePath,
+      thumbnailPath: initData.thumbnailPath,
+      mimeType: file.type,
+      sizeBytes: file.size,
+      durationSeconds: isVideo ? durationSeconds : null,
+    }),
   });
-  const data = await handleResponse(res);
-  const serverType = data?.media?.type === "VIDEO" ? "video" : "image";
-  return { url: data.url, type: serverType };
+  const confirmData = await handleResponse(confirmRes);
+  const serverType = confirmData?.media?.type === "VIDEO" ? "video" : "image";
+  return { url: confirmData.url, type: serverType };
 }
 
 /**
