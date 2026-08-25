@@ -150,9 +150,15 @@ export async function runRetentionCleanup() {
 export function startRetentionCron() {
   console.log("Data Retention Cron Service Initialized.");
 
-  // Run immediately on startup (don't wait for first interval)
-  runRetentionCleanup();
+  // Run immediately on startup safely (don't wait for first interval)
+  runRetentionCleanup().catch((err) => {
+    console.error("[Retention Cron] Initial run warning:", err.message);
+  });
 
-  // Then run every 10 minutes
-  setInterval(runCleanup, 10 * 60 * 1000);
+  // Then run every 10 minutes safely
+  setInterval(() => {
+    runRetentionCleanup().catch((err) => {
+      console.error("[Retention Cron] Interval run warning:", err.message);
+    });
+  }, 10 * 60 * 1000);
 }
