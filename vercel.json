@@ -13,7 +13,7 @@
   "crons": [
     {
       "path": "/api/cron/retention",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 2 * * *"
     }
   ],
   "rewrites": [
