@@ -8,6 +8,11 @@ console.log(`[build] Copying build artifacts from ${src} to ${dest}...`);
 
 if (fs.existsSync(src)) {
   fs.cpSync(src, dest, { recursive: true });
+  if (fs.existsSync(path.join(dest, "index.html"))) {
+    console.log("[build] Verified: index.html is present in root dist directory.");
+  } else {
+    console.warn("[build] Warning: index.html was not found in build destination.");
+  }
   console.log("[build] Successfully copied frontend static assets to root dist directory.");
 } else {
   console.error(`[build] Error: Source directory ${src} does not exist.`);

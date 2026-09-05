@@ -9,8 +9,11 @@ export default defineConfig({
     tsconfigPaths(),
     tailwindcss(),
     tanstackStart({
-      // SSR/Nitro server — do NOT add static:true or it disables the SSR pipeline
       server: { entry: "server" },
+      prerender: {
+        enabled: true,
+        routes: ["/"],
+      },
     }),
     react(),
   ],
