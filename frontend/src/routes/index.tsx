@@ -242,14 +242,22 @@ export function LandingPage() {
                 {/* Interactive Reactions */}
                 <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/60">
                   <div className="flex items-center gap-5">
-                    <span className="flex items-center gap-1.5 hover:text-amber-300 cursor-pointer transition">
+                    <Link
+                      to="/social"
+                      className="flex items-center gap-1.5 hover:text-amber-300 transition cursor-pointer"
+                      title="Explore community signals"
+                    >
                       <Heart className="h-4 w-4 text-rose-400 fill-rose-400/20" />
                       <span>342</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 hover:text-amber-300 cursor-pointer transition">
+                    </Link>
+                    <Link
+                      to="/social"
+                      className="flex items-center gap-1.5 hover:text-amber-300 transition cursor-pointer"
+                      title="View transmission discussions"
+                    >
                       <MessageSquare className="h-4 w-4 text-blue-400" />
                       <span>48 replies</span>
-                    </span>
+                    </Link>
                   </div>
                   <span className="flex items-center gap-1 text-emerald-400 font-mono">
                     <CheckCircle2 className="h-3.5 w-3.5" />

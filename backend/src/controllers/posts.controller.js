@@ -58,6 +58,7 @@ export async function createPost(req, res) {
       storagePath,
       thumbStoragePath,
       mediaId: incomingMediaId,
+      sharedPostId,
     } = req.body;
 
     if (!rawContent || !category) {
@@ -79,6 +80,23 @@ export async function createPost(req, res) {
           code: "CONTENT_TOO_LONG",
         },
       });
+    }
+
+    let validSharedPostId = null;
+    if (sharedPostId) {
+      const targetPost = await prisma.post.findUnique({
+        where: { id: sharedPostId },
+      });
+      if (targetPost && !targetPost.isDeleted) {
+        validSharedPostId = targetPost.id;
+      } else {
+        return res.status(404).json({
+          error: {
+            message: "Shared post not found or has been deleted.",
+            code: "NOT_FOUND",
+          },
+        });
+      }
     }
 
     // Handle anonymity mode:
@@ -121,6 +139,7 @@ export async function createPost(req, res) {
         storagePath: finalStoragePath,
         thumbStoragePath: finalThumbPath,
         mediaId,
+        sharedPostId: validSharedPostId,
         aiLabels: null,
         sentimentAnalysis: null,
       },
@@ -130,6 +149,23 @@ export async function createPost(req, res) {
             id: true,
             handle: true,
             avatarUrl: true
+          }
+        },
+        sharedPost: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                handle: true,
+                avatarUrl: true
+              }
+            },
+            media: {
+              select: {
+                type: true,
+                thumbnailPath: true
+              }
+            }
           }
         }
       }
@@ -192,6 +228,23 @@ export async function getFeed(req, res) {
             thumbnailPath: true
           }
         },
+        sharedPost: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                handle: true,
+                avatarUrl: true
+              }
+            },
+            media: {
+              select: {
+                type: true,
+                thumbnailPath: true
+              }
+            }
+          }
+        },
         _count: {
           select: {
             comments: true,
@@ -205,6 +258,9 @@ export async function getFeed(req, res) {
       const hasMedia = p.storagePath || p.media?.storagePath;
       const hasThumb = p.thumbStoragePath || p.media?.thumbnailPath;
 
+      const sharedMedia = p.sharedPost ? (p.sharedPost.storagePath || p.sharedPost.media?.storagePath) : false;
+      const sharedThumb = p.sharedPost ? (p.sharedPost.thumbStoragePath || p.sharedPost.media?.thumbnailPath) : false;
+
       return {
         id: p.id,
         content: p.content,
@@ -213,6 +269,15 @@ export async function getFeed(req, res) {
         thumbStreamUrl: hasThumb ? `/api/media/stream/${p.id}?thumb=true` : null,
         mediaId: p.mediaId,
         sharedPostId: p.sharedPostId,
+        sharedPost: p.sharedPost ? {
+          id: p.sharedPost.id,
+          content: p.sharedPost.content,
+          category: p.sharedPost.category,
+          mediaStreamUrl: sharedMedia ? `/api/media/stream/${p.sharedPost.id}` : null,
+          thumbStreamUrl: sharedThumb ? `/api/media/stream/${p.sharedPost.id}?thumb=true` : null,
+          createdAt: p.sharedPost.createdAt,
+          user: p.sharedPost.user ?? null,
+        } : null,
         isDeleted: p.isDeleted,
         isAiModifiedMedia: p.isAiModifiedMedia,
         aiLabels: p.aiLabels ? JSON.parse(p.aiLabels) : null,
@@ -256,6 +321,23 @@ export async function getPostDetails(req, res) {
           }
         },
         media: true,
+        sharedPost: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                handle: true,
+                avatarUrl: true
+              }
+            },
+            media: {
+              select: {
+                type: true,
+                thumbnailPath: true
+              }
+            }
+          }
+        },
         comments: {
           where: { isDeleted: false },
           orderBy: { createdAt: "asc" },
@@ -285,11 +367,23 @@ export async function getPostDetails(req, res) {
     const hasMedia = post.storagePath || post.media?.storagePath;
     const hasThumb = post.thumbStoragePath || post.media?.thumbnailPath;
 
+    const sharedMedia = post.sharedPost ? (post.sharedPost.storagePath || post.sharedPost.media?.storagePath) : false;
+    const sharedThumb = post.sharedPost ? (post.sharedPost.thumbStoragePath || post.sharedPost.media?.thumbnailPath) : false;
+
     const formattedPost = {
       ...post,
       mediaUrl: undefined,
       mediaStreamUrl: hasMedia ? `/api/media/stream/${post.id}` : null,
       thumbStreamUrl: hasThumb ? `/api/media/stream/${post.id}?thumb=true` : null,
+      sharedPost: post.sharedPost ? {
+        id: post.sharedPost.id,
+        content: post.sharedPost.content,
+        category: post.sharedPost.category,
+        mediaStreamUrl: sharedMedia ? `/api/media/stream/${post.sharedPost.id}` : null,
+        thumbStreamUrl: sharedThumb ? `/api/media/stream/${post.sharedPost.id}?thumb=true` : null,
+        createdAt: post.sharedPost.createdAt,
+        user: post.sharedPost.user ?? null,
+      } : null,
       aiLabels: post.aiLabels ? JSON.parse(post.aiLabels) : null,
       sentimentAnalysis: post.sentimentAnalysis ? JSON.parse(post.sentimentAnalysis) : null,
       commentCount: post.comments.length,

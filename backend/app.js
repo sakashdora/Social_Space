@@ -37,18 +37,24 @@ app.set("trust proxy", 1);
 
 // ─── Phase 2 Fix #8: Explicit CORS allowlist ──────────────────────────────────
 // Parse FRONTEND_ORIGIN as a comma-separated list (supports staging + prod simultaneously)
+// Normalise each entry: strip trailing slashes so "https://foo.app/" == "https://foo.app"
 
 const allowedOrigins = (env.FRONTEND_ORIGIN || "http://localhost:5173")
   .split(",")
-  .map((o) => o.trim())
+  .map((o) => o.trim().replace(/\/+$/, ""))  // strip trailing slashes
   .filter(Boolean);
+
+// Log at startup so Vercel Function logs make it obvious what's allowed
+console.log("[cors] Allowed origins:", allowedOrigins);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (same-origin, curl in dev, server-to-server)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Normalise the incoming origin the same way (strip trailing slash)
+      const normOrigin = origin.replace(/\/+$/, "");
+      if (allowedOrigins.includes(normOrigin)) return callback(null, true);
       callback(new Error(`CORS: origin '${origin}' is not allowed.`));
     },
     credentials: true,

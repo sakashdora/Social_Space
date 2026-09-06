@@ -35,6 +35,19 @@ export interface ApiPost {
   reactionCount?: number;
   commentCount?: number;
   isAiModifiedMedia?: boolean;
+  sharedPost?: {
+    id: string;
+    content: string;
+    category: string;
+    mediaStreamUrl?: string | null;
+    thumbStreamUrl?: string | null;
+    createdAt: string;
+    user?: {
+      id: string;
+      handle: string;
+      avatarUrl: string | null;
+    } | null;
+  } | null;
 }
 
 /**
@@ -150,6 +163,16 @@ export function mapApiPostToUiPost(p: ApiPost) {
     synthetic: p.isAiModifiedMedia || false,
     reactions: p.reactionCount || 0,
     replies: p.commentCount || 0,
+    sharedPostId: p.sharedPostId || null,
+    sharedPost: p.sharedPost ? {
+      id: p.sharedPost.id,
+      author: p.sharedPost.user ? p.sharedPost.user.handle : "anonymous",
+      handle: p.sharedPost.user ? `@${p.sharedPost.user.handle}` : "@anonymous",
+      topic: p.sharedPost.category,
+      time: formatRelativeTime(p.sharedPost.createdAt),
+      body: p.sharedPost.content,
+      mediaUrl: p.sharedPost.mediaStreamUrl || null,
+    } : null,
   };
 }
 
@@ -277,7 +300,10 @@ export async function fetchPostDetails(postId: string) {
     headers: getHeaders(),
   });
   const post = await handleResponse(res);
-  return mapApiPostToUiPost(post);
+  return {
+    ...mapApiPostToUiPost(post),
+    comments: post.comments || [],
+  };
 }
 
 /**
@@ -296,8 +322,12 @@ export async function createPost(
         mediaUrl?: string | null;
       }
     | null,
+  sharedPostId?: string | null,
 ) {
   let bodyPayload: Record<string, any> = { content, category, mode };
+  if (sharedPostId) {
+    bodyPayload.sharedPostId = sharedPostId;
+  }
   if (typeof mediaPayload === "string") {
     if (mediaPayload.startsWith("media/")) {
       bodyPayload.storagePath = mediaPayload;
@@ -314,6 +344,19 @@ export async function createPost(
     body: JSON.stringify(bodyPayload),
   });
   return handleResponse(res);
+}
+
+/**
+ * Repost an existing transmission.
+ */
+export async function repostPost(postId: string, comment?: string) {
+  return createPost(
+    comment && comment.trim().length > 0 ? comment.trim() : "Transmitted via Repost",
+    "General",
+    "pseudo",
+    null,
+    postId
+  );
 }
 
 /**

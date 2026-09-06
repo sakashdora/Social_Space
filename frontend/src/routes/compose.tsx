@@ -427,14 +427,14 @@ export function ComposeStudio() {
       }
 
       // Map identity mode
-      const backendMode = identity === "anonymous" ? "full" : "pseudo";
+      const backendMode = (identity === "anonymous" || audience === "anonymous_feed") ? "full" : "pseudo";
 
       // Map category
       let category = "Ideas";
       if (activeTab === "video") category = "Video";
       else if (activeTab === "poll") category = "Ideas";
       else if (activeTab === "question") category = "Life";
-      else if (identity === "anonymous") category = "Confessions";
+      else if (identity === "anonymous" || audience === "anonymous_feed") category = "Confessions";
 
       // Append persona watermark if persona active
       if (identity === "persona") {
@@ -778,10 +778,10 @@ export function ComposeStudio() {
                     </button>
                     <div>
                       <p className="text-xs font-semibold text-foreground">
-                        {isRecordingVoice ? "Recording Voice Note…" : "Tap Mic to Record"}
+                        {isRecordingVoice ? "Voice Signal Staging…" : "Encrypted Voice Transmission"}
                       </p>
                       <p className="text-[10px] text-muted-foreground font-mono">
-                        {voiceDuration > 0 ? `00:${voiceDuration.toString().padStart(2, "0")}` : "Max 60s encrypted voice note"}
+                        {voiceDuration > 0 ? `00:${voiceDuration.toString().padStart(2, "0")} (Audio server coming in v2)` : "Direct microphone audio streaming (Preview mode)"}
                       </p>
                     </div>
                   </div>
@@ -1046,7 +1046,7 @@ export function ComposeStudio() {
                 })}
               </div>
               <p className="text-[10.5px] text-muted-foreground">
-                How long should this signal exist?
+                How long should this signal exist? (Stored permanently on ledger until deleted by author)
               </p>
             </div>
 

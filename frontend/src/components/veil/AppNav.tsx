@@ -22,7 +22,7 @@ const items = [
   { to: "/", label: "Home", icon: Home },
   { to: "/news", label: "News", icon: Rss },
   { to: "/social", label: "Social", icon: MessageSquare },
-  { to: "/messages", label: "Messages", icon: MessageCircle, badge: "3" },
+  { to: "/messages", label: "Messages", icon: MessageCircle },
   { to: "/video", label: "Video", icon: Video },
   { to: "/profile", label: "Profile", icon: UserRound },
 ] as const;

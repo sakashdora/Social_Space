@@ -197,6 +197,7 @@ export function Onboarding() {
   const [showLoginPass, setShowLoginPass] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
   const navigate = useNavigate();
   const { theme, toggle: toggleTheme } = useTheme();
 
@@ -232,6 +233,7 @@ export function Onboarding() {
   // ─── Passkey Login ─────────────────────────────────────────────────────────
   const handlePasskeyLogin = async () => {
     setIsLoading(true);
+    setLoadingStatus("Verifying passkey ceremony...");
     setError("");
     try {
       const response = await getPasskeyLoginOptions();
@@ -243,19 +245,20 @@ export function Onboarding() {
       setError(err.message || "Passkey login failed.");
     } finally {
       setIsLoading(false);
+      setLoadingStatus("");
     }
   };
 
   // ─── Passphrase Login ──────────────────────────────────────────────────────
   const handlePassphraseLogin = async () => {
     setIsLoading(true);
+    setLoadingStatus("Verifying passphrase credentials...");
     setError("");
     try {
       const result = await loginUser(loginHandle, loginPassphrase);
       if (result.mfaRequired) {
         setMfaChallengeToken(result.challengeToken);
         setShowMfaStep(true);
-        setIsLoading(false);
         return;
       }
       navigate({ to: "/social" });
@@ -264,11 +267,13 @@ export function Onboarding() {
       setError(err.message || "Login failed.");
     } finally {
       setIsLoading(false);
+      setLoadingStatus("");
     }
   };
 
   const handleMfaVerify = async (code: string) => {
     setIsLoading(true);
+    setLoadingStatus("Verifying TOTP code...");
     setMfaError("");
     try {
       await loginVerifyTotp(mfaChallengeToken, code);
@@ -277,6 +282,7 @@ export function Onboarding() {
       setMfaError(err.message || "Invalid code.");
     } finally {
       setIsLoading(false);
+      setLoadingStatus("");
     }
   };
 
@@ -284,6 +290,7 @@ export function Onboarding() {
   const handleRecoveryLogin = async () => {
     const { redeemRecoveryCode } = await import("@/lib/api");
     setIsLoading(true);
+    setLoadingStatus("Redeeming recovery phrase...");
     setError("");
     try {
       await redeemRecoveryCode(loginHandle, recoveryCode, recoveryNewPass);
@@ -292,6 +299,7 @@ export function Onboarding() {
       setError(err.message || "Recovery failed.");
     } finally {
       setIsLoading(false);
+      setLoadingStatus("");
     }
   };
 
@@ -299,17 +307,25 @@ export function Onboarding() {
   const handleRegister = async () => {
     setIsLoading(true);
     setError("");
+    setLoadingStatus("Verifying breach safety...");
+    const timer = setTimeout(() => {
+      setLoadingStatus("Deriving sovereign keys...");
+    }, 400);
+
     try {
       const result = await registerUser(handle, passphrase);
+      clearTimeout(timer);
       if (result.recoveryCodes) {
         setRecoveryCodes(result.recoveryCodes);
       }
       setStep(3); // Recovery codes step
     } catch (err: any) {
+      clearTimeout(timer);
       setError(err.message || "Registration failed.");
       setStep(2); // Back to passphrase step on error
     } finally {
       setIsLoading(false);
+      setLoadingStatus("");
     }
   };
 
@@ -1315,7 +1331,7 @@ export function Onboarding() {
                 className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {isLoading
-                  ? "Creating account…"
+                  ? (loadingStatus || "Creating account…")
                   : step === 2
                     ? "Create account"
                     : "Continue"}

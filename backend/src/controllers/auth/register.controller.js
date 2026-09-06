@@ -37,24 +37,28 @@ export async function register(req, res) {
       });
     }
 
-    // HIBP breach check (k-anonymity)
-    const hibpResult = await checkPassphrasePwned(passphrase);
-    if (hibpResult.pwned) {
-      return res.status(400).json({
-        error: {
-          message: `This passphrase has appeared in ${hibpResult.count?.toLocaleString() ?? "known"} data breach(es). Choose a different one.`,
-          code: "PWNED_PASSPHRASE",
-        },
-      });
-    }
+    // Run HIBP check (k-anonymity network request) and handle uniqueness check (DB query) concurrently
+    const [hibpResult, existing] = await Promise.all([
+      checkPassphrasePwned(passphrase),
+      prisma.user.findUnique({ where: { handle: cleanHandle } }),
+    ]);
 
-    // Uniqueness check
-    const existing = await prisma.user.findUnique({ where: { handle: cleanHandle } });
+    // Check handle collision first
     if (existing) {
       return res.status(409).json({
         error: {
           message: "Handle already taken. Choose another.",
           code: "HANDLE_TAKEN",
+        },
+      });
+    }
+
+    // Check HIBP breach result
+    if (hibpResult.pwned) {
+      return res.status(400).json({
+        error: {
+          message: `This passphrase has appeared in ${hibpResult.count?.toLocaleString() ?? "known"} data breach(es). Choose a different one.`,
+          code: "PWNED_PASSPHRASE",
         },
       });
     }

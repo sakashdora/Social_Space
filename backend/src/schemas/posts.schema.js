@@ -23,6 +23,7 @@ export const createPostSchema = z.object({
   storagePath: z.string().trim().nullable().optional(),
   thumbStoragePath: z.string().trim().nullable().optional(),
   mediaId: z.string().trim().uuid().nullable().optional(),
+  sharedPostId: z.string().trim().uuid("Invalid shared post ID format.").nullable().optional(),
 });
 
 export const createCommentSchema = z.object({

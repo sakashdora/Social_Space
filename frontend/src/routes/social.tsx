@@ -19,6 +19,8 @@ import {
   deletePost,
   fetchTrendingTopics,
   fetchWhoToFollow,
+  fetchPostDetails,
+  repostPost,
 } from "@/lib/api";
 import type { ApiComment, ApiChat } from "@/lib/api";
 import {
@@ -224,6 +226,28 @@ function SocialComponent() {
   // Local state to track followed handles (interactive simulation)
   const [followedHandles, setFollowedHandles] = useState<string[]>([]);
 
+  // Local state for client-side encrypted vault bookmarks
+  const [bookmarkedPostIds, setBookmarkedPostIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem("veil_bookmarked_ids") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleBookmark = (postId: string) => {
+    setBookmarkedPostIds((prev) => {
+      const exists = prev.includes(postId);
+      const next = exists ? prev.filter((id) => id !== postId) : [...prev, postId];
+      try {
+        localStorage.setItem("veil_bookmarked_ids", JSON.stringify(next));
+      } catch {}
+      showToast(exists ? "Removed from local vault" : "Saved to local vault");
+      return next;
+    });
+  };
+
   // Inline Quick Post state
   const [quickText, setQuickText] = useState("");
   const [quickAnon, setQuickAnon] = useState<"full" | "pseudo">("full");
@@ -318,13 +342,21 @@ function SocialComponent() {
     queryKey: ["post-details", expandedPostId],
     queryFn: async () => {
       if (!expandedPostId) return null;
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || ""}/v1/posts/${expandedPostId}`,
-      );
-      if (!res.ok) throw new Error("Failed to load comments");
-      return res.json();
+      return fetchPostDetails(expandedPostId);
     },
     enabled: !!expandedPostId,
+  });
+
+  // Repost Mutation
+  const repostMutation = useMutation({
+    mutationFn: (postId: string) => repostPost(postId),
+    onSuccess: () => {
+      showToast("Transmission reposted successfully");
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+    onError: (err: any) => {
+      showToast(err.message || "Failed to repost transmission.");
+    },
   });
 
   // React Mutation
@@ -482,9 +514,23 @@ function SocialComponent() {
                 className="w-full rounded-2xl border border-white/10 bg-[#0c1017]/90 py-3.5 pl-11 pr-12 text-sm text-white outline-none focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 transition-all shadow-inner placeholder:text-white/30"
               />
               <button
-                onClick={() => showToast("Showing all verified topics")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition p-1 cursor-pointer"
-                aria-label="Filters"
+                onClick={() => {
+                  if (activeCategory !== "All" || searchQuery) {
+                    setActiveCategory("All");
+                    setSearchQuery("");
+                    showToast("Filters reset to all topics");
+                  } else {
+                    showToast("Feed active: showing all verified transmissions");
+                  }
+                }}
+                className={cn(
+                  "absolute right-4 top-1/2 -translate-y-1/2 transition p-1 cursor-pointer",
+                  activeCategory !== "All" || searchQuery
+                    ? "text-amber-400"
+                    : "text-white/40 hover:text-white"
+                )}
+                aria-label="Filter status"
+                title={activeCategory !== "All" || searchQuery ? "Reset Filters" : "Filter options"}
               >
                 <SlidersHorizontal className="h-4 w-4" />
               </button>
@@ -775,6 +821,19 @@ function SocialComponent() {
                         );
                       })()}
 
+                      {/* Shared / Reposted Transmission Embed */}
+                      {(post as any).sharedPost && (
+                        <div className="mt-3 mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 text-xs text-foreground/90">
+                          <div className="flex items-center gap-2 mb-1.5 text-muted-foreground font-medium">
+                            <Repeat className="h-3.5 w-3.5 text-amber-400" />
+                            <span>Original transmission by {(post as any).sharedPost.handle || "@anonymous"}</span>
+                          </div>
+                          <p className="line-clamp-3 italic text-foreground/80">
+                            {(post as any).sharedPost.body}
+                          </p>
+                        </div>
+                      )}
+
                       {/* Sentiment Analysis */}
                       {post.sentimentAnalysis && (
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[color:var(--primary)]/10 text-[10px] font-medium text-[color:var(--primary)] mb-4 border border-[color:var(--primary)]/20 shadow-sm shadow-amber-500/[0.01]">
@@ -827,12 +886,23 @@ function SocialComponent() {
 
                           {/* Repost */}
                           <button
-                            onClick={() => showToast("Reposted successfully")}
-                            className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition hover:scale-105 cursor-pointer"
+                            onClick={() => {
+                              if (!authed) {
+                                showToast("Please log in to repost");
+                                return;
+                              }
+                              repostMutation.mutate(post.id);
+                            }}
+                            disabled={repostMutation.isPending}
+                            className={cn(
+                              "flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-amber-400 transition hover:scale-105 cursor-pointer disabled:opacity-50",
+                              repostMutation.isPending && "animate-pulse",
+                            )}
                             aria-label="Repost"
+                            title="Repost transmission"
                           >
                             <Repeat className="h-4.5 w-4.5" />
-                            <span>3</span>
+                            <span>{post.sharedPostId ? "1" : "Repost"}</span>
                           </button>
 
                           {/* Share */}
@@ -852,11 +922,26 @@ function SocialComponent() {
 
                         {/* Bookmark */}
                         <button
-                          onClick={() => showToast("Bookmarked successfully")}
-                          className="text-muted-foreground hover:text-foreground transition hover:scale-105 cursor-pointer"
+                          onClick={() => toggleBookmark(post.id)}
+                          className={cn(
+                            "transition hover:scale-105 cursor-pointer",
+                            bookmarkedPostIds.includes(post.id)
+                              ? "text-amber-400 fill-amber-400"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
                           aria-label="Bookmark"
+                          title={
+                            bookmarkedPostIds.includes(post.id)
+                              ? "Remove from vault"
+                              : "Save to local vault"
+                          }
                         >
-                          <Bookmark className="h-4.5 w-4.5" />
+                          <Bookmark
+                            className={cn(
+                              "h-4.5 w-4.5",
+                              bookmarkedPostIds.includes(post.id) && "fill-amber-400",
+                            )}
+                          />
                         </button>
                       </div>
 
@@ -1015,12 +1100,10 @@ function SocialComponent() {
                 <Flame className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                 <span>Trending Transmissions</span>
               </h2>
-              <button
-                onClick={() => showToast("Showing top signals")}
-                className="text-[10px] font-semibold text-amber-600 dark:text-amber-400/80 hover:text-amber-500 cursor-pointer uppercase tracking-wider"
-              >
-                Live
-              </button>
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>LIVE</span>
+              </div>
             </div>
 
             <div className="space-y-3.5">
@@ -1064,10 +1147,14 @@ function SocialComponent() {
                 <span>Community Signals</span>
               </h2>
               <button
-                onClick={() => showToast("Directory updated")}
-                className="text-[10px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wider"
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["whoToFollow"] });
+                  showToast("Refreshed community signals");
+                }}
+                className="text-[10px] font-semibold text-amber-400/80 hover:text-amber-300 cursor-pointer uppercase tracking-wider transition"
+                title="Refresh suggested contacts"
               >
-                Discover
+                Refresh
               </button>
             </div>
 
