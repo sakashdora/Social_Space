@@ -4,11 +4,14 @@ import { cn } from "@/lib/utils";
 interface SocialSpaceEmblemProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
   glow?: boolean;
+  size?: number | string;
 }
 
 export function SocialSpaceEmblem({
   className,
   glow = true,
+  size,
+  style,
   ...props
 }: SocialSpaceEmblemProps) {
   const id = React.useId();
@@ -18,7 +21,13 @@ export function SocialSpaceEmblem({
       viewBox="0 0 48 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("h-7 w-7 shrink-0", glow && "drop-shadow-[0_0_12px_rgba(245,158,11,0.45)]", className)}
+      style={size ? { width: size, height: size, ...style } : style}
+      className={cn(
+        !size && "h-7 w-7",
+        "shrink-0",
+        glow && "drop-shadow-[0_0_12px_rgba(245,158,11,0.45)]",
+        className,
+      )}
       {...props}
     >
       <defs>
