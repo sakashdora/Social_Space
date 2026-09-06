@@ -55,7 +55,7 @@ import { startRegistration } from "@simplewebauthn/browser";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/profile")({
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { premium?: boolean } => {
     return {
       premium:
         search.premium === "true" || search.premium === true ? true : undefined,

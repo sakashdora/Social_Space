@@ -195,6 +195,7 @@ function RootComponent() {
                 {authed && user ? (
                   <Link
                     to="/profile"
+                    search={{}}
                     className="h-8 w-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold text-xs"
                     title={`@${user.handle}`}
                   >

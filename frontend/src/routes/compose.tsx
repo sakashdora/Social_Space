@@ -371,7 +371,7 @@ export function ComposeStudio() {
 
   function handleAddHashtags() {
     const tags = ["#SocialSpace", "#ZeroSurveillance", "#FreeSpeech", "#Web3"];
-    const currentTags = text.match(/#\w+/g) || [];
+    const currentTags: string[] = text.match(/#\w+/g) || [];
     const tagsToAdd = tags.filter((t) => !currentTags.includes(t));
     if (tagsToAdd.length > 0) {
       setText((prev) => (prev.trim() + " " + tagsToAdd.slice(0, 3).join(" ")).slice(0, 500));
