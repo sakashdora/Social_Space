@@ -177,26 +177,19 @@ function RootComponent() {
 
           {chrome && <AppNav />}
           {chrome && (
-            <header
-              className="fixed top-0 inset-x-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b px-4 sm:px-6 backdrop-blur-xl lg:hidden"
-              style={{
-                background: "var(--nav-bg)",
-                borderColor: "var(--nav-border)",
-              }}
-            >
+            <header className="fixed top-0 inset-x-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-white/10 px-4 sm:px-6 bg-[#080b11]/90 backdrop-blur-xl lg:hidden">
               <Link to="/" className="flex items-center gap-2.5">
-                <span className="font-serif text-xl tracking-tight text-foreground">
+                <span className="font-sans font-bold text-lg tracking-tight text-white">
                   Social Space
                 </span>
               </Link>
-              <ThemeToggle />
             </header>
           )}
 
           <main
             key={pathname}
             className={cn(
-              chrome && "lg:pl-60 pt-16 lg:pt-0",
+              chrome && "lg:pl-64 pt-16 lg:pt-0",
               chrome && pathname.startsWith("/messages")
                 ? "h-dvh overflow-hidden flex flex-col"
                 : "min-h-dvh",

@@ -20,6 +20,9 @@ export const createPostSchema = z.object({
     .enum(["full", "pseudo"], { invalid_type_error: "Anonymity mode must be 'full' or 'pseudo'." })
     .default("pseudo"),
   mediaUrl: z.string().trim().nullable().optional(),
+  storagePath: z.string().trim().nullable().optional(),
+  thumbStoragePath: z.string().trim().nullable().optional(),
+  mediaId: z.string().trim().uuid().nullable().optional(),
 });
 
 export const createCommentSchema = z.object({

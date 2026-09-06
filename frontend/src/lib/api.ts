@@ -13,7 +13,11 @@ export interface ApiPost {
   content: string;
   category: string;
   mediaUrl: string | null;
+  mediaStreamUrl?: string | null;
+  thumbStreamUrl?: string | null;
   mediaId: string | null;
+  storagePath?: string | null;
+  thumbStoragePath?: string | null;
   aiLabels: string | null;
   sentimentAnalysis: string | SentimentAnalysis | null;
   isDeleted: boolean;
@@ -35,13 +39,12 @@ export interface ApiPost {
 
 /**
  * Authoritatively classify a media URL as image/video when possible.
- * Data URLs carry their MIME type directly; otherwise fall back to the file
- * extension. Returns "unknown" when it cannot be determined (e.g. expired URLs).
  */
 export function detectMediaType(url?: string | null): MediaKind {
   if (!url) return "unknown";
   if (url.startsWith("data:video/")) return "video";
   if (url.startsWith("data:image/")) return "image";
+  if (url.includes("/api/media/stream") && url.includes("thumb=true")) return "image";
 
   const path = url.split("?")[0].split("#")[0].toLowerCase();
   const ext = path.split(".").pop() || "";
@@ -123,6 +126,9 @@ export function mapApiPostToUiPost(p: ApiPost) {
   const handle = p.user ? `@${p.user.handle}` : "@anonymous";
   const color = p.user ? stringToColor(p.user.handle) : "#555555"; // Dark gray for fully anonymous
 
+  const streamUrl = p.mediaStreamUrl || (p.mediaUrl?.startsWith("/api/media/stream") ? p.mediaUrl : null);
+  const isVideoMedia = p.media?.type === "VIDEO" || p.category === "Video";
+
   return {
     id: p.id,
     author,
@@ -131,8 +137,11 @@ export function mapApiPostToUiPost(p: ApiPost) {
     topic: p.category,
     time: formatRelativeTime(p.createdAt),
     body: p.content,
-    media: p.mediaUrl ? "portrait" : null,
-    mediaUrl: p.mediaUrl,
+    media: (streamUrl || p.mediaUrl) ? "portrait" : null,
+    mediaUrl: streamUrl || p.mediaUrl || null,
+    mediaStreamUrl: streamUrl || null,
+    thumbStreamUrl: p.thumbStreamUrl || (streamUrl ? `${streamUrl}?thumb=true` : null),
+    mediaType: isVideoMedia ? "video" : (p.media?.type === "IMAGE" ? "image" : detectMediaType(p.mediaUrl)),
     sentimentAnalysis: p.sentimentAnalysis
       ? typeof p.sentimentAnalysis === "string"
         ? JSON.parse(p.sentimentAnalysis)
@@ -166,17 +175,12 @@ function getHeaders(
 async function handleResponse(response: Response) {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    let msg = `HTTP error! status: ${response.status}`;
-    if (errorData.error) {
-      if (typeof errorData.error === "string") {
-        msg = errorData.error;
-      } else if (
-        typeof errorData.error === "object" &&
-        errorData.error.message
-      ) {
-        msg = errorData.error.message;
-      }
-    }
+    let msg =
+      errorData.message ||
+      (typeof errorData.error === "string"
+        ? errorData.error
+        : errorData.error?.message) ||
+      `HTTP error! status: ${response.status}`;
     throw new Error(msg);
   }
   return response.json();
@@ -283,12 +287,31 @@ export async function createPost(
   content: string,
   category: string,
   mode: string,
-  mediaUrl: string | null = null,
+  mediaPayload?:
+    | string
+    | {
+        storagePath?: string | null;
+        thumbStoragePath?: string | null;
+        mediaId?: string | null;
+        mediaUrl?: string | null;
+      }
+    | null,
 ) {
+  let bodyPayload: Record<string, any> = { content, category, mode };
+  if (typeof mediaPayload === "string") {
+    if (mediaPayload.startsWith("media/")) {
+      bodyPayload.storagePath = mediaPayload;
+    } else {
+      bodyPayload.mediaUrl = mediaPayload;
+    }
+  } else if (mediaPayload && typeof mediaPayload === "object") {
+    bodyPayload = { ...bodyPayload, ...mediaPayload };
+  }
+
   const res = await fetch(`${API_BASE}/v1/posts`, {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({ content, category, mode, mediaUrl }),
+    body: JSON.stringify(bodyPayload),
   });
   return handleResponse(res);
 }
@@ -389,27 +412,102 @@ export async function getSuggestions(text: string) {
   return handleResponse(res);
 }
 
-async function getVideoDurationInBrowser(file: File): Promise<number> {
+/**
+ * Client-side estimated duration check (UX-only, fast rejection before upload).
+ * Never sent to backend as authoritative value.
+ */
+export async function getVideoDurationInBrowser(file: File): Promise<number | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
     video.preload = "metadata";
-    video.onloadedmetadata = () => {
+    const timer = setTimeout(() => {
       window.URL.revokeObjectURL(video.src);
-      resolve(video.duration || 0);
+      resolve(null);
+    }, 2500);
+
+    video.onloadedmetadata = () => {
+      clearTimeout(timer);
+      window.URL.revokeObjectURL(video.src);
+      resolve(video.duration || null);
     };
-    video.onerror = () => resolve(0);
+    video.onerror = () => {
+      clearTimeout(timer);
+      window.URL.revokeObjectURL(video.src);
+      resolve(null);
+    };
     video.src = URL.createObjectURL(file);
   });
 }
 
+/**
+ * Captures a local canvas frame (~0.5s) for instant client UI feedback in composer.
+ * This preview is NEVER uploaded to the server.
+ */
+export async function captureLocalVideoFrame(file: File): Promise<string | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    const timer = setTimeout(() => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(null);
+    }, 3000);
+
+    video.onloadeddata = () => {
+      video.currentTime = Math.min(0.5, (video.duration || 1) / 2);
+    };
+    video.onseeked = () => {
+      clearTimeout(timer);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          window.URL.revokeObjectURL(video.src);
+          resolve(dataUrl);
+          return;
+        }
+      } catch {
+        // Fallback gracefully on CORS/tainted canvas
+      }
+      window.URL.revokeObjectURL(video.src);
+      resolve(null);
+    };
+    video.onerror = () => {
+      clearTimeout(timer);
+      window.URL.revokeObjectURL(video.src);
+      resolve(null);
+    };
+    video.src = URL.createObjectURL(file);
+  });
+}
+
+export interface UploadMediaResult {
+  mediaId: string;
+  storagePath: string;
+  thumbStoragePath: string | null;
+  type: "video" | "image";
+  url?: string;
+}
+
+/**
+ * Uploads media directly to Supabase Storage via presigned upload URL,
+ * then calls /api/media/confirm for server-authoritative ffprobe check & ffmpeg thumbnail generation.
+ */
 export async function uploadMedia(
   file: File,
-): Promise<{ url: string; type: MediaKind }> {
-  const isVideo = file.type.startsWith("video/");
-  let durationSeconds = 0;
-  if (isVideo && typeof window !== "undefined") {
-    durationSeconds = await getVideoDurationInBrowser(file);
+  onProgress?: (status: "uploading" | "processing" | "ready") => void,
+): Promise<UploadMediaResult> {
+  // Fast client UX check
+  if (file.size > 52428800) {
+    throw new Error("File exceeds 50MB limit. Please select a smaller media file.");
   }
+
+  onProgress?.("uploading");
 
   // Step 1: Request presigned upload URL
   const initRes = await fetch(`${API_BASE}/api/media/upload-url`, {
@@ -423,7 +521,7 @@ export async function uploadMedia(
   });
   const initData = await handleResponse(initRes);
 
-  // Step 2: Upload file directly to Supabase if signedUrl provided
+  // Step 2: Direct storage upload to Supabase
   if (initData.signedUrl) {
     const uploadRes = await fetch(initData.signedUrl, {
       method: "PUT",
@@ -435,22 +533,33 @@ export async function uploadMedia(
     }
   }
 
-  // Step 3: Confirm media upload in backend
+  onProgress?.("processing");
+
+  // Step 3: Server-authoritative confirmation (ffprobe duration + ffmpeg thumbnail)
   const confirmRes = await fetch(`${API_BASE}/api/media/confirm`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({
       mediaId: initData.mediaId,
       storagePath: initData.storagePath,
-      thumbnailPath: initData.thumbnailPath,
       mimeType: file.type,
       sizeBytes: file.size,
-      durationSeconds: isVideo ? durationSeconds : null,
     }),
   });
   const confirmData = await handleResponse(confirmRes);
-  const serverType = confirmData?.media?.type === "VIDEO" ? "video" : "image";
-  return { url: confirmData.url, type: serverType };
+  onProgress?.("ready");
+
+  const serverType: "video" | "image" =
+    confirmData?.type === "VIDEO" || file.type.startsWith("video/")
+      ? "video"
+      : "image";
+
+  return {
+    mediaId: confirmData.mediaId || initData.mediaId,
+    storagePath: confirmData.storagePath || initData.storagePath,
+    thumbStoragePath: confirmData.thumbStoragePath || null,
+    type: serverType,
+  };
 }
 
 /**

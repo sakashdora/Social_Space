@@ -547,19 +547,23 @@
 
   /* white/* borders → dark tint in light */
   .border-white\/5 {
-    border-color: oklch(0 0 0 / 6%);
+    border-color: oklch(0 0 0 / 6%) !important;
   }
   .border-white\/10 {
-    border-color: oklch(0 0 0 / 10%);
+    border-color: oklch(0 0 0 / 10%) !important;
   }
   .border-white\/15 {
-    border-color: oklch(0 0 0 / 13%);
+    border-color: oklch(0 0 0 / 14%) !important;
   }
   .border-white\/20 {
-    border-color: oklch(0 0 0 / 17%);
+    border-color: oklch(0 0 0 / 18%) !important;
   }
   .border-white\/30 {
-    border-color: oklch(0 0 0 / 22%);
+    border-color: oklch(0 0 0 / 24%) !important;
+  }
+  .border-white\/\[0\.06\],
+  .border-white\/\[0\.08\] {
+    border-color: oklch(0 0 0 / 9%) !important;
   }
 
   /* black/* backgrounds → subtle tint */
@@ -581,28 +585,71 @@
 
   /* white/* backgrounds → dark tint */
   .bg-white\/\[0\.02\] {
-    background-color: oklch(0 0 0 / 2.5%);
+    background-color: oklch(0 0 0 / 2.5%) !important;
   }
   .bg-white\/\[0\.03\] {
-    background-color: oklch(0 0 0 / 3%);
+    background-color: oklch(0 0 0 / 3%) !important;
   }
   .bg-white\/\[0\.04\] {
-    background-color: oklch(0 0 0 / 3.5%);
+    background-color: oklch(0 0 0 / 3.5%) !important;
   }
   .bg-white\/\[0\.05\] {
-    background-color: oklch(0 0 0 / 4%);
+    background-color: oklch(0 0 0 / 4%) !important;
   }
   .bg-white\/\[0\.06\] {
-    background-color: oklch(0 0 0 / 5%);
+    background-color: oklch(0 0 0 / 5%) !important;
+  }
+  .bg-white\/\[0\.08\] {
+    background-color: oklch(0 0 0 / 6%) !important;
   }
   .bg-white\/\[0\.09\] {
-    background-color: oklch(0 0 0 / 6%);
+    background-color: oklch(0 0 0 / 6.5%) !important;
   }
   .bg-white\/5 {
-    background-color: oklch(0 0 0 / 4%);
+    background-color: oklch(0 0 0 / 4%) !important;
   }
   .bg-white\/10 {
-    background-color: oklch(0 0 0 / 7%);
+    background-color: oklch(0 0 0 / 7%) !important;
+  }
+  .bg-white\/\[0\.12\] {
+    background-color: oklch(0 0 0 / 8%) !important;
+  }
+
+  /* Cosmic obsidian backgrounds → warm paper background in light mode */
+  .bg-\[\#06070a\],
+  .bg-\[\#06070a\]\/60,
+  .bg-\[\#06070a\]\/75,
+  .bg-\[\#06070a\]\/90 {
+    background-color: var(--background) !important;
+  }
+  .bg-\[\#07090e\],
+  .bg-\[\#070a10\],
+  .bg-\[\#070a10\]\/50,
+  .bg-\[\#090d15\],
+  .bg-\[\#090d15\]\/90 {
+    background-color: oklch(0.97 0.004 86) !important;
+  }
+
+  /* Nav shell & headers in light mode */
+  .bg-\[\#080b11\],
+  .bg-\[\#080b11\]\/90,
+  .bg-\[\#080b11\]\/75 {
+    background-color: oklch(0.985 0.004 86 / 88%) !important;
+    backdrop-filter: blur(24px) !important;
+  }
+
+  /* Card & Frosted panel hexes in light mode */
+  .bg-\[\#0c1017\],
+  .bg-\[\#0c1017\]\/80,
+  .bg-\[\#0c1017\]\/85,
+  .bg-\[\#0c1017\]\/90,
+  .bg-\[\#0c1017\]\/95 {
+    background-color: oklch(1 0 0 / 92%) !important;
+    box-shadow: 0 4px 20px -2px oklch(0 0 0 / 6%), 0 1px 3px oklch(0 0 0 / 4%) !important;
+  }
+  .bg-\[\#121824\],
+  .bg-\[\#121824\]\/90 {
+    background-color: oklch(0.955 0.005 85) !important;
   }
 
   /* --ink is near-white in light → needs dark equivalents */
@@ -626,26 +673,116 @@
     box-shadow: 0 0 0 1px oklch(0 0 0 / 7%);
   }
 
-  /* text-white → dark foreground */
+  /* Text colors: Map white text to high-contrast dark text in light mode */
   .text-white {
-    color: oklch(0.14 0.009 58);
+    color: var(--foreground) !important;
+  }
+  .text-white\/90 {
+    color: oklch(0.18 0.009 58) !important;
+  }
+  .text-white\/80 {
+    color: oklch(0.24 0.009 58) !important;
+  }
+  .text-white\/70 {
+    color: oklch(0.32 0.009 58) !important;
+  }
+  .text-white\/60 {
+    color: oklch(0.40 0.01 68) !important;
+  }
+  .text-white\/50 {
+    color: oklch(0.48 0.01 68) !important;
+  }
+  .text-white\/40 {
+    color: oklch(0.56 0.01 68) !important;
+  }
+  .text-white\/30 {
+    color: oklch(0.64 0.01 68) !important;
+  }
+  .text-white\/20 {
+    color: oklch(0.74 0.01 68) !important;
+  }
+  .text-white\/10 {
+    color: oklch(0.84 0.01 68) !important;
+  }
+
+  /* Exceptions: Keep text white over dark badges, gradients, video overlays, and color chips */
+  [class*="from-black"] .text-white,
+  [class*="from-black"] [class*="text-white/"],
+  [class*="bg-black"] .text-white,
+  [class*="bg-black"] [class*="text-white/"],
+  [style*="background:"] .text-white,
+  [style*="background-color:"] .text-white,
+  button.bg-gradient-to-r.text-white,
+  a.bg-gradient-to-r.text-white,
+  .bg-amber-500.text-white,
+  .bg-red-500.text-white,
+  .bg-blue-600.text-white,
+  .bg-emerald-600.text-white,
+  .h-10.w-10.rounded-full.text-white,
+  .h-8.w-8.rounded-full.text-white,
+  .h-12.w-12.rounded-full.text-white {
+    color: #ffffff !important;
+  }
+
+  /* Gradient stops in light mode */
+  .from-\[\#06070a\] {
+    --tw-gradient-from: var(--background) var(--tw-gradient-from-position) !important;
+  }
+  .via-\[\#06070a\]\/90 {
+    --tw-gradient-via: oklch(0.985 0.004 86 / 90%) var(--tw-gradient-via-position) !important;
+  }
+  .via-\[\#06070a\]\/70 {
+    --tw-gradient-via: oklch(0.985 0.004 86 / 70%) var(--tw-gradient-via-position) !important;
+  }
+  .to-\[\#0c1017\] {
+    --tw-gradient-to: oklch(1 0 0 / 92%) var(--tw-gradient-to-position) !important;
+  }
+  .from-\[\#0c1017\] {
+    --tw-gradient-from: oklch(1 0 0 / 92%) var(--tw-gradient-from-position) !important;
+  }
+  .to-\[\#06070a\] {
+    --tw-gradient-to: var(--background) var(--tw-gradient-to-position) !important;
+  }
+
+  /* Accessible badge & highlight colors in light mode */
+  .text-amber-300 {
+    color: oklch(0.55 0.16 75) !important;
+  }
+  .text-amber-200 {
+    color: oklch(0.52 0.16 75) !important;
+  }
+  .text-emerald-300 {
+    color: oklch(0.48 0.16 150) !important;
+  }
+  .text-emerald-400 {
+    color: oklch(0.46 0.16 150) !important;
+  }
+  .text-blue-300 {
+    color: oklch(0.5 0.15 250) !important;
+  }
+  .text-blue-400 {
+    color: oklch(0.48 0.15 250) !important;
   }
 
   /* Input fields */
   input:not(.bg-transparent),
   textarea:not(.bg-transparent),
   select:not(.bg-transparent) {
-    color: var(--input-text);
-    background-color: var(--input-bg);
+    color: var(--input-text) !important;
+    background-color: var(--input-bg) !important;
   }
   input.bg-transparent,
   textarea.bg-transparent {
-    color: var(--input-text);
-    background-color: transparent;
+    color: var(--input-text) !important;
+    background-color: transparent !important;
   }
   input::placeholder,
   textarea::placeholder {
-    color: var(--input-placeholder);
+    color: var(--input-placeholder) !important;
+  }
+  .placeholder\:text-white\/30::placeholder,
+  .placeholder\:text-white\/40::placeholder {
+    color: oklch(0.52 0.007 68) !important;
   }
 }
 
@@ -847,3 +984,93 @@ body.modal-open {
     flex-wrap: nowrap;
   }
 }
+
+/* ── Cosmic Theme Scoped Overrides ── */
+/* Dark mode (default) */
+:root:not(.light) .cosmic-theme,
+.dark .cosmic-theme {
+  color-scheme: dark;
+  color: #ffffff;
+}
+:root:not(.light) .cosmic-theme,
+:root:not(.light) .cosmic-theme *,
+.dark .cosmic-theme,
+.dark .cosmic-theme * {
+  --color-foreground: #ffffff;
+}
+:root:not(.light) .cosmic-theme .text-white,
+.dark .cosmic-theme .text-white {
+  color: #ffffff;
+}
+:root:not(.light) .cosmic-theme .text-white\/40,
+.dark .cosmic-theme .text-white\/40 {
+  color: rgba(255, 255, 255, 0.4);
+}
+:root:not(.light) .cosmic-theme .text-white\/50,
+.dark .cosmic-theme .text-white\/50 {
+  color: rgba(255, 255, 255, 0.5);
+}
+:root:not(.light) .cosmic-theme .text-white\/60,
+.dark .cosmic-theme .text-white\/60 {
+  color: rgba(255, 255, 255, 0.6);
+}
+:root:not(.light) .cosmic-theme .text-white\/70,
+.dark .cosmic-theme .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7);
+}
+:root:not(.light) .cosmic-theme .text-white\/80,
+.dark .cosmic-theme .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8);
+}
+:root:not(.light) .cosmic-theme .bg-white\/5,
+:root:not(.light) .cosmic-theme .bg-white\/\[0\.04\],
+:root:not(.light) .cosmic-theme .bg-white\/\[0\.05\],
+:root:not(.light) .cosmic-theme .bg-white\/\[0\.06\],
+.dark .cosmic-theme .bg-white\/5,
+.dark .cosmic-theme .bg-white\/\[0\.04\],
+.dark .cosmic-theme .bg-white\/\[0\.05\],
+.dark .cosmic-theme .bg-white\/\[0\.06\] {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+:root:not(.light) .cosmic-theme .bg-white\/10,
+.dark .cosmic-theme .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+:root:not(.light) .cosmic-theme .border-white\/10,
+.dark .cosmic-theme .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+:root:not(.light) .cosmic-theme .border-white\/15,
+.dark .cosmic-theme .border-white\/15 {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+:root:not(.light) .cosmic-theme .border-white\/20,
+.dark .cosmic-theme .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+:root:not(.light) .cosmic-theme input,
+.dark .cosmic-theme input {
+  color: #ffffff;
+}
+:root:not(.light) .cosmic-theme input::placeholder,
+.dark .cosmic-theme input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Light mode */
+.light .cosmic-theme {
+  color-scheme: light !important;
+  color: var(--foreground) !important;
+}
+.light .cosmic-theme,
+.light .cosmic-theme * {
+  --color-foreground: oklch(0.14 0.009 58);
+}
+.light .cosmic-theme input {
+  color: var(--input-text) !important;
+}
+.light .cosmic-theme input::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+

@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useState, useEffect, useRef } from "react";
 import {
   fetchFeed,
+  createPost,
   toggleReaction,
   createComment,
   isAuthenticated,
@@ -45,6 +46,8 @@ import {
   Loader2,
   Menu,
   Trash2,
+  Flame,
+  Users,
 } from "lucide-react";
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { ThemeToggle } from "@/components/veil/ThemeToggle";
@@ -220,6 +223,34 @@ function SocialComponent() {
 
   // Local state to track followed handles (interactive simulation)
   const [followedHandles, setFollowedHandles] = useState<string[]>([]);
+
+  // Inline Quick Post state
+  const [quickText, setQuickText] = useState("");
+  const [quickAnon, setQuickAnon] = useState<"full" | "pseudo">("full");
+  const [isQuickPosting, setIsQuickPosting] = useState(false);
+
+  const handleQuickPost = async () => {
+    if (!quickText.trim()) return;
+    if (!authed) {
+      navigate({ to: "/onboarding" });
+      return;
+    }
+    setIsQuickPosting(true);
+    try {
+      await createPost(
+        quickText,
+        activeCategory === "All" ? "Life" : activeCategory,
+        quickAnon,
+      );
+      setQuickText("");
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      showToast("Transmission broadcasted to Social Space!");
+    } catch (err: any) {
+      showToast(err.message || "Failed to publish transmission.");
+    } finally {
+      setIsQuickPosting(false);
+    }
+  };
 
   // Reset pagination when category changes
   useEffect(() => {
@@ -400,14 +431,15 @@ function SocialComponent() {
   );
 
   return (
-    <div className="w-full min-h-screen bg-ink text-foreground selection:bg-amber-500/30 selection:text-white">
+    <div className="cosmic-theme w-full min-h-screen bg-[#06070a] text-white selection:bg-amber-500/30 selection:text-amber-200">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900 px-5 py-3 text-sm shadow-xl">
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-amber-500/30 bg-[#0c1017]/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+          <Sparkles className="h-4 w-4 text-amber-400" />
           <span>{toastMessage}</span>
           <button
             onClick={() => setToastMessage(null)}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-white/60 hover:text-white"
             aria-label="Dismiss"
           >
             <X className="h-3.5 w-3.5" />
@@ -424,45 +456,48 @@ function SocialComponent() {
       >
         {/* Center Column: Feed (Max 760px) */}
         <main className="flex-1 w-full max-w-[760px] min-w-0 flex flex-col items-center pb-6">
-          <div className="w-full space-y-8">
+          <div className="w-full space-y-6">
             {/* Feed Header */}
             <div className="text-left w-full">
-              <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Social Feed
+              <span className="text-[10px] tracking-[0.2em] font-semibold text-amber-400 uppercase">
+                COMMUNITY CHRONICLES
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mt-1">
+                Social Stream
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Share anonymously. Connect freely.
+              <p className="text-xs sm:text-sm text-white/60 mt-1">
+                Uncensored thoughts, unfiltered perspectives. Zero tracking algorithms.
               </p>
             </div>
 
             {/* Large Search Bar */}
             <div className="relative w-full">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search feed, authors, or topics..."
-                className="w-full rounded-[20px] border border-border bg-ink-raised py-4 pl-12 pr-12 text-sm outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)]/30 transition-all shadow-md placeholder:text-muted-foreground/60"
+                placeholder="Search feed, handles, or topics..."
+                className="w-full rounded-2xl border border-white/10 bg-[#0c1017]/90 py-3.5 pl-11 pr-12 text-sm text-white outline-none focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 transition-all shadow-inner placeholder:text-white/30"
               />
               <button
-                onClick={() => showToast("Search filters coming soon")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition p-1 cursor-pointer"
+                onClick={() => showToast("Showing all verified topics")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition p-1 cursor-pointer"
                 aria-label="Filters"
               >
-                <SlidersHorizontal className="h-4.5 w-4.5" />
+                <SlidersHorizontal className="h-4 w-4" />
               </button>
             </div>
 
             {/* Horizontal scroll Categories Tab */}
             <div className="relative flex items-center w-full">
-              <div className="flex-1 flex gap-2.5 overflow-x-auto pb-2 scrollbar-none pr-8">
+              <div className="flex-1 flex gap-2 overflow-x-auto pb-2 scrollbar-none pr-8">
                 {categories.map((cat) => (
                   <div key={cat} className="relative">
                     {activeCategory === cat ? (
                       <motion.button
                         layoutId="activeCategoryTab"
-                        className="rounded-full px-5 py-2 text-xs font-bold bg-amber-500 text-zinc-950 shadow-md border border-transparent whitespace-nowrap cursor-pointer z-10 relative"
+                        className="rounded-full px-5 py-2 text-xs font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.35)] border border-transparent whitespace-nowrap cursor-pointer z-10 relative"
                         onClick={() => {
                           setActiveCategory(cat);
                           setExpandedPostId(null);
@@ -472,7 +507,7 @@ function SocialComponent() {
                       </motion.button>
                     ) : (
                       <button
-                        className="rounded-full px-5 py-2 text-xs font-semibold bg-white/5 text-muted-foreground border border-border hover:text-foreground hover:bg-white/10 transition-all whitespace-nowrap cursor-pointer"
+                        className="rounded-full px-5 py-2 text-xs font-medium bg-white/[0.04] text-white/60 border border-white/10 hover:text-white hover:bg-white/[0.08] hover:border-amber-400/30 transition-all whitespace-nowrap cursor-pointer"
                         onClick={() => {
                           setActiveCategory(cat);
                           setExpandedPostId(null);
@@ -484,10 +519,68 @@ function SocialComponent() {
                   </div>
                 ))}
               </div>
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-ink via-ink/80 to-transparent pl-4 pr-1 py-1 pointer-events-none">
-                <ChevronRight className="h-4.5 w-4.5 text-muted-foreground" />
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/90 dark:from-[#06070a] dark:via-[#06070a]/90 to-transparent pl-4 pr-1 py-1 pointer-events-none">
+                <ChevronRight className="h-4 w-4 text-foreground/40 dark:text-white/40" />
               </div>
             </div>
+
+            {/* Inline Quick Transmission Box */}
+            <div className="w-full rounded-[26px] border border-white/10 bg-[#0c1017]/85 p-5 shadow-xl relative overflow-hidden backdrop-blur-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-white/5 text-xs text-white/60">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                  <span className="font-semibold text-foreground dark:text-white">Broadcast to {activeCategory}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuickAnon(quickAnon === "full" ? "pseudo" : "full")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[11px] font-medium border transition cursor-pointer flex items-center gap-1.5",
+                    quickAnon === "full"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "border-amber-400/30 bg-amber-400/10 text-amber-700 dark:text-amber-300",
+                  )}
+                >
+                  {quickAnon === "full" ? (
+                    <>
+                      <Shield className="h-3 w-3" /> Anonymous
+                    </>
+                  ) : (
+                    <>
+                      <UserRound className="h-3 w-3" /> @{currentUser?.handle || "pseudonym"}
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <textarea
+                value={quickText}
+                onChange={(e) => setQuickText(e.target.value)}
+                placeholder={authed ? "Share a thought, confession, or idea anonymously..." : "Sign in or pick a handle to broadcast..."}
+                rows={2}
+                className="mt-3 w-full bg-transparent text-foreground dark:text-white text-sm outline-none resize-none placeholder:text-muted-foreground"
+              />
+
+              <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                <Link
+                  to="/compose"
+                  className="text-xs text-muted-foreground hover:text-foreground transition flex items-center gap-1.5"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" /> Full Studio (Media, Articles)
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleQuickPost}
+                  disabled={isQuickPosting || !quickText.trim()}
+                  className="rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-5 py-2 text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition cursor-pointer disabled:opacity-45 disabled:from-neutral-300 disabled:via-neutral-300 disabled:to-neutral-300 dark:disabled:from-neutral-800 dark:disabled:via-neutral-800 dark:disabled:to-neutral-800 disabled:text-neutral-500 dark:disabled:text-neutral-400 disabled:shadow-none disabled:cursor-not-allowed active:scale-95"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span>{isQuickPosting ? "Broadcasting…" : "Broadcast"}</span>
+                </button>
+              </div>
+            </div>
+
 
             {/* Loading skeletons on first load */}
             {isLoading && page === 1 && (
@@ -528,33 +621,33 @@ function SocialComponent() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4 }}
                       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                      className="border border-border bg-white/[0.01] hover:bg-white/[0.02] rounded-[28px] p-6 hover:shadow-2xl shadow-lg hover:shadow-amber-500/[0.01] transition-all duration-300"
+                      className="border border-white/10 bg-[#0c1017]/85 hover:border-amber-400/35 rounded-[28px] p-6 sm:p-7 hover:shadow-2xl shadow-[0_4px_25px_rgba(0,0,0,0.35)] transition-all duration-300 relative overflow-hidden backdrop-blur-xl"
                     >
                       {/* Card Header */}
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className="h-10 w-10 rounded-full flex items-center justify-center font-serif text-lg font-bold text-white shadow-md uppercase shrink-0"
+                            className="h-10 w-10 rounded-full flex items-center justify-center font-sans text-sm font-bold text-white shadow-md uppercase shrink-0"
                             style={{ backgroundColor: post.color }}
                           >
                             {post.author[0]}
                           </div>
                           <div>
                             <div className="flex items-center">
-                              <span className="font-semibold text-foreground leading-none">
+                              <span className="font-semibold text-white leading-none">
                                 {post.author}
                               </span>
                               {post.author === "anonymous" && (
-                                <CheckCircle2 className="h-4.5 w-4.5 fill-amber-500 text-zinc-950 ml-1.5 shrink-0" />
+                                <CheckCircle2 className="h-4 w-4 fill-amber-400 text-black ml-1.5 shrink-0" />
                               )}
                             </div>
-                            <p className="text-[11px] text-muted-foreground mt-1">
+                            <p className="text-[11px] text-white/40 mt-1">
                               {post.handle} &bull; {post.time}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-white/5 border border-border px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                          <span className="rounded-full bg-white/[0.05] border border-white/10 px-3 py-1 text-[10px] font-medium tracking-wide text-white/60 uppercase">
                             {post.topic}
                           </span>
                           {currentUser &&
@@ -571,7 +664,7 @@ function SocialComponent() {
                                 }
                               }}
                               disabled={deletePostMutation.isPending}
-                              className="text-red-500 hover:text-red-400 p-1 cursor-pointer transition-colors"
+                              className="text-red-400 hover:text-red-300 p-1 cursor-pointer transition-colors"
                               title="Delete post"
                               aria-label="Delete post"
                             >
@@ -582,7 +675,7 @@ function SocialComponent() {
                               onClick={() =>
                                 showToast("Post options coming soon")
                               }
-                              className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
+                              className="text-white/40 hover:text-white p-1 cursor-pointer"
                               aria-label="Options"
                             >
                               &bull;&bull;&bull;
@@ -591,6 +684,7 @@ function SocialComponent() {
                         </div>
                       </div>
 
+
                       {/* Card Body Content */}
                       <div className="mb-4">
                         <MarkdownRenderer content={post.body} />
@@ -598,10 +692,12 @@ function SocialComponent() {
 
                       {/* Media container: fits media without cropping; type detected client-side */}
                       {(() => {
-                        const mediaObj = post.mediaUrl
+                        const streamUrl = post.mediaStreamUrl || post.mediaUrl;
+                        const mediaObj = streamUrl
                           ? {
-                              url: post.mediaUrl,
-                              type: detectMediaType(post.mediaUrl),
+                              url: streamUrl,
+                              thumbUrl: post.thumbStreamUrl || `${streamUrl}?thumb=true`,
+                              type: post.mediaType === "video" ? "video" : detectMediaType(streamUrl),
                             }
                           : detectMediaInText(post.body);
 
@@ -614,6 +710,7 @@ function SocialComponent() {
                               <div className="relative w-full flex justify-center">
                                 <video
                                   src={mediaObj.url}
+                                  poster={"thumbUrl" in mediaObj ? mediaObj.thumbUrl : undefined}
                                   controls
                                   loop
                                   muted
@@ -871,92 +968,97 @@ function SocialComponent() {
         {/* Right Column: Sticky Sidebar Widgets */}
         <aside className="hidden xl:flex flex-col shrink-0 sticky top-4 max-h-[calc(100vh-32px)] w-[320px] overflow-y-auto space-y-6 scrollbar-none pr-1">
           {/* What's Trending Card */}
-          <FrostedPanel className="border border-border p-5 rounded-[28px] shadow-lg shrink-0">
+          <div className="border border-white/10 bg-[#0c1017]/85 p-6 rounded-[28px] shadow-xl backdrop-blur-xl shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-foreground flex items-center gap-1.5">
-                <span>🔥</span> What's Trending
+              <h2 className="font-sans text-sm font-bold text-foreground dark:text-white flex items-center gap-1.5">
+                <Flame className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                <span>Trending Transmissions</span>
               </h2>
               <button
-                onClick={() => showToast("Trending details coming soon")}
-                className="text-[11px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                onClick={() => showToast("Showing top signals")}
+                className="text-[10px] font-semibold text-amber-600 dark:text-amber-400/80 hover:text-amber-500 cursor-pointer uppercase tracking-wider"
               >
-                View all
+                Live
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {trendingTopics.map((topic) => (
                 <div
                   key={topic.id}
-                  className="flex items-center gap-3.5 group cursor-pointer hover:bg-white/5 p-1 rounded-xl transition duration-300"
+                  onClick={() => {
+                    setSearchQuery(topic.title);
+                    showToast(`Filtered by "${topic.title}"`);
+                  }}
+                  className="flex items-center gap-3.5 group cursor-pointer hover:bg-white/[0.04] p-2 rounded-2xl transition duration-200"
                 >
-                  <span className="text-sm font-semibold text-muted-foreground w-4 text-center">
+                  <span className="text-xs font-mono font-bold text-white/40 w-4 text-center">
                     {topic.id}
                   </span>
 
-                  {/* Frosted gradient thumbnail */}
                   <div
-                    className={`h-11 w-11 rounded-lg bg-gradient-to-br ${topic.gradient} shrink-0 border border-white/5 flex items-center justify-center`}
+                    className={`h-10 w-10 rounded-xl bg-gradient-to-br ${topic.gradient} shrink-0 border border-white/10 flex items-center justify-center`}
                   >
-                    <Sparkles className="h-4 w-4 text-white/40 group-hover:scale-110 transition duration-300" />
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300 group-hover:scale-110 transition duration-300" />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-xs text-foreground group-hover:text-[color:var(--primary)] transition truncate">
+                    <p className="font-medium text-xs text-white group-hover:text-amber-300 transition truncate">
                       {topic.title}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-[10px] text-white/40 mt-0.5 font-mono">
                       {topic.posts}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
-          </FrostedPanel>
+          </div>
 
           {/* Who to Follow Card */}
-          <FrostedPanel className="border border-border p-5 rounded-[28px] shadow-lg shrink-0">
+          <div className="border border-white/10 bg-[#0c1017]/85 p-6 rounded-[28px] shadow-xl backdrop-blur-xl shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-foreground flex items-center gap-1.5">
-                <span>👤</span> Who to follow
+              <h2 className="font-sans text-sm font-bold text-foreground dark:text-white flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                <span>Community Signals</span>
               </h2>
               <button
-                onClick={() => showToast("User directory coming soon")}
-                className="text-[11px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                onClick={() => showToast("Directory updated")}
+                className="text-[10px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wider"
               >
-                View all
+                Discover
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {whoToFollow.map((user) => {
                 const isFollowing = followedHandles.includes(user.name);
                 return (
                   <div
                     key={user.name}
-                    className="flex items-center justify-between gap-2.5"
+                    className="flex items-center justify-between gap-2.5 p-1 rounded-2xl hover:bg-white/[0.02] transition"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className={`h-10 w-10 rounded-full flex items-center justify-center text-lg ${user.color} border border-white/5 font-serif`}
+                        className={`h-9 w-9 rounded-full flex items-center justify-center text-xs ${user.color} border border-white/10 font-bold shrink-0 text-white`}
                       >
-                        🎭
+                        {user.name.slice(0, 2).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="font-semibold text-xs text-foreground leading-none">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-xs text-white leading-none truncate">
                           {user.name}
                         </p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
+                        <p className="text-[10px] text-white/40 mt-1 truncate">
                           {user.handle}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleStartChat(user.name)}
-                        className="rounded-full border border-white/10 bg-white/5 p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground cursor-pointer shrink-0"
-                        title={`Message ${user.handle}`}
+                        className="rounded-full border border-white/10 bg-white/[0.05] p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white cursor-pointer"
+                        title={`Encrypted message ${user.handle}`}
                         aria-label={`Message ${user.handle}`}
                       >
                         <MessageCircle className="h-3.5 w-3.5" />
@@ -973,35 +1075,33 @@ function SocialComponent() {
                           }
                         }}
                         className={cn(
-                          "rounded-full border px-3 py-1 text-[10px] font-semibold transition shrink-0 cursor-pointer",
+                          "rounded-full border px-3 py-1 text-[10px] font-semibold transition cursor-pointer",
                           isFollowing
-                            ? "border-[color:var(--primary)] bg-[color:var(--primary)]/10 text-[color:var(--primary)] hover:bg-[color:var(--primary)]/20"
-                            : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                            ? "border-amber-400/40 bg-amber-400/10 text-amber-600 dark:text-amber-300"
+                            : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/10 hover:text-white",
                         )}
                       >
-                        {isFollowing ? "Following" : "Follow"}
+                        {isFollowing ? "Connected" : "Connect"}
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </FrostedPanel>
+          </div>
 
-          {/* Your voice matters Card */}
-          <div className="rounded-[24px] border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.04] to-transparent p-5 relative overflow-hidden shadow-lg hover:border-amber-500/30 transition-all duration-300 group w-full shrink-0">
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-            <div className="flex gap-4 items-start">
-              <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform duration-300">
-                <Shield className="h-5 w-5 text-amber-500" />
+          {/* Sovereign Guarantee Card */}
+          <div className="rounded-[28px] border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-amber-500/[0.03] to-white/95 dark:to-[#0c1017] p-5 relative overflow-hidden shadow-xl w-full shrink-0">
+            <div className="flex gap-3.5 items-start">
+              <div className="h-10 w-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                <Shield className="h-5 w-5" />
               </div>
               <div className="space-y-1 min-w-0">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 font-sans">
-                  Your voice matters
+                <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  Zero Surveillance Invariant
                 </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Speak freely. Stay anonymous. We protect your privacy with
-                  client-side keys and strict data deletion policies.
+                <p className="text-xs text-foreground/75 dark:text-white/60 leading-relaxed">
+                  No shadow-bans. No engagement scoring. Your posts flow directly to readers in honest chronological order.
                 </p>
               </div>
             </div>

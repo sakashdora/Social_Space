@@ -87,6 +87,8 @@ model Post {
   aiLabels          String?
   mediaUrl          String?
   mediaId           String?
+  storagePath       String?
+  thumbStoragePath  String?
   sentimentAnalysis String?
   isDeleted         Boolean         @default(false)
   sharedPostId      String?

@@ -1,7 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fetchFeed, mapApiPostToUiPost, detectMediaType } from "@/lib/api";
-import type { ApiPost } from "@/lib/api";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
@@ -10,6 +9,9 @@ import {
   VolumeX,
   Maximize,
   Sparkles,
+  Film,
+  PlusCircle,
+  ShieldAlert,
 } from "lucide-react";
 
 export const Route = createFileRoute("/video")({
@@ -21,7 +23,8 @@ function PremiumPlayer({
 }: {
   post: ReturnType<typeof mapApiPostToUiPost>;
 }) {
-  const url = post.mediaUrl || "";
+  const streamUrl = post.mediaStreamUrl || post.mediaUrl || "";
+  const thumbUrl = post.thumbStreamUrl || (streamUrl ? `${streamUrl}?thumb=true` : undefined);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -32,13 +35,11 @@ function PremiumPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Detect if video format (client-side, URL-based)
   useEffect(() => {
-    if (!url) return;
-    setIsVideo(detectMediaType(url) === "video");
-  }, [url]);
+    if (!streamUrl) return;
+    setIsVideo(post.mediaType === "video" || post.topic === "Video" || detectMediaType(streamUrl) === "video");
+  }, [streamUrl, post]);
 
-  // Autoplay when visible in viewport
   useEffect(() => {
     if (!isVideo || !videoRef.current) return;
 
@@ -56,7 +57,7 @@ function PremiumPlayer({
           }
         });
       },
-      { threshold: 0.5 }, // Play when 50% visible
+      { threshold: 0.5 },
     );
 
     if (containerRef.current) {
@@ -128,13 +129,14 @@ function PremiumPlayer({
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-[4/5] sm:aspect-[9/16] max-h-[70vh] sm:max-h-[80vh] bg-black/95 flex items-center justify-center overflow-hidden group select-none transition-all duration-300 hover:shadow-2xl border border-white/5 rounded-3xl"
+      className="relative w-full aspect-[4/5] sm:aspect-[9/16] max-h-[70vh] sm:max-h-[78vh] bg-[#0c1017] flex items-center justify-center overflow-hidden group select-none transition-all duration-300 border border-white/10 hover:border-amber-500/40 rounded-3xl shadow-[0_0_35px_rgba(0,0,0,0.7)]"
     >
       {isVideo ? (
         <div className="relative w-full h-full flex items-center justify-center">
           <video
             ref={videoRef}
-            src={url}
+            src={streamUrl}
+            poster={thumbUrl}
             loop
             playsInline
             muted={isMuted}
@@ -144,25 +146,24 @@ function PremiumPlayer({
             onClick={handlePlayPause}
           />
 
-          {/* Custom Media Controls Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 flex flex-col justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-            {/* Top Bar: Info Badge */}
+          {/* Custom Controls Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 flex flex-col justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+            {/* Top Bar */}
             <div className="flex justify-between items-start">
               {post.synthetic ? (
-                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-[10px] font-semibold tracking-wide backdrop-blur-md border border-yellow-500/30">
-                  <Sparkles className="h-3 w-3" />
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-semibold tracking-wide backdrop-blur-md border border-amber-500/40">
+                  <Sparkles className="h-3 w-3 text-amber-400" />
                   Synthetic AI Modified
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/90 text-[10px] font-semibold tracking-wide backdrop-blur-md border border-white/10">
-                  Secure Media
+                  Direct Raw Stream
                 </span>
               )}
             </div>
 
-            {/* Bottom Controls panel */}
+            {/* Bottom Controls */}
             <div className="flex flex-col gap-3 mt-auto pointer-events-auto">
-              {/* Timeline slider */}
               <div className="flex items-center gap-2 w-full px-1">
                 <input
                   type="range"
@@ -170,13 +171,11 @@ function PremiumPlayer({
                   max="100"
                   value={progress}
                   onChange={handleTimelineChange}
-                  className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[color:var(--primary)] hover:h-1.5 transition-all"
+                  className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400 hover:h-1.5 transition-all"
                 />
               </div>
 
-              {/* Toolbar */}
               <div className="flex items-center justify-between">
-                {/* Left controls */}
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handlePlayPause}
@@ -205,7 +204,6 @@ function PremiumPlayer({
                   </span>
                 </div>
 
-                {/* Right controls */}
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handleFullscreen}
@@ -218,36 +216,34 @@ function PremiumPlayer({
             </div>
           </div>
 
-          {/* Big Center Play Icon when paused */}
           {!isPlaying && (
             <div
               onClick={handlePlayPause}
-              className="absolute inset-0 flex items-center justify-center bg-black/35 cursor-pointer z-0"
+              className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer z-0"
             >
-              <div className="h-16 w-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/25 transition group-hover:scale-110 shadow-2xl">
-                <Play className="h-7 w-7 text-white fill-current translate-x-0.5" />
+              <div className="h-16 w-16 rounded-full bg-amber-500/20 border border-amber-500/40 backdrop-blur-md flex items-center justify-center transition group-hover:scale-110 shadow-[0_0_30px_rgba(245,158,11,0.25)]">
+                <Play className="h-7 w-7 text-amber-300 fill-current translate-x-0.5" />
               </div>
             </div>
           )}
         </div>
       ) : (
-        /* Image Media rendering */
         <div className="relative w-full h-full flex items-center justify-center group/img">
           <img
-            src={url}
-            alt="Media Card"
+            src={streamUrl}
+            alt="Media broadcast"
             className="max-w-full max-h-full object-contain transition-transform duration-700 group-hover/img:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
         </div>
       )}
 
-      {/* Persistent Static Info Overlay (User Badge and Caption) */}
-      <div className="absolute bottom-0 inset-x-0 p-5 flex flex-col justify-end pointer-events-none z-20 bg-gradient-to-t from-black/90 via-black/30 to-transparent">
+      {/* Persistent Info Overlay */}
+      <div className="absolute bottom-0 inset-x-0 p-5 flex flex-col justify-end pointer-events-none z-20 bg-gradient-to-t from-[#06070a] via-[#06070a]/70 to-transparent">
         <div className="flex items-center gap-3 pointer-events-auto">
           <div
-            className="h-9 w-9 rounded-full flex items-center justify-center font-serif text-sm font-bold text-white shadow-lg uppercase"
-            style={{ backgroundColor: post.color }}
+            className="h-9 w-9 rounded-full flex items-center justify-center font-serif text-sm font-bold text-white shadow-lg uppercase border border-white/20"
+            style={{ backgroundColor: post.color || "#d97706" }}
           >
             {post.author[0]}
           </div>
@@ -255,12 +251,10 @@ function PremiumPlayer({
             <p className="font-semibold text-sm text-white leading-tight truncate">
               @{post.author}
             </p>
-            <p className="text-[10px] text-white/50 leading-none mt-1">
-              {post.time}
-            </p>
+            <p className="text-xs text-white/50">{post.time}</p>
           </div>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-white/90 line-clamp-2 max-w-[85%]">
+        <p className="text-xs text-white/80 line-clamp-2 mt-2 pointer-events-auto">
           {post.body}
         </p>
       </div>
@@ -279,13 +273,17 @@ function VideoFeed() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-lg sm:max-w-xl py-8 px-4 sm:px-6 pb-28 lg:pb-10 h-full">
+    <div className="cosmic-theme min-h-screen text-white mx-auto w-full max-w-lg sm:max-w-xl py-8 px-4 sm:px-6 pb-32 lg:pb-12">
       <header className="text-center mb-8">
-        <h1 className="font-serif text-3xl font-medium tracking-tight">
-          Media Portal
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium tracking-wide text-amber-300 backdrop-blur-md mb-3">
+          <Film className="h-3.5 w-3.5" />
+          <span>ENCRYPTED MEDIA FEEDS</span>
+        </div>
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-white">
+          Visual Signals
         </h1>
-        <p className="text-xs text-muted-foreground mt-2">
-          End-to-end secure, untraceable media streams.
+        <p className="text-xs text-white/60 mt-2 max-w-sm mx-auto">
+          End-to-end stripped metadata media feeds. No telemetry or watch trackers.
         </p>
       </header>
 
@@ -294,36 +292,45 @@ function VideoFeed() {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="w-full aspect-[3/4] sm:aspect-[9/16] rounded-3xl bg-white/5 border border-white/5"
-            ></div>
+              className="w-full aspect-[3/4] sm:aspect-[9/16] rounded-3xl bg-[#0c1017] border border-white/10"
+            />
           ))}
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-          Failed to load media: {(error as Error).message}
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300 backdrop-blur-xl">
+          Failed to load media stream: {(error as Error).message}
         </div>
       )}
 
       {posts && posts.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center text-muted-foreground text-xs leading-relaxed">
-          No secure media uploaded yet.
-          <br />
-          Go to Compose to share a photo or video anonymously!
+        <div className="rounded-3xl border border-white/10 bg-[#0c1017]/80 backdrop-blur-xl p-10 text-center text-white/60 text-xs leading-relaxed flex flex-col items-center">
+          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+            <Film className="h-6 w-6" />
+          </div>
+          <p className="text-base font-serif font-bold text-white mb-1">No transmissions detected yet</p>
+          <p className="max-w-xs text-white/50 mb-6">Be the first to share an encrypted photo or video with zero metadata footprint.</p>
+          <Link
+            to="/compose"
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-5 py-2.5 text-xs font-semibold transition shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Broadcast Visual Media
+          </Link>
         </div>
       )}
 
       {posts && posts.length > 0 && (
-        <div className="space-y-10 flex flex-col items-center">
+        <div className="space-y-8 flex flex-col items-center">
           {posts.map((post: any) => (
             <div key={post.id} className="w-full">
-              {post.mediaUrl ? (
+              {post.mediaStreamUrl || post.mediaUrl ? (
                 <PremiumPlayer post={post} />
               ) : (
-                <div className="p-8 text-center border border-white/10 rounded-2xl bg-white/5">
-                  <p className="text-muted-foreground text-xs">
-                    Media unavailable or expired.
+                <div className="p-8 text-center border border-white/10 rounded-2xl bg-[#0c1017]">
+                  <p className="text-white/40 text-xs">
+                    Media payload unavailable or expired.
                   </p>
                 </div>
               )}
@@ -334,3 +341,4 @@ function VideoFeed() {
     </div>
   );
 }
+

@@ -30,8 +30,7 @@ import {
   Zap,
 } from "lucide-react";
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
-import { VeilGlyph } from "@/components/veil/VeilGlyph";
-import { neverCollected } from "@/lib/mock/data";
+import { SocialSpaceEmblem } from "@/components/veil/SocialSpaceEmblem";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -563,22 +562,26 @@ function Profile() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-28 lg:pb-10 pt-10 sm:px-6 lg:pt-14">
+    <div className="cosmic-theme min-h-screen text-white mx-auto max-w-3xl px-4 pb-32 lg:pb-14 pt-8 sm:px-6">
       <header className="mb-8">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-          Profile Settings
-        </p>
-        <h1 className="mt-2 font-serif text-4xl leading-tight sm:text-5xl">
-          Your identity. Your keys. Your call.
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium tracking-wide text-amber-300 backdrop-blur-md mb-3">
+          <Shield className="h-3.5 w-3.5" />
+          <span>SOVEREIGN VAULT & SECURITY</span>
+        </div>
+        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white">
+          Identity & Sovereign Keys
         </h1>
+        <p className="mt-2 text-sm text-white/60">
+          Your cryptographic credentials, biometric passkeys, 2FA, and sovereign data life policies.
+        </p>
       </header>
 
       {/* Soft-deletion warning banner */}
       {meData?.pendingDeletionAt && (
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 backdrop-blur-xl">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
           <div>
-            <p className="text-sm font-medium text-amber-300">
+            <p className="text-sm font-semibold text-amber-300">
               Account scheduled for deletion
             </p>
             <p className="mt-0.5 text-xs text-amber-300/80">
@@ -596,29 +599,23 @@ function Profile() {
       )}
 
       {/* Avatar Card */}
-      <FrostedPanel className="flex items-center justify-between gap-5 p-6 mb-6">
-        <div className="flex items-center gap-5 min-w-0">
-          <div
-            className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl shadow-lg"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--veil), var(--veil-glow))",
-            }}
-          >
-            <VeilGlyph className="h-8 w-8 text-ink-raised" />
+      <FrostedPanel className="flex items-center justify-between gap-5 p-6 mb-6 rounded-3xl border border-white/10 bg-[#0c1017]/85 backdrop-blur-xl">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-amber-500/10 border border-amber-500/30 shadow-[0_0_25px_rgba(245,158,11,0.15)]">
+            <SocialSpaceEmblem size={40} />
           </div>
           <div className="min-w-0">
-            <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-              Your handle
+            <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-400">
+              Sovereign Identity
             </label>
-            <p className="text-xl font-semibold text-foreground mt-1 truncate">
+            <p className="text-xl font-bold text-white mt-0.5 truncate">
               @{user.handle}
             </p>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-semibold text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-95 shrink-0"
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white hover:border-amber-500/40 active:scale-95 shrink-0"
         >
           <LogOut className="h-4 w-4" />
           Sign out
@@ -1023,28 +1020,35 @@ function Profile() {
       {/* ── Privacy data list ─────────────────────────────────────────── */}
       <section className="mb-12">
         <div className="mb-4">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--veil-glow)]">
-            Data & Privacy
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400">
+            Sovereign Data Charter
           </p>
-          <h2 className="mt-2 font-serif text-3xl">
-            What Social Space never collects.
+          <h2 className="mt-2 font-serif text-3xl font-bold text-white">
+            What Social Space Never Collects
           </h2>
+          <p className="text-xs text-white/50 mt-1">
+            Engineered from first principles with zero trackers, surveillance, or personal data hoarding.
+          </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {neverCollected.map((n) => (
+          {[
+            "Your legal name or government credentials",
+            "Your email address or phone number",
+            "Your date of birth or biometric templates",
+            "Your physical geolocation or IP tracking logs",
+            "Device identifiers or advertising telemetry",
+            "Social graph or secret contact cross-matching",
+            "Reading dwell-time, gaze, or scrolling behavior",
+            "Third-party tracking cookies or pixel beacons",
+          ].map((item) => (
             <div
-              key={n}
-              className="flex items-center gap-3 rounded-2xl p-4 transition-all duration-200 hover:scale-[1.01]"
-              style={{
-                background: "var(--surface-bg)",
-                border: "1px solid var(--surface-border)",
-              }}
+              key={item}
+              className="flex items-center gap-3 rounded-2xl p-4 transition-all duration-200 border border-white/10 bg-[#0c1017]/80 backdrop-blur-xl hover:border-amber-500/30"
             >
               <div
-                className="h-2 w-2 shrink-0 rounded-full bg-[color:var(--danger)]"
-                style={{ boxShadow: "0 0 8px var(--danger)" }}
+                className="h-2 w-2 shrink-0 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]"
               />
-              <span className="text-sm font-semibold text-foreground">{n}</span>
+              <span className="text-xs font-semibold text-white/90">{item}</span>
             </div>
           ))}
         </div>

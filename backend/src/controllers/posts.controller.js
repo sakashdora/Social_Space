@@ -50,7 +50,15 @@ async function analyzeAndModeratePost(postId, content) {
  */
 export async function createPost(req, res) {
   try {
-    const { content: rawContent, category, mode, mediaUrl } = req.body;
+    const {
+      content: rawContent,
+      category,
+      mode,
+      mediaUrl,
+      storagePath,
+      thumbStoragePath,
+      mediaId: incomingMediaId,
+    } = req.body;
 
     if (!rawContent || !category) {
       return res.status(400).json({
@@ -76,8 +84,11 @@ export async function createPost(req, res) {
     // Handle anonymity mode:
     const postUserId = mode === "full" ? null : req.user.id;
 
-    let mediaId = null;
-    if (mediaUrl) {
+    let mediaId = incomingMediaId || null;
+    let finalStoragePath = storagePath || null;
+    let finalThumbPath = thumbStoragePath || null;
+
+    if (!finalStoragePath && mediaUrl) {
       const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
       const match = mediaUrl.match(uuidRegex);
       if (match) {
@@ -87,7 +98,17 @@ export async function createPost(req, res) {
         });
         if (mediaRecord) {
           mediaId = mediaRecord.id;
+          finalStoragePath = mediaRecord.storagePath;
+          finalThumbPath = mediaRecord.thumbnailPath;
         }
+      }
+    } else if (mediaId && !finalStoragePath) {
+      const mediaRecord = await prisma.media.findUnique({
+        where: { id: mediaId }
+      });
+      if (mediaRecord) {
+        finalStoragePath = mediaRecord.storagePath;
+        finalThumbPath = mediaRecord.thumbnailPath;
       }
     }
 
@@ -96,7 +117,9 @@ export async function createPost(req, res) {
         userId: postUserId,
         content,
         category,
-        mediaUrl,
+        mediaUrl: null, // Task 1: Stop writing to mediaUrl
+        storagePath: finalStoragePath,
+        thumbStoragePath: finalThumbPath,
         mediaId,
         aiLabels: null,
         sentimentAnalysis: null,
@@ -178,26 +201,29 @@ export async function getFeed(req, res) {
       }
     });
 
-    const formattedPosts = posts.map(p => ({
-      id: p.id,
-      // NOTE: userId intentionally omitted — use user.id for identity.
-      // Fully-anonymous posts (mode=full) have userId=null in DB; the user join is
-      // also null, so there is no way to recover the author's identity from this response.
-      content: p.content,
-      category: p.category,
-      mediaUrl: p.mediaUrl,
-      mediaId: p.mediaId,
-      sharedPostId: p.sharedPostId,
-      isDeleted: p.isDeleted,
-      isAiModifiedMedia: p.isAiModifiedMedia,
-      aiLabels: p.aiLabels ? JSON.parse(p.aiLabels) : null,
-      sentimentAnalysis: p.sentimentAnalysis ? JSON.parse(p.sentimentAnalysis) : null,
-      createdAt: p.createdAt,
-      user: p.user ?? null,
-      media: p.media ?? null,
-      commentCount: p._count.comments,
-      reactionCount: p._count.reactions,
-    }));
+    const formattedPosts = posts.map(p => {
+      const hasMedia = p.storagePath || p.media?.storagePath;
+      const hasThumb = p.thumbStoragePath || p.media?.thumbnailPath;
+
+      return {
+        id: p.id,
+        content: p.content,
+        category: p.category,
+        mediaStreamUrl: hasMedia ? `/api/media/stream/${p.id}` : null,
+        thumbStreamUrl: hasThumb ? `/api/media/stream/${p.id}?thumb=true` : null,
+        mediaId: p.mediaId,
+        sharedPostId: p.sharedPostId,
+        isDeleted: p.isDeleted,
+        isAiModifiedMedia: p.isAiModifiedMedia,
+        aiLabels: p.aiLabels ? JSON.parse(p.aiLabels) : null,
+        sentimentAnalysis: p.sentimentAnalysis ? JSON.parse(p.sentimentAnalysis) : null,
+        createdAt: p.createdAt,
+        user: p.user ?? null,
+        media: p.media ?? null,
+        commentCount: p._count.comments,
+        reactionCount: p._count.reactions,
+      };
+    });
 
     return res.status(200).json(formattedPosts);
   } catch (error) {
@@ -229,6 +255,7 @@ export async function getPostDetails(req, res) {
             avatarUrl: true
           }
         },
+        media: true,
         comments: {
           where: { isDeleted: false },
           orderBy: { createdAt: "asc" },
@@ -255,8 +282,14 @@ export async function getPostDetails(req, res) {
       });
     }
 
+    const hasMedia = post.storagePath || post.media?.storagePath;
+    const hasThumb = post.thumbStoragePath || post.media?.thumbnailPath;
+
     const formattedPost = {
       ...post,
+      mediaUrl: undefined,
+      mediaStreamUrl: hasMedia ? `/api/media/stream/${post.id}` : null,
+      thumbStreamUrl: hasThumb ? `/api/media/stream/${post.id}?thumb=true` : null,
       aiLabels: post.aiLabels ? JSON.parse(post.aiLabels) : null,
       sentimentAnalysis: post.sentimentAnalysis ? JSON.parse(post.sentimentAnalysis) : null,
       commentCount: post.comments.length,

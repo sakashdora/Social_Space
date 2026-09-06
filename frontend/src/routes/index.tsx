@@ -1,735 +1,516 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
-  Bell,
-  Bookmark,
-  Heart,
-  Lock,
-  MessageCircle,
-  MessageSquare,
-  Play,
-  PlayCircle,
-  Search,
-  Share2,
   Shield,
+  Zap,
+  Feather,
   Sparkles,
   Users,
-  VenetianMask,
-  X,
+  MessageSquare,
+  Rss,
+  Video,
+  KeyRound,
+  Fingerprint,
+  Lock,
+  Flame,
+  CheckCircle2,
+  Share2,
+  Heart,
+  ExternalLink,
+  Moon,
+  Sun,
+  EyeOff,
 } from "lucide-react";
-
-import postLandscape from "@/assets/post-landscape.jpg";
-import videoThumb from "@/assets/video-thumb.jpg";
-import { ThemeToggle } from "../components/veil/ThemeToggle";
+import { SocialSpaceEmblem } from "@/components/veil/SocialSpaceEmblem";
+import { CosmicAtmosphere } from "@/components/veil/CosmicAtmosphere";
+import { useTheme } from "@/lib/theme";
+import { isAuthenticated } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Social Space — Connect Freely" },
+      { title: "Social Space — The Sovereign Social Network" },
       {
         name: "description",
-        content: "A new social experience with news, social, and video feeds.",
+        content:
+          "Connect freely without email, phone, or tracking. An open, sovereign community for thoughts, journalism, video, and encrypted messaging.",
+      },
+      {
+        property: "og:title",
+        content: "Social Space — The Sovereign Social Network",
+      },
+      {
+        property: "og:description",
+        content:
+          "Connect, read, and share anonymously. Pure cryptography, zero surveillance.",
       },
     ],
   }),
   component: LandingPage,
 });
 
-const navLinks = [
-  { label: "News", href: "#news" },
-  { label: "Social", href: "#social" },
-  { label: "Video", href: "#video" },
-];
-
-function useScrolled(threshold = 24) {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > threshold);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold]);
-  return scrolled;
-}
-
-function Logo() {
-  return (
-    <Link to="/" className="flex items-center gap-2.5 group">
-      <VenetianMask className="h-7 w-7 text-primary transition-transform group-hover:scale-105" />
-      <span className="font-display text-xl font-semibold tracking-tight text-foreground">
-        Social Space
-      </span>
-    </Link>
-  );
-}
-
-function Nav() {
-  const scrolled = useScrolled(24);
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
+export function LandingPage() {
+  const { theme, toggle: toggleTheme } = useTheme();
+  const authed = isAuthenticated();
 
   return (
-    <>
-      <motion.header
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "frost border-b border-[color:var(--border)] shadow-soft"
-            : "bg-transparent"
-        }`}
-      >
-        <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 md:px-12 xl:px-20">
-          <Logo />
+    <div className="cosmic-theme relative min-h-screen w-full bg-[#06070a] text-white overflow-x-hidden selection:bg-amber-500/30 selection:text-amber-200">
+      {/* ─── Ambient Cosmic Background ─────────────────────────────────── */}
+      <CosmicAtmosphere />
 
-          <nav aria-label="Primary" className="hidden md:block">
-            <ul className="flex items-center gap-10">
-              {navLinks.map((l) => (
-                <li key={l.label}>
-                  <a
-                    href={l.href}
-                    className="relative text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-right after:scale-x-0 after:bg-primary after:transition-transform hover:after:origin-left hover:after:scale-x-100"
-                  >
-                    {l.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
+      {/* ─── Navigation Bar ────────────────────────────────────────────── */}
+      <header className="fixed top-0 inset-x-0 z-50 border-b border-white/10 bg-[#06070a]/75 backdrop-blur-2xl px-6 sm:px-12 py-4">
+        <div className="mx-auto max-w-7xl flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3 group">
+            <SocialSpaceEmblem className="h-8 w-8 transition-transform duration-300 group-hover:scale-105" />
+            <div className="flex flex-col">
+              <span className="font-sans text-xl font-bold tracking-tight text-white group-hover:text-amber-300 transition-colors">
+                Social Space
+              </span>
+              <span className="text-[9px] tracking-[0.22em] text-amber-200/60 uppercase font-semibold">
+                REAL PEOPLE · REAL CONNECTIONS
+              </span>
+            </div>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
+            <a href="#features" className="hover:text-white transition-colors">
+              Features
+            </a>
+            <a href="#pillars" className="hover:text-white transition-colors">
+              Security
+            </a>
+            <Link to="/news" className="hover:text-white transition-colors">
+              News
+            </Link>
+            <Link to="/social" className="hover:text-white transition-colors">
+              Live Feed
+            </Link>
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
-            <ThemeToggle />
-            <Link to="/onboarding">
-              <PrimaryButton>
-                Enter Space <ArrowRight className="h-4 w-4" />
-              </PrimaryButton>
-            </Link>
-          </div>
-
-          <div className="flex md:hidden items-center gap-2">
-            <ThemeToggle />
+          <div className="flex items-center gap-3.5">
             <button
-              aria-label="Open menu"
-              aria-expanded={open}
-              onClick={() => setOpen(true)}
-              className="frost flex h-10 w-10 items-center justify-center rounded-full"
+              type="button"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              className="h-9 w-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"
             >
-              <span className="flex flex-col gap-1.5">
-                <span className="block h-0.5 w-5 bg-foreground" />
-                <span className="block h-0.5 w-5 bg-foreground" />
-              </span>
+              {theme === "dark" ? (
+                <Moon className="h-4 w-4" />
+              ) : (
+                <Sun className="h-4 w-4" />
+              )}
             </button>
+
+            {authed ? (
+              <Link
+                to="/social"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-5 py-2 text-xs sm:text-sm shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
+              >
+                <span>Enter Feed</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link
+                to="/onboarding"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-5 py-2 text-xs sm:text-sm shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
+              >
+                <span>Join Social Space</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
           </div>
         </div>
-      </motion.header>
+      </header>
 
-      {/* Mobile menu */}
-      <motion.div
-        initial={false}
-        animate={{
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-        }}
-        transition={{ duration: 0.25 }}
-        className="fixed inset-0 z-[60] md:hidden"
-      >
-        <div
-          className="absolute inset-0 bg-background/80 backdrop-blur-2xl"
-          onClick={() => setOpen(false)}
-        />
-        <motion.div
-          initial={false}
-          animate={{ y: open ? 0 : -30, opacity: open ? 1 : 0 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="relative flex h-full flex-col px-6 pt-6"
-        >
-          <div className="flex items-center justify-between">
-            <Logo />
-            <button
-              aria-label="Close menu"
-              onClick={() => setOpen(false)}
-              className="frost flex h-10 w-10 items-center justify-center rounded-full"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <ul className="mt-16 flex flex-col gap-8">
-            {navLinks.map((l, i) => (
-              <motion.li
-                key={l.label}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: open ? 0 : 20, opacity: open ? 1 : 0 }}
-                transition={{ delay: 0.1 + i * 0.05, duration: 0.4 }}
-              >
-                <a
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="font-display text-5xl font-semibold tracking-tight text-foreground"
+      {/* ─── Hero Section ──────────────────────────────────────────────── */}
+      <section className="relative z-10 pt-36 pb-20 px-6 sm:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            {/* Left Hero Content */}
+            <div className="lg:col-span-7 flex flex-col justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-400 w-fit mb-6 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+                <span>The Sovereign Social Network</span>
+              </div>
+
+              <h1 className="text-4xl sm:text-6xl lg:text-[4rem] font-extrabold tracking-tight text-white leading-[1.08]">
+                Connect freely.
+                <br />
+                <span className="text-[#3b82f6]">No email. No phone.</span>
+                <br />
+                No tracking.
+              </h1>
+
+              <p className="mt-6 text-white/70 text-base sm:text-xl leading-relaxed max-w-xl">
+                Social Space is designed for honest connection. Pick a handle in seconds,
+                share ideas without algorithmic surveillance, and own your identity with
+                pure on-device cryptography.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Link
+                  to="/onboarding"
+                  className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-bold px-8 py-3.5 text-sm sm:text-base shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all cursor-pointer active:scale-[0.98]"
                 >
-                  {l.label}
-                </a>
-              </motion.li>
-            ))}
-          </ul>
-          <div className="mt-auto pb-10">
-            <Link to="/onboarding" className="w-full">
-              <PrimaryButton className="w-full justify-center">
-                Enter Space <ArrowRight className="h-4 w-4" />
-              </PrimaryButton>
-            </Link>
-          </div>
-        </motion.div>
-      </motion.div>
-    </>
-  );
-}
+                  <span>Pick a handle — 30s signup</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
 
-function PrimaryButton({
-  children,
-  className = "",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      className={`group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-[15px] font-semibold text-primary-foreground shadow-[0_10px_30px_-8px_color-mix(in_oklab,var(--primary)_35%,transparent)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_color-mix(in_oklab,var(--primary)_50%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
+                <Link
+                  to="/social"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-white px-7 py-3.5 text-sm sm:text-base font-medium transition cursor-pointer backdrop-blur-md"
+                >
+                  <span>Explore Live Feed</span>
+                </Link>
+              </div>
 
-function SecondaryButton({
-  children,
-  className = "",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      className={`frost inline-flex items-center gap-2 rounded-full px-6 py-3 text-[15px] font-semibold text-foreground transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elegant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.7,
-      delay: i * 0.08,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
-  }),
-};
-
-function Hero() {
-  const reduce = useReducedMotion();
-  return (
-    <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-28">
-      {/* Dynamic ambient backgrounds mapping to active theme colors */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 -left-32 h-[520px] w-[520px] rounded-full bg-[color:var(--veil-glow)] opacity-35 blur-3xl animate-pulse-glow" />
-        <div className="absolute top-1/3 -right-40 h-[600px] w-[600px] rounded-full bg-[color:var(--veil)] opacity-25 blur-3xl animate-pulse-glow" />
-        <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-[color:var(--veil-glow)] opacity-35 blur-3xl" />
-      </div>
-
-      <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-16 px-6 md:px-12 xl:px-20 lg:grid-cols-[45fr_55fr] lg:gap-12">
-        {/* Left */}
-        <div>
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-            className="frost inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-foreground"
-          >
-            <Shield className="h-4 w-4 text-primary" />
-            Anonymous. Secure. Yours.
-          </motion.div>
-
-          <motion.h1
-            variants={fadeUp}
-            custom={1}
-            initial="hidden"
-            animate="show"
-            className="mt-6 font-display text-[42px] font-semibold leading-[1.02] tracking-tight text-balance text-foreground sm:text-6xl md:text-7xl xl:text-[84px]"
-          >
-            Connect, Read, <span className="italic text-primary">Watch.</span>
-          </motion.h1>
-
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            initial="hidden"
-            animate="show"
-            className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
-          >
-            Welcome to Social Space. Sign up frictionlessly without phone or
-            email. Explore news, share your thoughts, and watch videos — all
-            while remaining anonymous.
-          </motion.p>
-
-          <motion.div
-            variants={fadeUp}
-            custom={3}
-            initial="hidden"
-            animate="show"
-            className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
-          >
-            <Link to="/onboarding">
-              <PrimaryButton className="justify-center w-full sm:w-auto">
-                Get Started{" "}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </PrimaryButton>
-            </Link>
-            <a href="#social">
-              <SecondaryButton className="justify-center w-full sm:w-auto">
-                <PlayCircle className="h-4 w-4 text-primary" />
-                Explore Features
-              </SecondaryButton>
-            </a>
-          </motion.div>
-
-          <motion.div
-            variants={fadeUp}
-            custom={4}
-            initial="hidden"
-            animate="show"
-            className="mt-10 flex items-center gap-4"
-          >
-            <div className="flex -space-x-3">
-              {[
-                "oklch(0.86 0.11 85)",
-                "oklch(0.72 0.09 78)",
-                "oklch(0.55 0.06 78)",
-                "oklch(0.76 0.13 152)",
-                "oklch(0.82 0.14 83)",
-              ].map((c, i) => (
-                <span
-                  key={i}
-                  aria-hidden
-                  className="h-9 w-9 rounded-full border-2 border-background shadow-sm"
-                  style={{
-                    background: `radial-gradient(circle at 30% 30%, ${c}, oklch(0.25 0.01 60))`,
-                  }}
-                />
-              ))}
+              {/* Trust Metric Row */}
+              <div className="mt-12 grid grid-cols-3 gap-6 pt-8 border-t border-white/10 max-w-lg">
+                <div>
+                  <span className="text-2xl sm:text-3xl font-bold text-white font-mono">
+                    0
+                  </span>
+                  <p className="text-xs text-white/50 mt-1">
+                    Emails or phone numbers recorded
+                  </p>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl font-bold text-amber-400 font-mono">
+                    100%
+                  </span>
+                  <p className="text-xs text-white/50 mt-1">
+                    Chronological, unmanipulated feed
+                  </p>
+                </div>
+                <div>
+                  <span className="text-2xl sm:text-3xl font-bold text-blue-400 font-mono">
+                    E2EE
+                  </span>
+                  <p className="text-xs text-white/50 mt-1">
+                    End-to-end encrypted messaging
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Join thousands exploring anonymously
-            </p>
-          </motion.div>
-        </div>
 
-        {/* Right — floating mockups */}
-        <div className="relative mx-auto w-full max-w-[640px] lg:max-w-none">
-          <div className="relative aspect-[5/6] w-full sm:aspect-[6/5] lg:aspect-[5/5]">
-            {/* Soft halo */}
-            <div
-              aria-hidden
-              className="absolute left-1/2 top-1/2 -z-10 h-[110%] w-[110%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70"
-              style={{
-                background:
-                  "radial-gradient(closest-side, color-mix(in oklab, var(--veil) 25%, transparent), transparent 70%)",
-              }}
-            />
-            <div
-              aria-hidden
-              className="absolute left-1/2 top-1/2 -z-10 h-[80%] w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/15"
-            />
-
-            {/* Main feed card */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
-              className="absolute left-[4%] top-[6%] w-[72%] rounded-3xl"
-            >
-              <div
-                className={`frost-heavy rounded-3xl p-4 shadow-float ${
-                  reduce ? "" : "animate-float-slow"
-                }`}
-                style={{ ["--r" as string]: "-1.5deg" } as React.CSSProperties}
-              >
-                <div className="flex items-center justify-between px-1 pb-3">
-                  <div className="flex items-center gap-2 text-foreground">
-                    <span className="flex flex-col gap-[3px]">
-                      <span className="block h-0.5 w-4 bg-current" />
-                      <span className="block h-0.5 w-4 bg-current" />
-                      <span className="block h-0.5 w-4 bg-current" />
-                    </span>
-                    <span className="font-display text-lg font-semibold">
-                      For You
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Search className="h-4 w-4" />
-                    <span className="relative">
-                      <Bell className="h-4 w-4" />
-                      <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 border-b border-black/5 px-1 pb-2 text-[13px] font-medium">
-                  <span className="border-b-2 border-primary pb-1 text-primary">
-                    All
-                  </span>
-                  <span className="text-muted-foreground">Trending</span>
-                  <span className="text-muted-foreground">News</span>
-                  <span className="text-muted-foreground">Tech</span>
-                  <span className="hidden text-muted-foreground sm:inline">
-                    Entertainment
-                  </span>
-                </div>
-
-                <div className="mt-3 rounded-2xl bg-background/60 p-3">
-                  <div className="flex items-center gap-2">
-                    <span
-                      aria-hidden
-                      className="h-8 w-8 rounded-full"
-                      style={{
-                        background:
-                          "radial-gradient(circle at 30% 30%, var(--veil-glow), var(--ink-raised))",
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">
-                        Anonymous User
-                      </p>
-                      <p className="text-xs text-muted-foreground">2h ago</p>
+            {/* Right Interactive Glassmorphic Preview */}
+            <div className="lg:col-span-5 flex justify-center lg:justify-end">
+              <div className="w-full max-w-lg rounded-[32px] border border-amber-500/30 bg-[#0c1017]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_0_60px_-10px_rgba(245,158,11,0.25),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative">
+                {/* Header of Preview Card */}
+                <div className="flex items-center justify-between pb-5 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold text-sm">
+                      QL
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-sm text-white">
+                          quiet-linen
+                        </span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                      </div>
+                      <span className="text-[11px] text-white/40">
+                        @quiet-linen · 4m ago
+                      </span>
                     </div>
                   </div>
-                  <p className="mt-3 text-sm text-foreground">
-                    The future belongs to those who believe in the beauty of
-                    their dreams.
-                  </p>
-                  <div className="mt-3 overflow-hidden rounded-xl">
-                    <img
-                      src={postLandscape}
-                      alt="A lone figure sits at the edge of a mirror-still mountain lake at sunrise."
-                      width={1024}
-                      height={768}
-                      loading="lazy"
-                      className="h-40 w-full object-cover sm:h-52"
-                    />
-                  </div>
-                  <div className="mt-3 flex items-center gap-5 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Heart
-                        className="h-4 w-4 text-primary"
-                        fill="currentColor"
-                      />
-                      1.2K
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <MessageCircle className="h-4 w-4" />
-                      128
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Share2 className="h-4 w-4" />
-                      256
-                    </span>
-                    <span className="ml-auto">
-                      <Bookmark className="h-4 w-4" />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Video card top-right */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }}
-              className="absolute right-[0%] top-[0%] w-[46%]"
-            >
-              <div
-                className={`relative overflow-hidden rounded-2xl shadow-float ${
-                  reduce ? "" : "animate-float"
-                }`}
-                style={{ ["--r" as string]: "3deg" } as React.CSSProperties}
-              >
-                <img
-                  src={videoThumb}
-                  alt="Hot air balloons drift over Cappadocia at sunrise."
-                  width={1024}
-                  height={640}
-                  loading="lazy"
-                  className="h-40 w-full object-cover sm:h-48"
-                />
-                <span className="absolute right-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  4K
-                </span>
-                <button
-                  aria-label="Play video"
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <span className="frost flex h-12 w-12 items-center justify-center rounded-full">
-                    <Play
-                      className="h-5 w-5 translate-x-0.5 text-foreground"
-                      fill="currentColor"
-                    />
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300">
+                    Ideas
                   </span>
-                </button>
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-white/90">
-                  <span className="text-xs">01:24 / 03:40</span>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span>◀</span>
-                    <span>▶</span>
-                    <span>⛶</span>
+                </div>
+
+                {/* Body Content */}
+                <div className="py-5 space-y-4">
+                  <p className="text-sm sm:text-base text-white/90 leading-relaxed">
+                    "I wrote this post on a device that has never touched my legal identity.
+                    No ad trackers watching my keystrokes, no corporate profiling. Just pure
+                    ideas shared with real minds."
+                  </p>
+
+                  <div className="rounded-2xl border border-white/10 bg-[#07090e] p-4 flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-emerald-400 shrink-0" />
+                    <div className="text-xs text-white/70">
+                      <span className="text-white font-medium">On-Device Privacy Confirmed:</span>{" "}
+                      Zero tracking cookies, client-side cryptographic hashing.
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
 
-            {/* Trending card bottom-right */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.6, ease: "easeOut" }}
-              className="absolute right-[2%] bottom-[4%] w-[52%]"
-            >
-              <div
-                className={`frost-heavy rounded-2xl p-4 shadow-float ${
-                  reduce ? "" : "animate-float"
-                }`}
-                style={
-                  {
-                    ["--r" as string]: "-2deg",
-                    animationDelay: "-2s",
-                  } as React.CSSProperties
-                }
-              >
-                <div className="flex items-center gap-2 pb-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
+                {/* Interactive Reactions */}
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/60">
+                  <div className="flex items-center gap-5">
+                    <span className="flex items-center gap-1.5 hover:text-amber-300 cursor-pointer transition">
+                      <Heart className="h-4 w-4 text-rose-400 fill-rose-400/20" />
+                      <span>342</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 hover:text-amber-300 cursor-pointer transition">
+                      <MessageSquare className="h-4 w-4 text-blue-400" />
+                      <span>48 replies</span>
+                    </span>
+                  </div>
+                  <span className="flex items-center gap-1 text-emerald-400 font-mono">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Verified Sovereign
                   </span>
-                  <p className="font-display text-base font-semibold">
-                    Trending
-                  </p>
                 </div>
-                <ul className="space-y-3">
-                  {[
-                    {
-                      n: 1,
-                      t: "AI is changing the world",
-                      p: "12.5K posts",
-                      g: "linear-gradient(135deg,#7a5a3a,#c9a075)",
-                    },
-                    {
-                      n: 2,
-                      t: "Exploring the mountains",
-                      p: "8.7K posts",
-                      g: "linear-gradient(135deg,#3a4a6a,#8ab0d0)",
-                    },
-                    {
-                      n: 3,
-                      t: "Tech innovations in 2026",
-                      p: "6.3K posts",
-                      g: "linear-gradient(135deg,#1a2a4a,#4a7bb8)",
-                    },
-                  ].map((it) => (
-                    <li key={it.n} className="flex items-center gap-3">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                        {it.n}
-                      </span>
-                      <span
-                        aria-hidden
-                        className="h-10 w-10 shrink-0 rounded-lg"
-                        style={{ background: it.g }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {it.t}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{it.p}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <button className="mt-3 w-full rounded-xl bg-background/60 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-                  View all
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Sparkle decorations */}
-            <Sparkles className="absolute left-[52%] top-[42%] h-4 w-4 text-primary/60" />
-            <Sparkles className="absolute left-[38%] bottom-[24%] h-3 w-3 text-primary/40" />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const features = [
-  {
-    icon: Shield,
-    title: "No Personal Info",
-    desc: "No phone. No email. Just you.",
-  },
-  {
-    icon: VenetianMask,
-    title: "Truly Anonymous",
-    desc: "Your identity stays completely private.",
-  },
-  {
-    icon: MessageSquare,
-    title: "Engage Freely",
-    desc: "Share, discuss, and connect without boundaries.",
-  },
-  {
-    icon: PlayCircle,
-    title: "Watch & Discover",
-    desc: "Curated videos and content tailored for you.",
-  },
-];
-
-function Features() {
-  return (
-    <section id="social" className="relative py-24 md:py-32">
-      <div className="mx-auto max-w-[1200px] px-6 md:px-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="max-w-2xl"
-        >
-          <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary">
-            Why Social Space
-          </p>
-          <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-balance md:text-5xl">
-            A calmer feed, built for freedom.
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Every detail is designed around privacy — no tracking, no personal
-            data, no noise. Just an honest place to read, share and watch.
-          </p>
-        </motion.div>
-
-        <div className="mt-12 sm:mt-14 grid grid-cols-1 min-[400px]:grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{
-                duration: 0.6,
-                delay: i * 0.08,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="group frost rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant"
-            >
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <f.icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-5 font-display text-xl font-semibold">
-                {f.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {f.desc}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CTA() {
-  return (
-    <section id="video" className="relative pb-24 md:pb-32">
-      <div className="mx-auto max-w-[1200px] px-6 md:px-12">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7 }}
-          className="frost-heavy relative overflow-hidden rounded-[32px] p-8 shadow-elegant md:p-14"
-        >
-          {/* Dynamic backgrounds mapping to brand styles */}
-          <div
-            aria-hidden
-            className="absolute -top-32 -right-24 h-80 w-80 rounded-full bg-primary/20 blur-3xl"
-          />
-          <div
-            aria-hidden
-            className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-secondary/25 blur-3xl"
-          />
-
-          <div className="relative flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-5 md:items-center">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-soft">
-                <Users className="h-6 w-6" />
-              </span>
-              <div>
-                <h2 className="font-display text-3xl font-semibold leading-tight text-balance md:text-5xl">
-                  Your Space.{" "}
-                  <span className="italic text-primary">Your Voice.</span>
-                </h2>
-                <p className="mt-2 max-w-md text-muted-foreground">
-                  Privacy comes first. Step into a social experience designed
-                  for you.
-                </p>
               </div>
             </div>
-            <Link to="/onboarding" className="w-full md:w-auto">
-              <PrimaryButton className="w-full justify-center md:w-auto md:px-8 md:py-4 md:text-base">
-                Enter Space <ArrowRight className="h-4 w-4" />
-              </PrimaryButton>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Four Portals Section ──────────────────────────────────────── */}
+      <section id="features" className="relative z-10 py-24 px-6 sm:px-12 border-t border-white/10 bg-[#070a10]/50 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-xs font-semibold tracking-[0.2em] text-amber-400 uppercase">
+              EXPERIENCE ARCHITECTURE
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mt-3">
+              Four Portals. One Sovereign Network.
+            </h2>
+            <p className="text-white/60 text-base mt-4 leading-relaxed">
+              Every feature of Social Space is crafted to provide rich, modern utility
+              without compromising user privacy.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Portal 1: Social Stream */}
+            <Link
+              to="/social"
+              className="group rounded-3xl border border-white/10 bg-[#0c1017]/80 hover:border-amber-400/40 p-7 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col justify-between cursor-pointer"
+            >
+              <div>
+                <div className="h-12 w-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-6 group-hover:scale-110 transition-transform">
+                  <MessageSquare className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white group-hover:text-amber-300 transition-colors">
+                  Social Stream
+                </h3>
+                <p className="text-xs sm:text-sm text-white/60 mt-2.5 leading-relaxed">
+                  Chronological feeds filtered by topics: Life, Mental Health, Career,
+                  Ideas, and Confessions. Zero rage-bait algorithms.
+                </p>
+              </div>
+              <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform">
+                <span>Explore Stream</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </div>
+            </Link>
+
+            {/* Portal 2: Global News & AI Briefings */}
+            <Link
+              to="/news"
+              className="group rounded-3xl border border-white/10 bg-[#0c1017]/80 hover:border-amber-400/40 p-7 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col justify-between cursor-pointer"
+            >
+              <div>
+                <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform">
+                  <Rss className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white group-hover:text-amber-300 transition-colors">
+                  News & AI Briefs
+                </h3>
+                <p className="text-xs sm:text-sm text-white/60 mt-2.5 leading-relaxed">
+                  Real-time journalism from global newsfeeds. Decode complex
+                  articles with on-demand private AI analytical summaries.
+                </p>
+              </div>
+              <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform">
+                <span>Read Global News</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </div>
+            </Link>
+
+            {/* Portal 3: Video & Media Feed */}
+            <Link
+              to="/video"
+              className="group rounded-3xl border border-white/10 bg-[#0c1017]/80 hover:border-amber-400/40 p-7 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col justify-between cursor-pointer"
+            >
+              <div>
+                <div className="h-12 w-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-6 group-hover:scale-110 transition-transform">
+                  <Video className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white group-hover:text-amber-300 transition-colors">
+                  Media Portal
+                </h3>
+                <p className="text-xs sm:text-sm text-white/60 mt-2.5 leading-relaxed">
+                  Fluid, high-performance video player. Enjoy community clips and
+                  stories without behavioral tracking or intrusive ads.
+                </p>
+              </div>
+              <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform">
+                <span>Watch Media</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </div>
+            </Link>
+
+            {/* Portal 4: Sealed Sender Messages */}
+            <Link
+              to="/messages"
+              className="group rounded-3xl border border-white/10 bg-[#0c1017]/80 hover:border-amber-400/40 p-7 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col justify-between cursor-pointer"
+            >
+              <div>
+                <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
+                  <Lock className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white group-hover:text-amber-300 transition-colors">
+                  Encrypted Chats
+                </h3>
+                <p className="text-xs sm:text-sm text-white/60 mt-2.5 leading-relaxed">
+                  WebCrypto ECDH end-to-end encrypted direct messaging. Ephemeral
+                  countdown timers ensure chats vanish automatically.
+                </p>
+              </div>
+              <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform">
+                <span>Start Conversation</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </div>
             </Link>
           </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-[color:var(--border)] py-10">
-      <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-3 px-6 md:px-12">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Lock className="h-4 w-4" />
-          <p className="text-sm">Built for privacy. Designed for freedom.</p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Social Space
-        </p>
-      </div>
-    </footer>
-  );
-}
+      </section>
 
-function LandingPage() {
-  return (
-    <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20">
-      <Nav />
-      <main id="news">
-        <Hero />
-        <Features />
-        <CTA />
-      </main>
-      <Footer />
+      {/* ─── Security & Sovereign Pillars ──────────────────────────────── */}
+      <section id="pillars" className="relative z-10 py-24 px-6 sm:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            <div className="lg:col-span-6">
+              <span className="text-xs font-semibold tracking-[0.2em] text-amber-400 uppercase">
+                ZERO KNOWLEDGE GUARANTEE
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mt-3 leading-tight">
+                Built to protect your real identity at all costs.
+              </h2>
+              <p className="text-white/70 text-base sm:text-lg mt-5 leading-relaxed">
+                Traditional social platforms treat user data as their commodity. Social Space
+                is engineered with non-custodial cryptography so we cannot sell or surrender
+                what we never collected in the first place.
+              </p>
+
+              <div className="mt-8 space-y-4">
+                <div className="flex items-start gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                  <KeyRound className="h-5 w-5 text-amber-400 mt-1 shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-white text-sm">
+                      Argon2id & Shannon Entropy
+                    </h4>
+                    <p className="text-xs text-white/60 mt-1">
+                      Your passphrase is password-derived locally with memory-hard hashing.
+                      We store zero plaintext passwords.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                  <Fingerprint className="h-5 w-5 text-blue-400 mt-1 shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-white text-sm">
+                      FIDO2 / WebAuthn Passkeys
+                    </h4>
+                    <p className="text-xs text-white/60 mt-1">
+                      Sign in instantly with Face ID, Touch ID, or Windows Hello.
+                      Phishing-resistant, hardware-level security.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                  <EyeOff className="h-5 w-5 text-emerald-400 mt-1 shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-white text-sm">
+                      On-Device Media Anonymization
+                    </h4>
+                    <p className="text-xs text-white/60 mt-1">
+                      Upload photos with automated on-device face pixelation before
+                      transmission to prevent biometric facial tracking.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-6 flex justify-center">
+              <div className="w-full max-w-md rounded-[32px] border border-white/15 bg-[#090d15]/90 p-8 shadow-2xl space-y-6">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-emerald-400" />
+                  What We Never Collect
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    "Your legal name or birthday",
+                    "Email address or phone number",
+                    "Government identification or passport",
+                    "GPS location or IP coordinate history",
+                    "Third-party advertising cookies or device graphs",
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-white/80"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <Link
+                    to="/onboarding"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold py-3 text-sm transition cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.35)]"
+                  >
+                    <span>Claim Your Anonymous Handle</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Footer ────────────────────────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-white/10 bg-[#06070a]/90 py-12 px-6 sm:px-12">
+        <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <SocialSpaceEmblem className="h-7 w-7" />
+            <div className="flex flex-col">
+              <span className="font-bold text-white text-base">Social Space</span>
+              <span className="text-[9px] tracking-[0.2em] text-white/40 uppercase">
+                CONNECT · SHARE · BE YOURSELF
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-white/60">
+            <Link to="/social" className="hover:text-white transition">
+              Feed
+            </Link>
+            <Link to="/news" className="hover:text-white transition">
+              News
+            </Link>
+            <Link to="/video" className="hover:text-white transition">
+              Video
+            </Link>
+            <Link to="/messages" className="hover:text-white transition">
+              Messages
+            </Link>
+            <Link to="/profile" className="hover:text-white transition">
+              Profile
+            </Link>
+            <Link to="/safety" className="hover:text-white transition">
+              Safety Manifesto
+            </Link>
+          </div>
+
+          <div className="text-xs text-white/40 font-mono">
+            © 2026 Social Space. Sovereign Identity.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
