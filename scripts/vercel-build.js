@@ -8,7 +8,5 @@ if (!fs.existsSync(distHtml)) {
   console.log("[vercel-build] dist/index.html not found. Executing full build pipeline...");
   execSync("npm run build", { stdio: "inherit" });
 } else {
-  console.log("[vercel-build] dist/index.html already built by previous step.");
-  console.log("[vercel-build] Generating Prisma client for backend serverless runtime...");
-  execSync("cd backend && npx prisma generate", { stdio: "inherit" });
+  console.log("[vercel-build] dist/index.html already built by previous step. Build is complete.");
 }
