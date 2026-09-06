@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "installCommand": "npm install --prefix backend && npm install --prefix frontend",
+  "installCommand": "npm install",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": null,
@@ -18,7 +18,7 @@
   ],
   "rewrites": [
     {
-      "source": "/api/cron/(.*)",
+      "source": "/v1/(.*)",
       "destination": "/api/index.js"
     },
     {
@@ -26,7 +26,19 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/v1/(.*)",
+      "source": "/media/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/rss/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/ai/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/cron/(.*)",
       "destination": "/api/index.js"
     },
     {

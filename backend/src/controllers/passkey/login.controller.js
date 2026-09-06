@@ -24,8 +24,19 @@ const CHALLENGE_TTL_SECONDS = 5 * 60;
 export async function getLoginOptions(req, res) {
   try {
     const sessionToken = crypto.randomBytes(16).toString("hex");
+    let rpID = env.WEBAUTHN_RP_ID;
+    const requestOrigin = req.get("origin") || req.get("host");
+    if (requestOrigin) {
+      try {
+        const hostname = requestOrigin.includes("://") ? new URL(requestOrigin).hostname : requestOrigin.split(":")[0];
+        if (hostname.endsWith("vercel.app") || hostname === "localhost") {
+          rpID = hostname;
+        }
+      } catch {}
+    }
+
     const options = await generateAuthenticationOptions({
-      rpID: env.WEBAUTHN_RP_ID,
+      rpID,
       userVerification: "required",
       allowCredentials: [],
     });
@@ -85,13 +96,29 @@ export async function verifyLogin(req, res) {
       });
     }
 
+    const requestOrigin = req.get("origin")?.replace(/\/+$/, "");
+    const expectedOrigins = [env.WEBAUTHN_ORIGIN];
+    if (requestOrigin && !expectedOrigins.includes(requestOrigin)) {
+      expectedOrigins.push(requestOrigin);
+    }
+
+    let expectedRPID = env.WEBAUTHN_RP_ID;
+    if (requestOrigin) {
+      try {
+        const parsed = new URL(requestOrigin);
+        if (parsed.hostname.endsWith("vercel.app") || parsed.hostname === "localhost") {
+          expectedRPID = parsed.hostname;
+        }
+      } catch {}
+    }
+
     let verification;
     try {
       verification = await verifyAuthenticationResponse({
         response: credential,
         expectedChallenge: stored.challenge,
-        expectedOrigin: env.WEBAUTHN_ORIGIN,
-        expectedRPID: env.WEBAUTHN_RP_ID,
+        expectedOrigin: expectedOrigins,
+        expectedRPID,
         credential: {
           id: passkeyRecord.credentialID,
           publicKey: Buffer.from(passkeyRecord.publicKey, "base64"),

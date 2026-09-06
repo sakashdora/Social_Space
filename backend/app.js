@@ -35,33 +35,86 @@ app.use((req, res, next) => {
 // Using `true` would trust all X-Forwarded-For hops, allowing IP spoofing to bypass rate limiters.
 app.set("trust proxy", 1);
 
-// ─── Phase 2 Fix #8: Explicit CORS allowlist ──────────────────────────────────
-// Parse FRONTEND_ORIGIN as a comma-separated list (supports staging + prod simultaneously)
-// Normalise each entry: strip trailing slashes so "https://foo.app/" == "https://foo.app"
+// ─── Universal Multi-Platform CORS Policy ─────────────────────────────────────
+// Parse FRONTEND_ORIGIN as a comma-separated list.
+// Automatically allows:
+// 1. All Vercel preview and production subdomains (*.vercel.app)
+// 2. Localhost and loopback IPs (http://localhost:*, http://127.0.0.1:*)
+// 3. Explicitly configured origins (including wildcards like *.azurecontainerapps.io)
+// 4. Same-host requests
 
-const allowedOrigins = (env.FRONTEND_ORIGIN || "http://localhost:5173")
+const configuredOrigins = (env.FRONTEND_ORIGIN || "http://localhost:5173")
   .split(",")
-  .map((o) => o.trim().replace(/\/+$/, ""))  // strip trailing slashes
+  .map((o) => o.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
-// Log at startup so Vercel Function logs make it obvious what's allowed
-console.log("[cors] Allowed origins:", allowedOrigins);
+console.log("[cors] Configured allowed origins:", configuredOrigins);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (same-origin, curl in dev, server-to-server)
-      if (!origin) return callback(null, true);
-      // Normalise the incoming origin the same way (strip trailing slash)
-      const normOrigin = origin.replace(/\/+$/, "");
-      if (allowedOrigins.includes(normOrigin)) return callback(null, true);
-      callback(new Error(`CORS: origin '${origin}' is not allowed.`));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+export function isOriginAllowed(origin) {
+  // Allow requests with no origin (same-origin, curl, server-to-server, mobile apps)
+  if (!origin) return true;
+
+  const norm = origin.trim().replace(/\/+$/, "").toLowerCase();
+
+  // 1. Wildcard allow-all
+  if (configuredOrigins.includes("*")) return true;
+
+  // 2. Exact match against configured origins
+  if (configuredOrigins.some((allowed) => allowed.toLowerCase() === norm)) {
+    return true;
+  }
+
+  // 3. Automatically allow all Vercel deployment subdomains (*.vercel.app)
+  if (/^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$/.test(norm)) {
+    return true;
+  }
+
+  // 4. Automatically allow local development servers (localhost / 127.0.0.1 on any port)
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(norm)) {
+    return true;
+  }
+
+  // 5. Wildcard pattern matching from configured origins (e.g. "https://*.azurecontainerapps.io")
+  for (const pattern of configuredOrigins) {
+    if (pattern.includes("*")) {
+      const regexPattern = pattern
+        .toLowerCase()
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, "[a-zA-Z0-9_-]+");
+      const regex = new RegExp(`^${regexPattern}$`);
+      if (regex.test(norm)) return true;
+    }
+  }
+
+  return false;
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`[cors] Blocked origin: ${origin}`);
+    // Standard CORS behavior: pass false to omit CORS headers without throwing a 500 error
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Cache-Control",
+    "X-CSRF-Token",
+  ],
+  exposedHeaders: ["Content-Disposition", "Content-Length", "X-Total-Count"],
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // ─── Security Headers ─────────────────────────────────────────────────────────
 app.use(helmet());

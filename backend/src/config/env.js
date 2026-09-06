@@ -84,9 +84,22 @@ if (!process.env.SUPABASE_URL) {
   );
 }
 
-// In production, FRONTEND_ORIGIN must be set
+// In production, FRONTEND_ORIGIN can be set explicitly or auto-configured for cloud environments (Vercel, etc.)
 if (isProd && !process.env.FRONTEND_ORIGIN) {
-  errors.push("  ✗ FRONTEND_ORIGIN must be set in production.");
+  if (process.env.VERCEL || process.env.VERCEL_URL) {
+    process.env.FRONTEND_ORIGIN = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL},https://*.vercel.app`
+      : "https://*.vercel.app";
+    warnings.push(
+      `  ℹ FRONTEND_ORIGIN not explicitly set; auto-configured for Vercel: "${process.env.FRONTEND_ORIGIN}"`
+    );
+  } else {
+    // In other production environments, warn and default to local/cloud origins instead of aborting boot
+    process.env.FRONTEND_ORIGIN = "http://localhost:5173,https://*.vercel.app";
+    warnings.push(
+      "  ⚠ FRONTEND_ORIGIN is not explicitly set in production. Dynamic multi-platform origin matching will be active."
+    );
+  }
 }
 
 // Fix C: SUPABASE_URL must be explicitly set in production — no hard-coded project fallback.

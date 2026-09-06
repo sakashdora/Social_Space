@@ -35,9 +35,20 @@ export async function getRegisterOptions(req, res) {
       });
     }
 
+    let rpID = env.WEBAUTHN_RP_ID;
+    const requestOrigin = req.get("origin") || req.get("host");
+    if (requestOrigin) {
+      try {
+        const hostname = requestOrigin.includes("://") ? new URL(requestOrigin).hostname : requestOrigin.split(":")[0];
+        if (hostname.endsWith("vercel.app") || hostname === "localhost") {
+          rpID = hostname;
+        }
+      } catch {}
+    }
+
     const options = await generateRegistrationOptions({
       rpName: env.WEBAUTHN_RP_NAME,
-      rpID: env.WEBAUTHN_RP_ID,
+      rpID,
       userID: Buffer.from(user.id, "utf8"),
       userName: user.handle,
       userDisplayName: `@${user.handle}`,
@@ -84,13 +95,29 @@ export async function verifyRegistration(req, res) {
       });
     }
 
+    const requestOrigin = req.get("origin")?.replace(/\/+$/, "");
+    const expectedOrigins = [env.WEBAUTHN_ORIGIN];
+    if (requestOrigin && !expectedOrigins.includes(requestOrigin)) {
+      expectedOrigins.push(requestOrigin);
+    }
+
+    let expectedRPID = env.WEBAUTHN_RP_ID;
+    if (requestOrigin) {
+      try {
+        const parsed = new URL(requestOrigin);
+        if (parsed.hostname.endsWith("vercel.app") || parsed.hostname === "localhost") {
+          expectedRPID = parsed.hostname;
+        }
+      } catch {}
+    }
+
     let verification;
     try {
       verification = await verifyRegistrationResponse({
         response: credential,
         expectedChallenge: stored.challenge,
-        expectedOrigin: env.WEBAUTHN_ORIGIN,
-        expectedRPID: env.WEBAUTHN_RP_ID,
+        expectedOrigin: expectedOrigins,
+        expectedRPID,
       });
     } catch (err) {
       return res.status(400).json({

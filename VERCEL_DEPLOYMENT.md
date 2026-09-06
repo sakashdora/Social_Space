@@ -50,7 +50,7 @@ In your Vercel Project Dashboard (**Settings > Environment Variables**), add the
 | `SUPABASE_URL` | Yes | `https://your-project.supabase.co` | Supabase project URL for storage |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | `eyJhbG...` | Supabase admin key for media bucket ops |
 | `SUPABASE_STORAGE_BUCKET` | Optional | `veil-media` | Bucket name (defaults to `veil-media`) |
-| `FRONTEND_ORIGIN` | Yes | `https://your-app.vercel.app` | CORS allowed origin(s), comma-separated |
+| `FRONTEND_ORIGIN` | Optional | `https://your-domain.com,https://*.vercel.app` | CORS allowed origin(s). Automatically permits all `*.vercel.app` preview deployments by default! |
 | `AI_API_KEY` | Optional | `AIzaSy...` | Gemini AI key for moderation & AI labels |
 | `AI_MODEL` | Optional | `gemini-2.5-flash` | Gemini model name |
 | `CRON_SECRET` | Optional | Random secret string | Authorization for Vercel Cron endpoint |
@@ -59,39 +59,24 @@ In your Vercel Project Dashboard (**Settings > Environment Variables**), add the
 
 ## Step 3: Deployment Options
 
-### Option A: Vercel Dashboard (Git Integration - Recommended)
+### Option A: Unified Monorepo Deployment (Vercel Root - Recommended)
 
 1. Push your code to GitHub / GitLab / Bitbucket.
 2. Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New Project**.
 3. Import your repository.
 4. Keep the **Root Directory** as `./` (project root).
-5. Vercel will automatically detect `vercel.json`. Verify build settings:
+5. Vercel automatically detects `vercel.json`:
    - **Framework Preset**: `Other`
    - **Build Command**: `npm run build`
-   - **Output Directory**: `frontend/dist/client`
+   - **Output Directory**: `dist`
 6. Add your **Environment Variables** (from Step 2).
 7. Click **Deploy**.
 
----
-
-### Option B: Vercel CLI Deployment
-
-1. Install the Vercel CLI:
-   ```bash
-   npm i -g vercel
-   ```
-2. Log in to Vercel:
-   ```bash
-   vercel login
-   ```
-3. Deploy to Preview:
-   ```bash
-   vercel
-   ```
-4. Deploy to Production:
-   ```bash
-   vercel --prod
-   ```
+### Option B: Standalone Frontend Deployment (Root Directory: `frontend`)
+If you prefer to deploy the frontend as a dedicated Vercel project:
+1. In Vercel Project Settings, set **Root Directory** to `frontend`.
+2. Vercel will use `frontend/vercel.json` with SPA routing rewrites.
+3. Set `VITE_API_URL` to your backend API URL (e.g. `https://your-backend.azurecontainerapps.io`).
 
 ---
 
@@ -120,5 +105,5 @@ After deployment completes:
 ## Troubleshooting
 
 - **500 Error on Database Query**: Ensure `DATABASE_URL` is correct and PostgreSQL database is accessible from Vercel's IP ranges (enable SSL mode `?sslmode=require` if required by host).
-- **Prisma Client Missing**: The build command `npm run build` automatically executes `npx prisma generate`. If Prisma client errors occur, verify `package.json` build scripts.
-- **CORS Error**: Ensure `FRONTEND_ORIGIN` matches your exact Vercel deployment domain (including `https://`).
+- **Prisma Client Missing**: The build command `npm run build` automatically executes `npx prisma generate`.
+- **CORS Support**: All `*.vercel.app` subdomains (including all preview URLs such as `https://social-space-veil-*.vercel.app`) and `localhost` are automatically permitted out of the box. For custom domains or external platforms (Azure Container Apps, Render, Railway), add them to `FRONTEND_ORIGIN` (wildcards like `https://*.azurecontainerapps.io` are fully supported).

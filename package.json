@@ -3,12 +3,21 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "dev": "npm run dev --prefix backend",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
-    "build": "npm --prefix backend run build && cd frontend && npm run build && cd .. && node scripts/copy-build.js",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build && node scripts/copy-build.js",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "start": "npm --prefix backend run start",
+    "start:backend": "npm --prefix backend run start",
+    "start:frontend": "npm --prefix frontend run start",
     "vercel-build": "node scripts/vercel-build.js",
     "prisma:generate": "npm --prefix backend run build"
   }
