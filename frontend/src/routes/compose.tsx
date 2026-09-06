@@ -91,6 +91,7 @@ export function ComposeStudio() {
 
   // ─── Format Tabs ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<FormatTab>("text");
+  const [mobileStudioTab, setMobileStudioTab] = useState<"edit" | "preview">("edit");
 
   // ─── Composer Content & Auto-Draft ───────────────────────────────────────────
   const [text, setText] = useState(() => {
@@ -523,17 +524,26 @@ export function ComposeStudio() {
             <span>{draftSaved ? "Draft saved" : "Saving…"}</span>
           </div>
 
-          {/* Preview Trigger (mobile scroll) */}
+          {/* Preview Trigger */}
           <button
             type="button"
             onClick={() => {
-              const previewEl = document.getElementById("live-preview-section");
-              previewEl?.scrollIntoView({ behavior: "smooth" });
+              if (window.innerWidth < 1024) {
+                setMobileStudioTab(mobileStudioTab === "edit" ? "preview" : "edit");
+              } else {
+                const previewEl = document.getElementById("live-preview-section");
+                previewEl?.scrollIntoView({ behavior: "smooth" });
+              }
             }}
-            className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] px-4 py-2.5 text-xs font-semibold text-foreground transition cursor-pointer"
+            className={cn(
+              "flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-xs font-semibold transition cursor-pointer",
+              mobileStudioTab === "preview"
+                ? "border-amber-400/60 bg-amber-400/15 text-amber-300"
+                : "border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-foreground",
+            )}
           >
             <Eye className="h-3.5 w-3.5" />
-            <span>Preview</span>
+            <span>{mobileStudioTab === "preview" ? "Edit Mode" : "Preview"}</span>
           </button>
 
           {/* Publish Header Button */}
@@ -566,12 +576,42 @@ export function ComposeStudio() {
         </div>
       )}
 
+      {/* Mobile Segmented Control: Edit Studio vs Live Preview */}
+      <div className="lg:hidden flex items-center justify-center p-1 rounded-2xl bg-white/5 border border-white/10 mb-6">
+        <button
+          type="button"
+          onClick={() => setMobileStudioTab("edit")}
+          className={cn(
+            "flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2",
+            mobileStudioTab === "edit"
+              ? "bg-amber-400 text-black shadow-md font-bold"
+              : "text-white/60 hover:text-white",
+          )}
+        >
+          <PenLine className="h-3.5 w-3.5" />
+          <span>Studio Controls</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileStudioTab("preview")}
+          className={cn(
+            "flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2",
+            mobileStudioTab === "preview"
+              ? "bg-amber-400 text-black shadow-md font-bold"
+              : "text-white/60 hover:text-white",
+          )}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          <span>Live Mockup</span>
+        </button>
+      </div>
+
       {/* ─── Two-Column Responsive Grid Studio ────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* ── LEFT COLUMN: Composer & Cryptographic Controls (7 Cols) ────── */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className={cn("lg:col-span-7 space-y-6", mobileStudioTab === "preview" && "hidden lg:block")}>
           {/* Format Selector Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b border-white/5">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none touch-momentum border-b border-white/5">
             {[
               { id: "text", label: "Text", icon: PenLine },
               { id: "photo", label: "Photo", icon: ImageIcon },
@@ -1052,7 +1092,7 @@ export function ComposeStudio() {
         </div>
 
         {/* ── RIGHT COLUMN: Privacy Shield, AI & Live Preview (5 Cols) ───── */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className={cn("lg:col-span-5 space-y-6", mobileStudioTab === "edit" && "hidden lg:block")}>
           {/* ── Privacy Shield Card ───────────────────────────────────────── */}
           <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl backdrop-blur-2xl space-y-4">
             <div className="flex items-center justify-between">

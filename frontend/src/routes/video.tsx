@@ -13,6 +13,7 @@ import {
   PlusCircle,
   ShieldAlert,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/video")({
   component: VideoFeed,
@@ -147,7 +148,10 @@ function PremiumPlayer({
           />
 
           {/* Custom Controls Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 flex flex-col justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+          <div className={cn(
+            "absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 flex flex-col justify-between p-4 transition-opacity duration-300 z-10",
+            isPlaying ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+          )}>
             {/* Top Bar */}
             <div className="flex justify-between items-start">
               {post.synthetic ? (
@@ -273,7 +277,7 @@ function VideoFeed() {
   });
 
   return (
-    <div className="cosmic-theme min-h-screen text-white mx-auto w-full max-w-lg sm:max-w-xl py-8 px-4 sm:px-6 pb-32 lg:pb-12">
+    <div className="cosmic-theme min-h-screen text-white mx-auto w-full max-w-lg sm:max-w-xl py-6 sm:py-8 px-4 sm:px-6 pb-36 lg:pb-16">
       <header className="text-center mb-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium tracking-wide text-amber-300 backdrop-blur-md mb-3">
           <Film className="h-3.5 w-3.5" />

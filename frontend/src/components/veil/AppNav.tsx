@@ -153,73 +153,75 @@ export function AppNav() {
       </aside>
 
       {/* ── Mobile Floating Glass Bottom Bar ── */}
-      <nav
-        className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-3xl border border-white/15 bg-[#080b11]/90 px-2 py-2 backdrop-blur-2xl lg:hidden shadow-[0_10px_35px_rgba(0,0,0,0.6)]"
-        style={{
-          paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
-        }}
-      >
-        {items.slice(0, 3).map((it) => {
-          const active =
-            it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
-          const Icon = it.icon;
-          return (
-            <Link
-              key={it.label}
-              to={it.to}
-              className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-all",
-                active
-                  ? "text-amber-400 bg-white/[0.08]"
-                  : "text-white/50 hover:text-white",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span className="text-[9px] font-medium tracking-tight">
-                {it.label}
-              </span>
-            </Link>
-          );
-        })}
-
-        {/* Center Golden + Transmission Button on Mobile */}
-        <Link
-          to="/compose"
-          aria-label="New Transmission"
-          className="flex -mt-4 h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.5)] border-2 border-[#080b11] transition active:scale-95"
+      {!pathname.startsWith("/messages/") || pathname === "/messages" ? (
+        <nav
+          className="fixed inset-x-2 sm:inset-x-4 max-w-lg mx-auto z-40 flex items-center justify-around rounded-3xl border border-white/15 bg-[#080b11]/90 px-1.5 py-2 backdrop-blur-2xl lg:hidden shadow-[0_12px_40px_rgba(0,0,0,0.65)]"
+          style={{
+            bottom: "max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))",
+          }}
         >
-          <PlusCircle className="h-5 w-5" />
-        </Link>
-
-        {items.slice(3).map((it) => {
-          const active = pathname.startsWith(it.to);
-          const Icon = it.icon;
-          return (
-            <Link
-              key={it.label}
-              to={it.to}
-              className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-all relative",
-                active
-                  ? "text-amber-400 bg-white/[0.08]"
-                  : "text-white/50 hover:text-white",
-              )}
-            >
-              <div className="relative">
-                <Icon className="h-4 w-4" />
-                {"badge" in it && it.badge && (
-                  <span className="absolute -top-1.5 -right-2 h-3.5 min-w-[14px] px-1 rounded-full bg-amber-400 text-black text-[8px] font-bold flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.6)]">
-                    {it.badge}
-                  </span>
+          {items.slice(0, 3).map((it) => {
+            const active =
+              it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
+            const Icon = it.icon;
+            return (
+              <Link
+                key={it.label}
+                to={it.to}
+                className={cn(
+                  "flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-all active:scale-95",
+                  active
+                    ? "text-amber-400 bg-white/[0.08]"
+                    : "text-white/50 hover:text-white",
                 )}
-              </div>
-              <span className="text-[9px] font-medium tracking-tight">
-                {it.label}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="text-[9px] font-medium tracking-tight truncate max-w-[48px]">
+                  {it.label}
+                </span>
+              </Link>
+            );
+          })}
+
+          {/* Center Golden + Transmission Button on Mobile */}
+          <Link
+            to="/compose"
+            aria-label="New Transmission"
+            className="flex -mt-5 h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.5)] border-2 border-[#080b11] transition-transform active:scale-90"
+          >
+            <PlusCircle className="h-5 w-5" />
+          </Link>
+
+          {items.slice(3).map((it) => {
+            const active = pathname.startsWith(it.to);
+            const Icon = it.icon;
+            return (
+              <Link
+                key={it.label}
+                to={it.to}
+                className={cn(
+                  "flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-all relative active:scale-95",
+                  active
+                    ? "text-amber-400 bg-white/[0.08]"
+                    : "text-white/50 hover:text-white",
+                )}
+              >
+                <div className="relative">
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {"badge" in it && it.badge && (
+                    <span className="absolute -top-1.5 -right-2 h-3.5 min-w-[14px] px-1 rounded-full bg-amber-400 text-black text-[8px] font-bold flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.6)]">
+                      {it.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[9px] font-medium tracking-tight truncate max-w-[48px]">
+                  {it.label}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
     </>
   );
 }

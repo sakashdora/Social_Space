@@ -34,6 +34,7 @@ function NewsComponent() {
   const [isBriefingLoading, setIsBriefingLoading] = useState(false);
   const [briefingError, setBriefingError] = useState("");
   const [iframeLoading, setIframeLoading] = useState(true);
+  const [modalTab, setModalTab] = useState<"ai" | "web">("ai");
 
   const {
     data: articles,
@@ -48,6 +49,7 @@ function NewsComponent() {
     setSelectedArticle(article);
     setAiBriefing("");
     setIframeLoading(true);
+    setModalTab("ai");
     autoGenerateBriefing(article);
   };
 
@@ -224,15 +226,46 @@ function NewsComponent() {
                   <button
                     onClick={handleCloseArticle}
                     className="rounded-full p-2 text-white/60 hover:bg-white/10 hover:text-white transition"
+                    aria-label="Close reader"
                   >
                     <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Mobile View Toggle */}
+                <div className="lg:hidden flex items-center justify-center p-1 rounded-2xl bg-white/5 border border-white/10 mt-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setModalTab("ai")}
+                    className={cn(
+                      "flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                      modalTab === "ai"
+                        ? "bg-amber-400 text-black shadow-md font-bold"
+                        : "text-white/60 hover:text-white",
+                    )}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>AI Synthesis</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalTab("web")}
+                    className={cn(
+                      "flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                      modalTab === "web"
+                        ? "bg-amber-400 text-black shadow-md font-bold"
+                        : "text-white/60 hover:text-white",
+                    )}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    <span>Source Web Frame</span>
                   </button>
                 </div>
 
                 {/* Content Grid */}
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-y-auto py-4 min-h-[40vh]">
                   {/* Left Column: Summary + AI */}
-                  <div className="lg:col-span-2 flex flex-col space-y-4 overflow-y-auto pr-1">
+                  <div className={cn("lg:col-span-2 flex flex-col space-y-4 overflow-y-auto pr-1", modalTab === "web" && "hidden lg:flex")}>
                     <h2 className="font-serif text-2xl font-bold leading-tight text-white">
                       {selectedArticle.title}
                     </h2>
@@ -275,7 +308,7 @@ function NewsComponent() {
                   </div>
 
                   {/* Right Column: Web Reader Frame */}
-                  <div className="lg:col-span-3 flex flex-col h-full min-h-[300px]">
+                  <div className={cn("lg:col-span-3 flex flex-col h-full min-h-[300px]", modalTab === "ai" && "hidden lg:flex")}>
                     <div className="relative flex-1 rounded-2xl overflow-hidden border border-white/10 bg-white">
                       {iframeLoading && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 z-10 bg-[#0c1017]">

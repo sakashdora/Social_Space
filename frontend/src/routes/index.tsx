@@ -61,15 +61,15 @@ export function LandingPage() {
       <CosmicAtmosphere />
 
       {/* ─── Navigation Bar ────────────────────────────────────────────── */}
-      <header className="fixed top-0 inset-x-0 z-50 border-b border-white/10 bg-[#06070a]/75 backdrop-blur-2xl px-6 sm:px-12 py-4">
+      <header className="fixed top-0 inset-x-0 z-50 border-b border-white/10 bg-[#06070a]/80 backdrop-blur-2xl px-4 sm:px-12 py-3.5 sm:py-4">
         <div className="mx-auto max-w-7xl flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <SocialSpaceEmblem className="h-8 w-8 transition-transform duration-300 group-hover:scale-105" />
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group">
+            <SocialSpaceEmblem className="h-7 sm:h-8 w-7 sm:w-8 transition-transform duration-300 group-hover:scale-105" />
             <div className="flex flex-col">
-              <span className="font-sans text-xl font-bold tracking-tight text-white group-hover:text-amber-300 transition-colors">
+              <span className="font-sans text-lg sm:text-xl font-bold tracking-tight text-white group-hover:text-amber-300 transition-colors">
                 Social Space
               </span>
-              <span className="text-[9px] tracking-[0.22em] text-amber-200/60 uppercase font-semibold">
+              <span className="text-[8px] sm:text-[9px] tracking-[0.22em] text-amber-200/60 uppercase font-semibold">
                 REAL PEOPLE · REAL CONNECTIONS
               </span>
             </div>
@@ -90,12 +90,12 @@ export function LandingPage() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
             <button
               type="button"
               onClick={toggleTheme}
               aria-label="Toggle theme"
-              className="h-9 w-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"
+              className="h-8 sm:h-9 w-8 sm:w-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"
             >
               {theme === "dark" ? (
                 <Moon className="h-4 w-4" />
@@ -107,7 +107,7 @@ export function LandingPage() {
             {authed ? (
               <Link
                 to="/social"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-5 py-2 text-xs sm:text-sm shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-4 sm:px-5 py-2 text-xs sm:text-sm shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
               >
                 <span>Enter Feed</span>
                 <ArrowRight className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function LandingPage() {
             ) : (
               <Link
                 to="/onboarding"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-5 py-2 text-xs sm:text-sm shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-4 sm:px-5 py-2 text-xs sm:text-sm shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
               >
                 <span>Join Social Space</span>
                 <ArrowRight className="h-4 w-4" />
@@ -126,17 +126,17 @@ export function LandingPage() {
       </header>
 
       {/* ─── Hero Section ──────────────────────────────────────────────── */}
-      <section className="relative z-10 pt-36 pb-20 px-6 sm:px-12">
+      <section className="relative z-10 pt-28 sm:pt-36 pb-16 sm:pb-20 px-4 sm:px-12">
         <div className="mx-auto max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
             {/* Left Hero Content */}
             <div className="lg:col-span-7 flex flex-col justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-400 w-fit mb-6 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-medium text-blue-400 w-fit mb-4 sm:mb-6 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                 <Sparkles className="h-3.5 w-3.5 text-blue-400" />
                 <span>The Sovereign Social Network</span>
               </div>
 
-              <h1 className="text-4xl sm:text-6xl lg:text-[4rem] font-extrabold tracking-tight text-white leading-[1.08]">
+              <h1 className="text-3xl sm:text-5xl lg:text-[3.8rem] font-extrabold tracking-tight text-white leading-[1.1]">
                 Connect freely.
                 <br />
                 <span className="text-[#3b82f6]">No email. No phone.</span>
@@ -144,16 +144,16 @@ export function LandingPage() {
                 No tracking.
               </h1>
 
-              <p className="mt-6 text-white/70 text-base sm:text-xl leading-relaxed max-w-xl">
+              <p className="mt-4 sm:mt-6 text-white/70 text-sm sm:text-lg leading-relaxed max-w-xl">
                 Social Space is designed for honest connection. Pick a handle in seconds,
                 share ideas without algorithmic surveillance, and own your identity with
                 pure on-device cryptography.
               </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-4">
+              <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-3.5 sm:gap-4">
                 <Link
                   to="/onboarding"
-                  className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-bold px-8 py-3.5 text-sm sm:text-base shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all cursor-pointer active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-bold px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all cursor-pointer active:scale-[0.98]"
                 >
                   <span>Pick a handle — 30s signup</span>
                   <ArrowRight className="h-4 w-4" />
@@ -161,14 +161,14 @@ export function LandingPage() {
 
                 <Link
                   to="/social"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-white px-7 py-3.5 text-sm sm:text-base font-medium transition cursor-pointer backdrop-blur-md"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-white px-5 sm:px-7 py-3 sm:py-3.5 text-xs sm:text-sm font-medium transition cursor-pointer backdrop-blur-md"
                 >
                   <span>Explore Live Feed</span>
                 </Link>
               </div>
 
               {/* Trust Metric Row */}
-              <div className="mt-12 grid grid-cols-3 gap-6 pt-8 border-t border-white/10 max-w-lg">
+              <div className="mt-8 sm:mt-12 grid grid-cols-3 gap-3 sm:gap-6 pt-6 sm:pt-8 border-t border-white/10 max-w-lg">
                 <div>
                   <span className="text-2xl sm:text-3xl font-bold text-white font-mono">
                     0

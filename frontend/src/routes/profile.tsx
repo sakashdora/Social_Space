@@ -562,7 +562,7 @@ function Profile() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="cosmic-theme min-h-screen text-white mx-auto max-w-3xl px-4 pb-32 lg:pb-14 pt-8 sm:px-6">
+    <div className="cosmic-theme min-h-screen text-white mx-auto max-w-3xl px-4 pb-36 lg:pb-16 pt-8 sm:px-6">
       <header className="mb-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium tracking-wide text-amber-300 backdrop-blur-md mb-3">
           <Shield className="h-3.5 w-3.5" />

@@ -1264,10 +1264,15 @@ export function Onboarding() {
       </main>
 
       {/* ─── Bottom Navigation Bar ─────────────────────────────────────── */}
-      <footer className="relative z-10 w-full px-6 sm:px-12 py-6 border-t border-white/[0.06] bg-[#06070a]/60 backdrop-blur-md">
+      <footer
+        className="relative z-10 w-full px-4 sm:px-12 py-4 sm:py-6 border-t border-white/[0.06] bg-[#06070a]/75 backdrop-blur-md"
+        style={{
+          paddingBottom: "max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))",
+        }}
+      >
         <div className="mx-auto max-w-7xl flex items-center justify-between">
           {/* Bottom Left Motto with Logo */}
-          <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3">
             <SocialSpaceEmblem className="h-5 w-5 opacity-75" glow={false} />
             <span className="text-xs text-white/40 tracking-wide font-medium">
               Connect · Share · Be Yourself
@@ -1275,11 +1280,11 @@ export function Onboarding() {
           </div>
 
           {/* Bottom Right Navigation Actions */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleBack}
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-white px-6 py-2.5 text-sm font-medium transition cursor-pointer backdrop-blur-sm"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-white px-5 sm:px-6 py-2.5 text-xs sm:text-sm font-medium transition cursor-pointer backdrop-blur-sm active:scale-95"
             >
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
@@ -1307,7 +1312,7 @@ export function Onboarding() {
                   (step === 1 && !ageConfirmed) ||
                   (step === 2 && (passphrase.length < 12 || entropy < 60))
                 }
-                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-8 py-2.5 text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {isLoading
                   ? "Creating account…"
@@ -1327,7 +1332,7 @@ export function Onboarding() {
                   setStep(4);
                 }}
                 disabled={!codesAcknowledged}
-                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-8 py-2.5 text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 active:scale-[0.98]"
+                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 active:scale-[0.98]"
               >
                 I’ve saved my codes
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -1343,7 +1348,7 @@ export function Onboarding() {
                 disabled={
                   isLoading || loginHandle.length < 3 || loginPassphrase.length < 3
                 }
-                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-8 py-2.5 text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 active:scale-[0.98]"
+                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 active:scale-[0.98]"
               >
                 {isLoading ? "Signing in…" : "Enter Social Space"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

@@ -296,16 +296,20 @@ function Thread() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#06070a] text-white">
-      {/* ── HEADER — pinned at top ────────────────────────────────── */}
+      {/* ── HEADER ─────────────────────────────────────────────── */}
       <header
-        className="flex shrink-0 items-center gap-3 px-5 py-3.5 relative z-30 bg-[#0c1017]/90 border-b border-white/10 backdrop-blur-xl"
+        className="flex shrink-0 items-center gap-3 px-4 sm:px-5 py-3.5 relative z-30 bg-[#0c1017]/90 border-b border-white/10 backdrop-blur-xl"
+        style={{
+          paddingTop: "max(12px, calc(10px + env(safe-area-inset-top, 0px)))",
+        }}
       >
         {/* Back to list (mobile only) */}
         <Link
           to="/messages"
-          className="mr-1 rounded-full p-1.5 text-white/60 hover:text-white transition hover:bg-white/10 active:scale-90 lg:hidden"
+          className="mr-0.5 rounded-full p-2 text-white/70 hover:text-white transition hover:bg-white/10 active:scale-90 lg:hidden"
+          aria-label="Back to conversations"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-5 w-5" />
         </Link>
 
         {/* Avatar */}
@@ -499,7 +503,10 @@ function Thread() {
 
       {/* ── COMPOSE BAR — pinned at bottom ───────────────────────── */}
       <div
-        className="shrink-0 px-4 py-3 bg-[#0c1017]/95 border-t border-white/10 backdrop-blur-xl"
+        className="shrink-0 px-3 sm:px-4 py-3 bg-[#0c1017]/95 border-t border-white/10 backdrop-blur-xl"
+        style={{
+          paddingBottom: "max(14px, calc(10px + env(safe-area-inset-bottom, 0px)))",
+        }}
       >
         {/* Attached media preview */}
         {attachedMedia && (
@@ -596,7 +603,7 @@ function Thread() {
         </div>
 
         {/* Keyboard hint */}
-        <p className="mt-1.5 text-center text-[10px] text-white/30 font-mono">
+        <p className="mt-1.5 text-center text-[10px] text-white/30 font-mono hidden sm:block">
           Enter to transmit · Shift+Enter for newline
         </p>
       </div>

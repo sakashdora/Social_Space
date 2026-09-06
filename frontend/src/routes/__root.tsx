@@ -14,6 +14,8 @@ import appCss from "../styles.css?url";
 import { AppNav } from "../components/veil/AppNav";
 import { ThemeProvider } from "../lib/theme";
 import { ThemeToggle } from "../components/veil/ThemeToggle";
+import { SocialSpaceEmblem } from "../components/veil/SocialSpaceEmblem";
+import { getCurrentUser, isAuthenticated } from "../lib/api";
 import { cn } from "../lib/utils";
 
 function NotFoundComponent() {
@@ -157,9 +159,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const user = getCurrentUser();
+  const authed = isAuthenticated();
 
   // Landing page uses full-bleed layout without the app chrome.
   const chrome = pathname !== "/" && pathname !== "/onboarding";
+  const isChatThread = pathname.startsWith("/messages/") && pathname !== "/messages";
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -176,20 +181,43 @@ function RootComponent() {
           />
 
           {chrome && <AppNav />}
-          {chrome && (
-            <header className="fixed top-0 inset-x-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-white/10 px-4 sm:px-6 bg-[#080b11]/90 backdrop-blur-xl lg:hidden">
-              <Link to="/" className="flex items-center gap-2.5">
-                <span className="font-sans font-bold text-lg tracking-tight text-white">
+          {chrome && !isChatThread && (
+            <header className="fixed top-0 inset-x-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-white/10 px-4 sm:px-6 bg-[#080b11]/90 backdrop-blur-xl lg:hidden shadow-sm">
+              <Link to="/" className="flex items-center gap-2.5 group">
+                <SocialSpaceEmblem className="h-7 w-7 transition-transform duration-300 group-hover:scale-105" />
+                <span className="font-sans font-bold text-base sm:text-lg tracking-tight text-white">
                   Social Space
                 </span>
               </Link>
+
+              <div className="flex items-center gap-2.5">
+                <ThemeToggle />
+                {authed && user ? (
+                  <Link
+                    to="/profile"
+                    className="h-8 w-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold text-xs"
+                    title={`@${user.handle}`}
+                  >
+                    {user.handle.slice(0, 2).toUpperCase()}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/onboarding"
+                    className="rounded-full bg-amber-400 px-3 py-1 text-xs font-semibold text-black hover:bg-amber-300 transition"
+                  >
+                    Join
+                  </Link>
+                )}
+              </div>
             </header>
           )}
 
           <main
             key={pathname}
             className={cn(
-              chrome && "lg:pl-64 pt-16 lg:pt-0",
+              chrome && "lg:pl-64",
+              chrome && !isChatThread && "pt-14 sm:pt-16 lg:pt-0",
+              isChatThread && "pt-0",
               chrome && pathname.startsWith("/messages")
                 ? "h-dvh overflow-hidden flex flex-col"
                 : "min-h-dvh",

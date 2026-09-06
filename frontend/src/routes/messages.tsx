@@ -150,8 +150,8 @@ function MessagesLayout() {
   return (
     <div
       className={cn(
-        "cosmic-theme min-h-screen text-white flex h-full w-full overflow-hidden flex-col lg:flex-row",
-        "pb-[88px] lg:pb-0", // Pad on mobile to clear bottom floating menu + safe area
+        "cosmic-theme text-white flex h-full w-full overflow-hidden flex-col lg:flex-row",
+        active ? "pb-0 h-dvh" : "min-h-screen pb-[88px] lg:pb-0",
       )}
     >
       {/* Thread list sidebar */}

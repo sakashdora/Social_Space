@@ -1073,4 +1073,83 @@ body.modal-open {
   color: var(--input-placeholder) !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   WINDOWS & MOBILE RESPONSIVE POLISH
+   Native-feeling desktop scrollbars, safe area insets & mobile touch dynamics
+   ═══════════════════════════════════════════════════════════════════════════ */
 
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+}
+
+/* Windows / Webkit sleek modern custom scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.3) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.45);
+}
+
+/* Touch targets and mobile interaction enhancements */
+button, 
+a, 
+input, 
+textarea, 
+select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth mobile momentum scrolling */
+.touch-momentum {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbars cleanly */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area padding utilities */
+.pb-safe {
+  padding-bottom: max(1rem, calc(1rem + var(--sab)));
+}
+
+.pt-safe {
+  padding-top: max(1rem, calc(1rem + var(--sat)));
+}
+
+.bottom-safe-nav {
+  bottom: max(0.75rem, calc(0.5rem + var(--sab)));
+}

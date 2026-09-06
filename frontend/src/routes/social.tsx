@@ -228,6 +228,7 @@ function SocialComponent() {
   const [quickText, setQuickText] = useState("");
   const [quickAnon, setQuickAnon] = useState<"full" | "pseudo">("full");
   const [isQuickPosting, setIsQuickPosting] = useState(false);
+  const [showMobileTrending, setShowMobileTrending] = useState(false);
 
   const handleQuickPost = async () => {
     if (!quickText.trim()) return;
@@ -452,7 +453,7 @@ function SocialComponent() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
-        className="max-w-[1440px] px-4 sm:px-6 lg:px-8 py-8 mx-auto flex gap-6 lg:gap-8 justify-center items-start min-h-screen pt-4 md:pt-8 pb-28 lg:pb-10"
+        className="max-w-[1440px] px-3 sm:px-6 lg:px-8 py-4 sm:py-8 mx-auto flex gap-6 lg:gap-8 justify-center items-start min-h-screen pb-36 lg:pb-12"
       >
         {/* Center Column: Feed (Max 760px) */}
         <main className="flex-1 w-full max-w-[760px] min-w-0 flex flex-col items-center pb-6">
@@ -462,7 +463,7 @@ function SocialComponent() {
               <span className="text-[10px] tracking-[0.2em] font-semibold text-amber-400 uppercase">
                 COMMUNITY CHRONICLES
               </span>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mt-1">
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mt-1">
                 Social Stream
               </h1>
               <p className="text-xs sm:text-sm text-white/60 mt-1">
@@ -491,7 +492,7 @@ function SocialComponent() {
 
             {/* Horizontal scroll Categories Tab */}
             <div className="relative flex items-center w-full">
-              <div className="flex-1 flex gap-2 overflow-x-auto pb-2 scrollbar-none pr-8">
+              <div className="flex-1 flex gap-2 overflow-x-auto pb-2 scrollbar-none pr-8 touch-momentum">
                 {categories.map((cat) => (
                   <div key={cat} className="relative">
                     {activeCategory === cat ? (
@@ -522,6 +523,46 @@ function SocialComponent() {
               <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/90 dark:from-[#06070a] dark:via-[#06070a]/90 to-transparent pl-4 pr-1 py-1 pointer-events-none">
                 <ChevronRight className="h-4 w-4 text-foreground/40 dark:text-white/40" />
               </div>
+            </div>
+
+            {/* Mobile / Tablet Trending Drawer */}
+            <div className="xl:hidden w-full">
+              <button
+                type="button"
+                onClick={() => setShowMobileTrending(!showMobileTrending)}
+                className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer shadow-sm"
+              >
+                <Flame className="h-3.5 w-3.5 text-amber-400" />
+                <span>{showMobileTrending ? "Hide Trending Topics" : "View Trending Topics"}</span>
+              </button>
+
+              <AnimatePresence>
+                {showMobileTrending && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 overflow-hidden"
+                  >
+                    <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none touch-momentum">
+                      {trendingTopics.map((topic) => (
+                        <div
+                          key={topic.id}
+                          onClick={() => {
+                            setSearchQuery(topic.title);
+                            showToast(`Filtered by "${topic.title}"`);
+                          }}
+                          className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-[#0c1017]/90 px-3.5 py-2 shrink-0 cursor-pointer hover:border-amber-400/40 transition-colors"
+                        >
+                          <span className="text-xs font-mono font-bold text-white/40">#{topic.id}</span>
+                          <span className="text-xs font-medium text-white truncate max-w-[150px]">{topic.title}</span>
+                          <span className="text-[10px] text-amber-400/80 font-mono">{topic.posts}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Inline Quick Transmission Box */}
@@ -750,7 +791,7 @@ function SocialComponent() {
 
                       {/* Card Footer Toolbar */}
                       <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
                           {/* Like */}
                           <button
                             onClick={() => handleReact(post.id, post.reactions)}
