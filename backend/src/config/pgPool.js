@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/config/pgPool.js
  *
  * Dedicated pg.Pool exclusively for rate-limiter-flexible (RateLimiterPostgres).
@@ -20,13 +20,17 @@
 import pg from "pg";
 import { env } from "./env.js";
 
-export const pgPool = new pg.Pool({
+const globalForPg = globalThis;
+
+export const pgPool = globalForPg.pgPool || new pg.Pool({
   connectionString:        env.DATABASE_URL,
   max:                     2,       // minimal footprint -- rate limiter use only
   idleTimeoutMillis:       30_000,  // release idle connections after 30s
   connectionTimeoutMillis: 3_000,   // fail fast if pool exhausted
   statement_timeout:       5_000,   // guard against slow counter queries
 });
+
+globalForPg.pgPool = pgPool;
 
 pgPool.on("error", (err) => {
   // Non-fatal: log but do not crash the process -- rate limiters will fail-open

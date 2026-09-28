@@ -1,6 +1,7 @@
 import prisma from "../config/prisma.js";
 import { analyzeContent } from "../services/ai.service.js";
 import sanitizeHtml from "sanitize-html";
+import { safeWaitUntil } from "../utils/lifecycle.js";
 
 // Phase 3 Fix #13: Strip-all HTML sanitisation.
 function sanitizeContent(raw) {
@@ -171,10 +172,12 @@ export async function createPost(req, res) {
       }
     });
 
-    // Run background AI moderation (non-blocking)
-    analyzeAndModeratePost(post.id, content).catch((err) => {
-      console.error(`Background post moderation fail-to-launch for ${post.id}:`, err);
-    });
+    // Run background AI moderation (non-blocking, serverless-safe lifecycle)
+    safeWaitUntil(
+      analyzeAndModeratePost(post.id, content).catch((err) => {
+        console.error(`Background post moderation fail-to-launch for ${post.id}:`, err);
+      })
+    );
 
     return res.status(201).json(post);
   } catch (error) {
@@ -194,7 +197,7 @@ export async function createPost(req, res) {
  */
 export async function getFeed(req, res) {
   try {
-    const { category, page = 1, limit = 10 } = req.query;
+    const { category, page = 1, limit = 10, userId, handle, hasMedia } = req.query;
 
     const skip = (parseInt(page) - 1) * Math.min(parseInt(limit) || 10, 50);
     const take = Math.min(parseInt(limit) || 10, 50);
@@ -205,6 +208,19 @@ export async function getFeed(req, res) {
 
     if (category && category !== "All") {
       where.category = category;
+    }
+
+    if (userId) {
+      where.userId = userId;
+    } else if (handle) {
+      where.user = { handle: handle };
+    }
+
+    if (hasMedia === "true" || hasMedia === true) {
+      where.OR = [
+        { storagePath: { not: null } },
+        { mediaId: { not: null } }
+      ];
     }
 
     const posts = await prisma.post.findMany({

@@ -243,8 +243,13 @@ router.post("/confirm", requireAuth, async (req, res) => {
       // Task 4: Server-authoritative duration probe (fails closed)
       const probeResult = await probeVideoDuration(tempVideoPath, premium);
       if (!probeResult.valid) {
-        // Delete rejected file from storage immediately
-        await supabase.storage.from(bucketName).remove([storagePath]).catch(console.error);
+        // Only delete from storage if it is a client-side invalid video / length violation (4xx),
+        // NOT if the server infrastructure failed (500)
+        if (probeResult.status !== 500) {
+          await supabase.storage.from(bucketName).remove([storagePath]).catch(console.error);
+        } else {
+          console.error("[media.routes] Video probe failed due to server infrastructure error:", probeResult.error);
+        }
         return res.status(probeResult.status || 400).json({
           error: probeResult.error,
           message: probeResult.message,

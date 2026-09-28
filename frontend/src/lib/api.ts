@@ -271,7 +271,11 @@ export function isAuthenticated() {
 /**
  * Fetch chronological feed.
  */
-export async function fetchFeed(category?: string, page?: number) {
+export async function fetchFeed(
+  category?: string,
+  page?: number,
+  filters?: { handle?: string; userId?: string; hasMedia?: boolean },
+) {
   let url = `${API_BASE}/v1/posts`;
   const params = new URLSearchParams();
   if (category && category !== "All") {
@@ -279,6 +283,15 @@ export async function fetchFeed(category?: string, page?: number) {
   }
   if (page) {
     params.append("page", page.toString());
+  }
+  if (filters?.handle) {
+    params.append("handle", filters.handle);
+  }
+  if (filters?.userId) {
+    params.append("userId", filters.userId);
+  }
+  if (filters?.hasMedia) {
+    params.append("hasMedia", "true");
   }
   const queryString = params.toString();
   if (queryString) {

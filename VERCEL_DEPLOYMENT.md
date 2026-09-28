@@ -107,3 +107,16 @@ After deployment completes:
 - **500 Error on Database Query**: Ensure `DATABASE_URL` is correct and PostgreSQL database is accessible from Vercel's IP ranges (enable SSL mode `?sslmode=require` if required by host).
 - **Prisma Client Missing**: The build command `npm run build` automatically executes `npx prisma generate`.
 - **CORS Support**: All `*.vercel.app` subdomains (including all preview URLs such as `https://social-space-veil-*.vercel.app`) and `localhost` are automatically permitted out of the box. For custom domains or external platforms (Azure Container Apps, Render, Railway), add them to `FRONTEND_ORIGIN` (wildcards like `https://*.azurecontainerapps.io` are fully supported).
+- **Video Upload Validation (ffmpeg / ffprobe)**: Video duration probes and server-side thumbnail extraction require `ffmpeg-static` and `ffprobe-static`. These are included in the Vercel function bundle via `includeFiles` in `vercel.json`:
+  ```json
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "{backend/**,node_modules/ffmpeg-static/**,node_modules/ffprobe-static/**}",
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+  ```
+  If `probeResult` throws `SERVER_BINARY_MISSING`, check that the root `vercel.json` includes the glob above.
+- **Background Tasks & Request Latency**: Never use bare un-awaited `.catch()` promises in request handlers. Serverless functions freeze immediately after sending an HTTP response; frozen promises resume on the next incoming request and cause unpredictable latency spikes. Always wrap background tasks (such as AI moderation or telemetry) with `safeWaitUntil(...)` (`@vercel/functions`).
+- **Database Connection Sizing**: Always ensure `DATABASE_URL` uses the pooled transaction mode port (`6543?pgbouncer=true`). Direct connections (port 5432) do not multiplex and will rapidly exhaust Postgres connection slots under serverless concurrency.

@@ -1,6 +1,7 @@
 import prisma from "../config/prisma.js";
 import { analyzeContent } from "../services/ai.service.js";
 import sanitizeHtml from "sanitize-html";
+import { safeWaitUntil } from "../utils/lifecycle.js";
 
 function sanitizeContent(raw) {
   return sanitizeHtml(raw, { allowedTags: [], allowedAttributes: {} });
@@ -104,10 +105,12 @@ export async function createComment(req, res) {
       }
     });
 
-    // Run background AI moderation (non-blocking)
-    analyzeAndModerateComment(comment.id, content).catch((err) => {
-      console.error(`Background comment moderation fail-to-launch for ${comment.id}:`, err);
-    });
+    // Run background AI moderation (non-blocking, serverless-safe lifecycle)
+    safeWaitUntil(
+      analyzeAndModerateComment(comment.id, content).catch((err) => {
+        console.error(`Background comment moderation fail-to-launch for ${comment.id}:`, err);
+      })
+    );
 
     return res.status(201).json(comment);
   } catch (error) {

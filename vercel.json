@@ -7,7 +7,9 @@
   "framework": null,
   "functions": {
     "api/index.js": {
-      "includeFiles": "backend/**"
+      "includeFiles": "{backend/**,node_modules/ffmpeg-static/**,node_modules/ffprobe-static/**}",
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "crons": [

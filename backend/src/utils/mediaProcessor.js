@@ -1,13 +1,32 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import fs from "fs";
 import ffmpegPath from "ffmpeg-static";
 import ffprobePath from "ffprobe-static";
 
 const execFileAsync = promisify(execFile);
 
 /**
+ * Ensures binary files packaged in serverless bundles have executable permissions on Linux.
+ * 
+ * @param {string} binPath 
+ */
+async function ensureExecutable(binPath) {
+  if (!binPath || process.platform === "win32") return;
+  try {
+    const stat = await fs.promises.stat(binPath);
+    if ((stat.mode & 0o111) === 0) {
+      await fs.promises.chmod(binPath, 0o755);
+    }
+  } catch {
+    // Read-only filesystem or missing binary; let execution attempt proceed or fail explicitly
+  }
+}
+
+/**
  * Server-authoritative video duration probe using ffprobe.
  * Fails closed if duration is unreadable or non-positive.
+ * Differentiates missing server binaries (500) from invalid user videos (400).
  * 
  * @param {string} filePath - Path to video file on disk
  * @param {boolean} isPremium - Whether user has premium account
@@ -15,7 +34,10 @@ const execFileAsync = promisify(execFile);
  */
 export async function probeVideoDuration(filePath, isPremium) {
   try {
-    const { stdout } = await execFileAsync(ffprobePath.path || "ffprobe", [
+    const resolvedFfprobe = ffprobePath?.path || "ffprobe";
+    await ensureExecutable(resolvedFfprobe);
+
+    const { stdout } = await execFileAsync(resolvedFfprobe, [
       "-v", "error",
       "-show_entries", "format=duration",
       "-of", "default=noprint_wrappers=1:nokey=1",
@@ -49,11 +71,14 @@ export async function probeVideoDuration(filePath, isPremium) {
     };
   } catch (err) {
     console.error("[mediaProcessor] ffprobe execution error:", err.message);
+    const isBinaryMissing = err.code === "ENOENT";
     return {
       valid: false,
-      error: "INVALID_VIDEO_FILE",
-      message: "Invalid or unsupported video file. Unable to verify duration.",
-      status: 400
+      error: isBinaryMissing ? "SERVER_BINARY_MISSING" : "INVALID_VIDEO_FILE",
+      message: isBinaryMissing
+        ? "Video verification binary (ffprobe) is missing or not executable on this server deployment."
+        : "Invalid or unsupported video file. Unable to verify duration.",
+      status: isBinaryMissing ? 500 : 400
     };
   }
 }
@@ -66,8 +91,11 @@ export async function probeVideoDuration(filePath, isPremium) {
  * @returns {Promise<boolean>} - True if thumbnail was extracted, false if failed
  */
 export async function extractVideoThumbnail(videoPath, outputPath) {
+  const resolvedFfmpeg = ffmpegPath || "ffmpeg";
+  await ensureExecutable(resolvedFfmpeg);
+
   try {
-    await execFileAsync(ffmpegPath || "ffmpeg", [
+    await execFileAsync(resolvedFfmpeg, [
       "-ss", "0.5",
       "-i", videoPath,
       "-frames:v", "1",
@@ -78,7 +106,7 @@ export async function extractVideoThumbnail(videoPath, outputPath) {
   } catch (err) {
     console.warn("[mediaProcessor] Thumbnail extraction failed at 0.5s, trying at 0.0s:", err.message);
     try {
-      await execFileAsync(ffmpegPath || "ffmpeg", [
+      await execFileAsync(resolvedFfmpeg, [
         "-ss", "0.0",
         "-i", videoPath,
         "-frames:v", "1",
