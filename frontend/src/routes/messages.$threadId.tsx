@@ -42,9 +42,19 @@ function Thread() {
   const [showTimerMenu, setShowTimerMenu] = useState(false);
   const [attachedMedia, setAttachedMedia] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isPageVisible, setIsPageVisible] = useState(
+    typeof document !== "undefined" ? !document.hidden : true
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Pause polling when tab is hidden to save resources
+  useEffect(() => {
+    const handleVisibility = () => setIsPageVisible(!document.hidden);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   const { data: chats = [] } = useQuery({
     queryKey: ["chats"],
@@ -61,7 +71,9 @@ function Thread() {
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["chatMessages", threadId],
     queryFn: () => fetchChatMessages(threadId),
-    refetchInterval: 2500,
+    // Poll at 3s when visible, pause when tab is hidden
+    refetchInterval: isPageVisible ? 3000 : false,
+    refetchIntervalInBackground: false,
   });
 
   const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
@@ -278,7 +290,7 @@ function Thread() {
     setUploading(true);
     try {
       const uploaded = await uploadMedia(file);
-      setAttachedMedia(uploaded.url);
+      setAttachedMedia(uploaded.url ?? `/api/media/stream/${uploaded.mediaId}`);
     } catch (err: any) {
       console.error("Attachment failed:", err);
     } finally {

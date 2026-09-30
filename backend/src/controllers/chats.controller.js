@@ -6,15 +6,11 @@ import prisma from "../config/prisma.js";
  */
 export async function getChats(req, res) {
   try {
-    const participantRooms = await prisma.threadParticipant.findMany({
-      where: { userId: req.user.id },
-      select: { threadId: true }
-    });
-    
-    const roomIds = participantRooms.map((r) => r.threadId);
-    
+    // Single query — filter threads by participant membership directly
     const threads = await prisma.thread.findMany({
-      where: { id: { in: roomIds } },
+      where: {
+        participants: { some: { userId: req.user.id } }
+      },
       include: {
         participants: {
           include: {
@@ -253,8 +249,10 @@ export async function sendChatMessage(req, res) {
       });
     }
 
-    // Calculate strict expiration bounds
-    const expiresAt = new Date(Date.now() + thread.deleteAfterSeconds * 1000);
+    // Guard: only compute expiresAt if thread has a valid deletion policy
+    const expiresAt = thread.deleteAfterSeconds
+      ? new Date(Date.now() + thread.deleteAfterSeconds * 1000)
+      : null;
 
     const message = await prisma.message.create({
       data: {

@@ -66,6 +66,33 @@ export async function requireAuth(req, res, next) {
 }
 
 /**
+ * Optional authentication middleware — silently attaches req.user from a valid
+ * Bearer JWT, but always calls next(). Use on public routes that return
+ * personalised data (e.g. userHasReacted) when a user is logged in.
+ */
+export async function optionalAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      const payload = verifyToken(token);
+      if (payload && payload.userId) {
+        const user = await prisma.user.findUnique({
+          where: { id: payload.userId },
+          select: { id: true, handle: true, isBanned: true, tokenVersion: true },
+        });
+        if (user && !user.isBanned && payload.tokenVersion === user.tokenVersion) {
+          req.user = { id: user.id, handle: user.handle };
+        }
+      }
+    }
+  } catch {
+    // Silently ignore — treat as unauthenticated
+  }
+  next();
+}
+
+/**
  * Step-up authentication middleware for sensitive actions.
  * Requires the request body to include `currentPassphrase`.
  * Verifies it against the stored Argon2id hash before allowing the action.

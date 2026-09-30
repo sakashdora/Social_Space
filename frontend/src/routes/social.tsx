@@ -294,9 +294,20 @@ function SocialComponent() {
     queryFn: () => fetchFeed(activeCategory, page),
   });
 
-  // Append new paginated posts
+  // Append new paginated posts + seed localReactions from server data
   useEffect(() => {
     if (pagePosts) {
+      // Seed reaction state from server for any posts not yet tracked locally
+      setLocalReactions((prev) => {
+        const updates: Record<string, { count: number; active: boolean }> = {};
+        pagePosts.forEach((p: any) => {
+          if (!(p.id in prev)) {
+            updates[p.id] = { count: p.reactions, active: p.userHasReacted ?? false };
+          }
+        });
+        return Object.keys(updates).length > 0 ? { ...updates, ...prev } : prev;
+      });
+
       if (page === 1) {
         setAllPosts(pagePosts);
       } else {
@@ -337,7 +348,7 @@ function SocialComponent() {
     refetchInterval: 5000,
   });
 
-  // Comments Query
+  // Comments Query — refetches every 3s when a post is expanded for realtime feel
   const { data: expandedPostDetails, isLoading: isCommentsLoading } = useQuery({
     queryKey: ["post-details", expandedPostId],
     queryFn: async () => {
@@ -345,6 +356,8 @@ function SocialComponent() {
       return fetchPostDetails(expandedPostId);
     },
     enabled: !!expandedPostId,
+    refetchInterval: expandedPostId ? 3000 : false,
+    refetchIntervalInBackground: false,
   });
 
   // Repost Mutation
@@ -907,11 +920,22 @@ function SocialComponent() {
 
                           {/* Share */}
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `${window.location.origin}/social?post=${post.id}`,
-                              );
-                              showToast("Link copied to clipboard");
+                            onClick={async () => {
+                              const url = `${window.location.origin}/social?post=${post.id}`;
+                              if (typeof navigator.share === "function") {
+                                try {
+                                  await navigator.share({ title: "Veil Social Post", url });
+                                  return;
+                                } catch {
+                                  // User cancelled or browser denied — fall through to clipboard
+                                }
+                              }
+                              try {
+                                await navigator.clipboard.writeText(url);
+                                showToast("Link copied to clipboard");
+                              } catch {
+                                showToast("Unable to copy link");
+                              }
                             }}
                             className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition hover:scale-105 cursor-pointer"
                           >
@@ -1009,12 +1033,18 @@ function SocialComponent() {
                             <button
                               onClick={() => handleSendComment(post.id)}
                               disabled={
-                                commentMutation.isPending ||
+                                (commentMutation.isPending &&
+                                  commentMutation.variables?.postId === post.id) ||
                                 !commentTexts[post.id]?.trim()
                               }
-                              className="rounded-xl bg-[color:var(--primary)] px-3.5 py-2.5 text-primary-foreground transition hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                              className="rounded-xl bg-[color:var(--primary)] px-3.5 py-2.5 text-primary-foreground transition hover:brightness-110 disabled:opacity-50 cursor-pointer flex items-center"
                             >
-                              <Send className="h-4 w-4" />
+                              {commentMutation.isPending &&
+                              commentMutation.variables?.postId === post.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                         </div>

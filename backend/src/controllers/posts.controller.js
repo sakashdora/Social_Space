@@ -270,6 +270,21 @@ export async function getFeed(req, res) {
       }
     });
 
+    // Batch-fetch current user's reactions for all returned posts in one query
+    let userReactedPostIds = new Set();
+    if (req.user && posts.length > 0) {
+      const postIds = posts.map(p => p.id);
+      const userReactions = await prisma.reaction.findMany({
+        where: {
+          userId: req.user.id,
+          postId: { in: postIds },
+          reactionType: "heart"
+        },
+        select: { postId: true }
+      });
+      userReactedPostIds = new Set(userReactions.map(r => r.postId));
+    }
+
     const formattedPosts = posts.map(p => {
       const hasMedia = p.storagePath || p.media?.storagePath;
       const hasThumb = p.thumbStoragePath || p.media?.thumbnailPath;
@@ -303,6 +318,7 @@ export async function getFeed(req, res) {
         media: p.media ?? null,
         commentCount: p._count.comments,
         reactionCount: p._count.reactions,
+        userHasReacted: userReactedPostIds.has(p.id)
       };
     });
 
@@ -367,7 +383,9 @@ export async function getPostDetails(req, res) {
             }
           }
         },
-        reactions: true
+        reactions: {
+          select: { userId: true, reactionType: true }
+        }
       }
     });
 
@@ -385,6 +403,11 @@ export async function getPostDetails(req, res) {
 
     const sharedMedia = post.sharedPost ? (post.sharedPost.storagePath || post.sharedPost.media?.storagePath) : false;
     const sharedThumb = post.sharedPost ? (post.sharedPost.thumbStoragePath || post.sharedPost.media?.thumbnailPath) : false;
+
+    // Check if requesting user has reacted (optional auth)
+    const userHasReacted = req.user
+      ? post.reactions.some(r => r.userId === req.user.id && r.reactionType === "heart")
+      : false;
 
     const formattedPost = {
       ...post,
@@ -404,6 +427,7 @@ export async function getPostDetails(req, res) {
       sentimentAnalysis: post.sentimentAnalysis ? JSON.parse(post.sentimentAnalysis) : null,
       commentCount: post.comments.length,
       reactionCount: post.reactions.length,
+      userHasReacted
     };
 
     return res.status(200).json(formattedPost);

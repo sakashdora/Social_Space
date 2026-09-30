@@ -134,7 +134,7 @@ function formatRelativeTime(dateString: string): string {
   return `${diffDays}d`;
 }
 
-export function mapApiPostToUiPost(p: ApiPost) {
+export function mapApiPostToUiPost(p: ApiPost & { userHasReacted?: boolean }) {
   const author = p.user ? p.user.handle : "anonymous";
   const handle = p.user ? `@${p.user.handle}` : "@anonymous";
   const color = p.user ? stringToColor(p.user.handle) : "#555555"; // Dark gray for fully anonymous
@@ -163,6 +163,7 @@ export function mapApiPostToUiPost(p: ApiPost) {
     synthetic: p.isAiModifiedMedia || false,
     reactions: p.reactionCount || 0,
     replies: p.commentCount || 0,
+    userHasReacted: p.userHasReacted ?? false,
     sharedPostId: p.sharedPostId || null,
     sharedPost: p.sharedPost ? {
       id: p.sharedPost.id,
@@ -175,6 +176,7 @@ export function mapApiPostToUiPost(p: ApiPost) {
     } : null,
   };
 }
+
 
 // Helper to get auth header
 function getHeaders(
