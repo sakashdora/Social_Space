@@ -15,7 +15,7 @@ import { AppNav } from "../components/veil/AppNav";
 import { ThemeProvider } from "../lib/theme";
 import { ThemeToggle } from "../components/veil/ThemeToggle";
 import { SocialSpaceEmblem } from "../components/veil/SocialSpaceEmblem";
-import { getCurrentUser, isAuthenticated } from "../lib/api";
+import { useAuth } from "../hooks/useAuth";
 import { cn } from "../lib/utils";
 
 function NotFoundComponent() {
@@ -159,8 +159,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const user = getCurrentUser();
-  const authed = isAuthenticated();
+  const { user, isAuthenticated: authed } = useAuth();
 
   // Landing page uses full-bleed layout without the app chrome.
   const chrome = pathname !== "/" && pathname !== "/onboarding";
@@ -182,10 +181,10 @@ function RootComponent() {
 
           {chrome && <AppNav />}
           {chrome && !isChatThread && (
-            <header className="fixed top-0 inset-x-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-white/10 px-4 sm:px-6 bg-[#080b11]/90 backdrop-blur-xl lg:hidden shadow-sm">
+            <header className="fixed top-0 inset-x-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-border px-4 sm:px-6 bg-white/95 dark:bg-[#080b11]/90 backdrop-blur-xl lg:hidden shadow-sm">
               <Link to="/" className="flex items-center gap-2.5 group">
                 <SocialSpaceEmblem className="h-7 w-7 transition-transform duration-300 group-hover:scale-105" />
-                <span className="font-sans font-bold text-base sm:text-lg tracking-tight text-white">
+                <span className="font-sans font-bold text-base sm:text-lg tracking-tight text-foreground">
                   Social Space
                 </span>
               </Link>

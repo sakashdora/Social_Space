@@ -307,10 +307,10 @@ function Thread() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#06070a] text-white">
+    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <header
-        className="flex shrink-0 items-center gap-3 px-4 sm:px-5 py-3.5 relative z-30 bg-[#0c1017]/90 border-b border-white/10 backdrop-blur-xl"
+        className="flex shrink-0 items-center gap-3 px-4 sm:px-5 py-3.5 relative z-30 bg-card/90 border-b border-border backdrop-blur-xl"
         style={{
           paddingTop: "max(12px, calc(10px + env(safe-area-inset-top, 0px)))",
         }}
@@ -318,7 +318,7 @@ function Thread() {
         {/* Back to list (mobile only) */}
         <Link
           to="/messages"
-          className="mr-0.5 rounded-full p-2 text-white/70 hover:text-white transition hover:bg-white/10 active:scale-90 lg:hidden"
+          className="mr-0.5 rounded-full p-2 text-muted-foreground hover:text-foreground transition hover:bg-muted active:scale-90 lg:hidden"
           aria-label="Back to conversations"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -326,7 +326,7 @@ function Thread() {
 
         {/* Avatar */}
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white border border-white/20"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white border border-border"
           style={{
             background: `linear-gradient(135deg, ${thread.color}, color-mix(in oklab, ${thread.color} 40%, black))`,
           }}
@@ -336,11 +336,11 @@ function Thread() {
 
         {/* Name + subtitle */}
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-white">
+          <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
             @{thread.handle}
-            <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-amber-500 dark:text-amber-400" />
           </p>
-          <p className="text-[11px] text-white/50">
+          <p className="text-[11px] text-muted-foreground">
             Zero-knowledge link active
           </p>
         </div>
@@ -350,9 +350,9 @@ function Thread() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowTimerMenu(!showTimerMenu)}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 transition hover:bg-amber-500/20"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-amber-600 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 transition hover:bg-amber-500/20"
           >
-            <Timer className="h-3.5 w-3.5 text-amber-400" />
+            <Timer className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
             <span className="hidden sm:inline">Delete: </span>
             {thread.disappearing || "7d"}
             <ChevronDown
@@ -375,7 +375,7 @@ function Thread() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -8 }}
                   transition={{ type: "spring", stiffness: 450, damping: 28 }}
-                  className="absolute right-0 z-50 mt-2 w-44 rounded-2xl p-1.5 bg-[#0c1017]/95 border border-amber-500/30 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl"
+                  className="absolute right-0 z-50 mt-2 w-44 rounded-2xl p-1.5 bg-card/95 border border-border shadow-[0_0_30px_rgba(0,0,0,0.3)] backdrop-blur-2xl"
                 >
                   {timerOptions.map((opt) => {
                     const isCurrent = thread.deleteAfterSeconds === opt.seconds;
@@ -389,8 +389,8 @@ function Thread() {
                         className={cn(
                           "w-full text-left rounded-xl px-3 py-2 text-xs transition-colors",
                           isCurrent
-                            ? "font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            : "text-white/70 hover:bg-white/5 hover:text-white",
+                            ? "font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
                         )}
                       >
                         {opt.label}
@@ -408,7 +408,7 @@ function Thread() {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {/* Encrypted notice */}
         <div
-          className="mx-auto mb-3 w-fit max-w-[85%] rounded-full px-4 py-1 text-center text-[11px] font-mono text-amber-300/90 bg-amber-500/10 border border-amber-500/25"
+          className="mx-auto mb-3 w-fit max-w-[85%] rounded-full px-4 py-1 text-center text-[11px] font-mono text-amber-600 dark:text-amber-300 bg-amber-500/10 border border-amber-500/25"
         >
           Encrypted · auto-deleted after {thread.disappearing || "7d"}
         </div>
@@ -422,7 +422,7 @@ function Thread() {
                 className={cn("flex", i % 2 ? "justify-start" : "justify-end")}
               >
                 <div
-                  className="h-10 w-40 rounded-2xl animate-pulse bg-white/5 border border-white/5"
+                  className="h-10 w-40 rounded-2xl animate-pulse bg-muted/60 border border-border"
                 />
               </div>
             ))}
@@ -431,7 +431,7 @@ function Thread() {
 
         {/* Empty state */}
         {!isLoading && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 gap-2 text-white/40">
+          <div className="flex flex-col items-center justify-center py-20 gap-2 text-muted-foreground">
             <span className="text-3xl">✨</span>
             <p className="text-xs">Zero signals recorded yet. Start transmitting!</p>
           </div>
@@ -463,7 +463,7 @@ function Thread() {
                     "max-w-[75%] px-4 py-2.5 text-sm leading-relaxed shadow-md transition-all duration-200",
                     m.mine
                       ? "bg-gradient-to-r from-amber-500 to-amber-600 text-black font-medium rounded-2xl rounded-tr-xs shadow-[0_0_20px_rgba(245,158,11,0.2)]"
-                      : "bg-[#121824] border border-white/10 text-white rounded-2xl rounded-tl-xs",
+                      : "bg-card border border-border text-foreground rounded-2xl rounded-tl-xs",
                     m.sending && "opacity-70 cursor-not-allowed select-none",
                   )}
                 >
@@ -492,7 +492,7 @@ function Thread() {
                   <span
                     className={cn(
                       "mt-1 flex items-center justify-end gap-1 text-[10px] select-none",
-                      m.mine ? "text-black/60" : "text-white/40"
+                      m.mine ? "text-black/60" : "text-muted-foreground"
                     )}
                   >
                     {m.sending ? (
@@ -515,7 +515,7 @@ function Thread() {
 
       {/* ── COMPOSE BAR — pinned at bottom ───────────────────────── */}
       <div
-        className="shrink-0 px-3 sm:px-4 py-3 bg-[#0c1017]/95 border-t border-white/10 backdrop-blur-xl"
+        className="shrink-0 px-3 sm:px-4 py-3 bg-card/95 border-t border-border backdrop-blur-xl"
         style={{
           paddingBottom: "max(14px, calc(10px + env(safe-area-inset-bottom, 0px)))",
         }}
@@ -523,7 +523,7 @@ function Thread() {
         {/* Attached media preview */}
         {attachedMedia && (
           <div
-            className="relative mb-2 inline-block rounded-xl p-1.5 bg-white/5 border border-white/10"
+            className="relative mb-2 inline-block rounded-xl p-1.5 bg-muted/40 border border-border"
           >
             {attachedMedia.startsWith("data:video/") ? (
               <video
@@ -548,7 +548,7 @@ function Thread() {
         )}
 
         {/* Input row */}
-        <div className="flex items-end gap-2 px-3 py-2.5 rounded-2xl bg-white/5 border border-white/10 focus-within:border-amber-500/40 focus-within:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all">
+        <div className="flex items-end gap-2 px-3 py-2.5 rounded-2xl bg-muted/40 border border-border focus-within:border-amber-500/40 focus-within:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all">
           {/* Hidden file input */}
           <input
             type="file"
@@ -564,11 +564,11 @@ function Thread() {
             whileHover={{ scale: 1.05 }}
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="shrink-0 p-1.5 text-white/60 hover:text-white transition disabled:opacity-50"
+            className="shrink-0 p-1.5 text-muted-foreground hover:text-foreground transition disabled:opacity-50"
             title="Attach photo or video"
           >
             {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+              <Loader2 className="h-4 w-4 animate-spin text-amber-500 dark:text-amber-400" />
             ) : (
               <Paperclip className="h-4 w-4" />
             )}
@@ -581,7 +581,7 @@ function Thread() {
             value={draft}
             onChange={handleTextareaChange}
             placeholder="Type encrypted message…"
-            className="flex-1 resize-none bg-transparent text-sm leading-6 outline-none text-white placeholder:text-white/30"
+            className="flex-1 resize-none bg-transparent text-sm leading-6 outline-none text-foreground placeholder:text-muted-foreground"
             style={{
               minHeight: "24px",
               maxHeight: "120px",
@@ -615,7 +615,7 @@ function Thread() {
         </div>
 
         {/* Keyboard hint */}
-        <p className="mt-1.5 text-center text-[10px] text-white/30 font-mono hidden sm:block">
+        <p className="mt-1.5 text-center text-[10px] text-muted-foreground font-mono hidden sm:block">
           Enter to transmit · Shift+Enter for newline
         </p>
       </div>

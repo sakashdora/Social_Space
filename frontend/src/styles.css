@@ -7,6 +7,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is(.light *));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -1066,11 +1067,139 @@ body.modal-open {
 .light .cosmic-theme * {
   --color-foreground: oklch(0.14 0.009 58);
 }
-.light .cosmic-theme input {
+.light .cosmic-theme input,
+.light input,
+.light .cosmic-theme textarea,
+.light textarea {
   color: var(--input-text) !important;
 }
-.light .cosmic-theme input::placeholder {
+.light .cosmic-theme input::placeholder,
+.light input::placeholder,
+.light .cosmic-theme textarea::placeholder,
+.light textarea::placeholder {
   color: var(--input-placeholder) !important;
+}
+
+/* ── Light Mode Text Contrast Overrides ── */
+.light .text-white,
+.light .cosmic-theme .text-white {
+  color: oklch(0.14 0.009 58) !important;
+}
+.light .text-white\/90,
+.light .cosmic-theme .text-white\/90 {
+  color: oklch(0.20 0.01 68) !important;
+}
+.light .text-white\/80,
+.light .cosmic-theme .text-white\/80 {
+  color: oklch(0.25 0.01 68) !important;
+}
+.light .text-white\/70,
+.light .cosmic-theme .text-white\/70 {
+  color: oklch(0.32 0.01 68) !important;
+}
+.light .text-white\/60,
+.light .cosmic-theme .text-white\/60 {
+  color: oklch(0.38 0.01 68) !important;
+}
+.light .text-white\/50,
+.light .cosmic-theme .text-white\/50 {
+  color: oklch(0.44 0.01 68) !important;
+}
+.light .text-white\/40,
+.light .cosmic-theme .text-white\/40 {
+  color: oklch(0.48 0.01 68) !important;
+}
+.light .text-white\/30,
+.light .cosmic-theme .text-white\/30 {
+  color: oklch(0.55 0.01 68) !important;
+}
+
+/* Elements on dark pill buttons or dark media badges MUST retain white text in light mode */
+.light :is(.bg-black, .bg-neutral-900, .bg-neutral-800, [class*="bg-black/"]) :is(.text-white, .text-white\/90, .text-white\/80),
+.light [class*="bg-black/"] > span,
+.light [class*="bg-black/"] > svg {
+  color: #ffffff !important;
+}
+
+/* ── Light Mode Surfaces & Cards ── */
+.light .bg-\[\#0c1017\],
+.light .bg-\[\#080b11\],
+.light .bg-\[\#06070a\],
+.light .bg-\[\#070a0f\],
+.light .bg-\[\#070a10\],
+.light .bg-\[\#07090e\],
+.light .bg-\[\#090d14\],
+.light .bg-\[\#090d15\],
+.light .bg-\[\#0d121c\],
+.light .bg-\[\#121824\],
+.light .bg-\[\#0c1017\]\/80,
+.light .bg-\[\#0c1017\]\/85,
+.light .bg-\[\#0c1017\]\/90,
+.light .bg-\[\#0c1017\]\/95,
+.light .bg-\[\#080b11\]\/90,
+.light .bg-\[\#06070a\]\/80,
+.light .bg-\[\#06070a\]\/75,
+.light .bg-\[\#06070a\]\/60,
+.light .bg-\[\#070a10\]\/50,
+.light .bg-\[\#090d14\]\/95,
+.light .bg-\[\#090d15\]\/90,
+.light .bg-\[\#121824\]\/90 {
+  background-color: oklch(0.965 0.005 84) !important;
+  border-color: oklch(0 0 0 / 10%) !important;
+  box-shadow: 0 4px 20px -2px oklch(0 0 0 / 6%) !important;
+}
+
+/* ── Light Mode Translucent Fills ── */
+.light .bg-white\/5,
+.light .bg-white\/10,
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.03\],
+.light .bg-white\/\[0\.04\],
+.light .bg-white\/\[0\.05\],
+.light .bg-white\/\[0\.06\],
+.light .bg-white\/\[0\.08\] {
+  background-color: oklch(0 0 0 / 4%) !important;
+}
+
+/* ── Light Mode Borders ── */
+.light .border-white\/5,
+.light .border-white\/10,
+.light .border-white\/15,
+.light .border-white\/20 {
+  border-color: oklch(0 0 0 / 10%) !important;
+}
+
+/* ── Light Mode Prose Typography ── */
+.light .prose-invert {
+  color: oklch(0.16 0.009 58) !important;
+}
+.light .prose-invert :where(h1, h2, h3, h4, th) {
+  color: oklch(0.12 0.009 58) !important;
+}
+.light .prose-invert :where(p, li, td) {
+  color: oklch(0.24 0.01 68) !important;
+}
+.light .prose-invert :where(strong) {
+  color: oklch(0.10 0.009 58) !important;
+}
+.light .prose-invert :where(code:not(pre code)) {
+  color: oklch(0.44 0.15 65) !important;
+}
+.light .prose-invert :where(blockquote) {
+  border-left-color: oklch(0.5 0.15 65) !important;
+  background-color: oklch(0.5 0.15 65 / 8%) !important;
+  color: oklch(0.24 0.01 68) !important;
+}
+
+/* ── Light Mode Amber Accent Readability ── */
+.light .text-amber-300,
+.light .text-amber-400 {
+  color: oklch(0.48 0.15 65) !important;
+}
+.light .border-amber-400\/30,
+.light .border-amber-400\/40,
+.light .border-amber-500\/30 {
+  border-color: oklch(0.5 0.15 65 / 35%) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

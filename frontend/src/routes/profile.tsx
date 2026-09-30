@@ -65,6 +65,7 @@ import {
   fetchFeed,
   deletePost,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { startRegistration } from "@simplewebauthn/browser";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -157,35 +158,35 @@ function PassphraseModal({
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#0d121c] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl"
       >
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="font-serif text-xl text-white font-bold">{title}</h3>
-            <p className="text-xs text-white/60 mt-1">{description}</p>
+            <h3 className="font-serif text-xl text-foreground font-bold">{title}</h3>
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition"
+            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-2.5 mb-3 rounded-xl border border-white/10 bg-white/5">
-          <KeyRound className="h-4 w-4 text-white/50 shrink-0" />
+        <div className="flex items-center gap-2 px-3 py-2.5 mb-3 rounded-xl border border-border bg-muted/40">
+          <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
           <input
             autoFocus
             type={show ? "text" : "password"}
             value={pass}
             onChange={(e) => setPass(e.target.value)}
             placeholder="Current sovereign passphrase"
-            className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
+            className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             onKeyDown={(e) => e.key === "Enter" && pass && onConfirm(pass)}
           />
           <button
             onClick={() => setShow((v) => !v)}
-            className="text-white/50 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
@@ -241,9 +242,9 @@ function RecoveryCodesReveal({
         {codes.map((code, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-amber-300 select-all"
+            className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 font-mono text-xs text-amber-600 dark:text-amber-300 select-all"
           >
-            <span className="text-[10px] text-white/40 w-4 shrink-0">{i + 1}.</span>
+            <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}.</span>
             <span className="tracking-wide">{code}</span>
           </div>
         ))}
@@ -251,7 +252,7 @@ function RecoveryCodesReveal({
 
       <button
         onClick={handleCopy}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 transition"
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition"
       >
         {copied ? (
           <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -261,18 +262,18 @@ function RecoveryCodesReveal({
         {copied ? "All Ciphers Copied" : "Copy All Recovery Codes"}
       </button>
 
-      <label className="flex cursor-pointer items-start gap-3 pt-2 border-t border-white/10">
+      <label className="flex cursor-pointer items-start gap-3 pt-2 border-t border-border">
         <input
           type="checkbox"
           checked={acknowledged}
           onChange={(e) => setAcknowledged(e.target.checked)}
           className="peer sr-only"
         />
-        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-white/20 bg-black/30 mt-0.5 transition peer-checked:border-amber-400 peer-checked:bg-amber-500/20">
-          {acknowledged && <Check className="h-3.5 w-3.5 text-amber-400" />}
+        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-border bg-muted/40 mt-0.5 transition peer-checked:border-amber-400 peer-checked:bg-amber-500/20">
+          {acknowledged && <Check className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
         </span>
-        <span className="text-xs leading-relaxed text-white/70">
-          I have safely vaulted these recovery codes. I acknowledge that losing both my passphrase and recovery keys results in <strong className="text-white">permanent, irreversible loss of this sovereign node</strong>.
+        <span className="text-xs leading-relaxed text-muted-foreground">
+          I have safely vaulted these recovery codes. I acknowledge that losing both my passphrase and recovery keys results in <strong className="text-foreground">permanent, irreversible loss of this sovereign node</strong>.
         </span>
       </label>
 
@@ -337,7 +338,8 @@ function formatTs(ts: string) {
 function Profile() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const user = getCurrentUser() || { handle: "anonymous" };
+  const { user: authUser, isAuthenticated: authed } = useAuth();
+  const user = authUser || { handle: "anonymous" };
 
   // Profile tabs state
   const [activeTab, setActiveTab] = useState<
@@ -444,21 +446,25 @@ function Profile() {
   const { data: passkeys = [], refetch: refetchPasskeys } = useQuery({
     queryKey: ["passkeys"],
     queryFn: listPasskeys,
+    enabled: authed,
   });
 
   const { data: totpStatus } = useQuery({
     queryKey: ["totp-status"],
     queryFn: getTotpStatus,
+    enabled: authed,
   });
 
   const { data: securityEvents = [] } = useQuery({
     queryKey: ["security-events"],
     queryFn: getSecurityEvents,
+    enabled: authed,
   });
 
   const { data: meData } = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
+    enabled: authed,
     retry: false,
   });
 
@@ -466,7 +472,7 @@ function Profile() {
   const { data: myPosts = [], isLoading: isLoadingMyPosts } = useQuery({
     queryKey: ["my-posts", user.handle],
     queryFn: () => fetchFeed(undefined, 1, { handle: user.handle }),
-    enabled: !!user.handle && user.handle !== "anonymous",
+    enabled: authed && !!user.handle && user.handle !== "anonymous",
   });
 
   // ─── Real-Time Delete Post Mutation ───────────────────────────────────────
@@ -606,16 +612,39 @@ function Profile() {
   if (isTotpEnabled) securityScore += 35;
 
   return (
-    <div className="cosmic-theme min-h-screen text-white mx-auto max-w-4xl px-4 pb-36 lg:pb-20 pt-8 sm:px-6">
+    <div className="cosmic-theme min-h-screen text-foreground mx-auto max-w-4xl px-4 pb-36 lg:pb-20 pt-8 sm:px-6">
+      {/* Guest Mode Banner */}
+      {!authed && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5 backdrop-blur-xl shadow-lg">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 dark:text-blue-400" />
+            <div>
+              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                Guest Persona Active
+              </p>
+              <p className="mt-0.5 text-xs text-blue-800/70 dark:text-blue-200/70 leading-relaxed">
+                You are exploring as an anonymous guest. Sign in or initialize a sovereign account to activate 2FA, biometric passkeys, and direct encrypted messages.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/onboarding"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black text-xs font-semibold px-4 py-2 hover:brightness-110 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition shrink-0 cursor-pointer"
+          >
+            Sign in / Join
+          </Link>
+        </div>
+      )}
+
       {/* Soft-deletion warning banner */}
       {meData?.pendingDeletionAt && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 backdrop-blur-xl">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500 dark:text-amber-400" />
           <div>
-            <p className="text-sm font-semibold text-amber-300">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
               Sovereign Account Scheduled for Deletion
             </p>
-            <p className="mt-0.5 text-xs text-amber-300/80 leading-relaxed">
+            <p className="mt-0.5 text-xs text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
               Due to inactivity, this node is scheduled to be permanently purged on{" "}
               <strong>
                 {new Intl.DateTimeFormat(undefined, {
@@ -629,7 +658,7 @@ function Profile() {
       )}
 
       {/* ─── Hero Sovereign Identity Card ───────────────────────────────────── */}
-      <FrostedPanel className="p-6 sm:p-8 mb-8 rounded-[32px] border border-white/10 bg-[#0c1017]/85 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+      <FrostedPanel className="p-6 sm:p-8 mb-8 rounded-[32px] border border-border bg-card backdrop-blur-2xl shadow-sm dark:shadow-2xl relative overflow-hidden">
         {/* Ambient atmospheric backlight */}
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full blur-[90px] opacity-25"
@@ -649,7 +678,7 @@ function Profile() {
             >
               <SocialSpaceEmblem size={46} />
               <div
-                className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-[#0c1017] flex items-center justify-center shadow"
+                className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-card flex items-center justify-center shadow"
                 style={{ backgroundColor: currentThemeObj.color }}
               >
                 <Check className="h-3 w-3 text-black stroke-[3]" />
@@ -658,27 +687,27 @@ function Profile() {
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
                   <ShieldCheck className="h-3 w-3" />
                   Sovereign Node
                 </span>
-                <span className="text-[10px] text-white/40 font-mono">
+                <span className="text-[10px] text-muted-foreground font-mono">
                   ECDH-P256 Active
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mt-1 truncate">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mt-1 truncate">
                 @{user.handle}
               </h1>
 
-              <div className="flex items-center gap-4 mt-2 text-xs text-white/50">
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Radio className="h-3.5 w-3.5 text-amber-400" />
+                  <Radio className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                   {myPosts.length} Broadcasts
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5 text-white/40" />
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   Zero Telemetry
                 </span>
               </div>
@@ -689,15 +718,15 @@ function Profile() {
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={() => setShowPremiumModal(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition active:scale-95"
+              className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition active:scale-95 cursor-pointer"
             >
-              <Crown className="h-3.5 w-3.5 text-amber-400" />
+              <Crown className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
               Upgrade
             </button>
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white hover:border-red-500/40 active:scale-95"
+              className="flex items-center gap-2 rounded-xl border border-border bg-muted/60 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-foreground transition hover:bg-muted hover:border-red-500/40 active:scale-95 cursor-pointer"
             >
               <LogOut className="h-3.5 w-3.5" />
               Sign out
@@ -706,11 +735,11 @@ function Profile() {
         </div>
 
         {/* Security Integrity Gauge Meter */}
-        <div className="mt-7 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mt-7 pt-6 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex-1 max-w-md">
             <div className="flex justify-between items-center text-xs mb-1.5">
-              <span className="font-semibold text-white/80 flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5 text-amber-400" />
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                 Cryptographic Shield Integrity
               </span>
               <span
@@ -728,7 +757,7 @@ function Profile() {
               </span>
             </div>
             {/* Progress bar */}
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${securityScore}%` }}
@@ -746,13 +775,13 @@ function Profile() {
           </div>
 
           {/* Quick status pill */}
-          <div className="flex items-center gap-2 text-xs text-white/60">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {securityScore >= 90 ? (
-              <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Fortified (Passkey + 2FA Active)
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-amber-400 font-medium">
+              <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
                 <AlertCircle className="h-3.5 w-3.5" /> Passkey or 2FA Recommended
               </span>
             )}
@@ -761,7 +790,7 @@ function Profile() {
       </FrostedPanel>
 
       {/* ─── Sleek Tab Navigation Bar ────────────────────────────────────────── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-8 no-scrollbar border-b border-white/10">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-8 no-scrollbar border-b border-border">
         {[
           { id: "overview", label: "Overview & Persona", icon: Layers },
           {
@@ -780,10 +809,10 @@ function Profile() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all duration-200",
+                "flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer",
                 isActive
                   ? "bg-amber-500 text-black shadow-[0_0_18px_rgba(245,158,11,0.3)]"
-                  : "text-white/60 hover:text-white hover:bg-white/5",
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/5",
               )}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -801,11 +830,11 @@ function Profile() {
           className="space-y-6"
         >
           {/* Avatar Glyph Customizer */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
-            <h2 className="font-serif text-xl font-bold text-white mb-1">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
+            <h2 className="font-serif text-xl font-bold text-foreground mb-1">
               Persona Resonance & Glyph Theme
             </h2>
-            <p className="text-xs text-white/50 mb-5">
+            <p className="text-xs text-muted-foreground mb-5">
               Select your node's cryptographic color signature. This applies to your local cipher environment and ambient glows.
             </p>
 
@@ -817,10 +846,10 @@ function Profile() {
                     key={theme.id}
                     onClick={() => selectAvatarTheme(theme.id)}
                     className={cn(
-                      "flex flex-col items-center gap-2.5 p-3.5 rounded-2xl border transition-all duration-200",
+                      "flex flex-col items-center gap-2.5 p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer",
                       isSelected
-                        ? "border-amber-400 bg-white/10 shadow-lg"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/5",
+                        ? "border-amber-400 bg-amber-500/10 shadow-md"
+                        : "border-border bg-muted/30 hover:bg-muted",
                     )}
                   >
                     <div
@@ -829,7 +858,7 @@ function Profile() {
                     >
                       {isSelected && <Check className="h-4 w-4 text-black stroke-[3]" />}
                     </div>
-                    <span className="text-[11px] font-semibold text-white/90">
+                    <span className="text-[11px] font-semibold text-foreground">
                       {theme.name}
                     </span>
                   </button>
@@ -839,22 +868,22 @@ function Profile() {
           </FrostedPanel>
 
           {/* Cryptographic Key Details Card */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-serif text-lg font-bold text-white">
+                <h3 className="font-serif text-lg font-bold text-foreground">
                   ECDH Chat Public Key
                 </h3>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-muted-foreground">
                   Used by contacts to negotiate ephemeral end-to-end secret chat keys.
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-mono">
+              <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
                 ECDH-P256
               </span>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-black/40 p-3 flex items-center justify-between font-mono text-xs text-amber-300">
+            <div className="rounded-xl border border-border bg-muted/40 dark:bg-black/40 p-3 flex items-center justify-between font-mono text-xs text-amber-600 dark:text-amber-300">
               <span className="truncate mr-3 select-all">
                 {meData?.chatPublicKey || "0478bf1e32ad4c90e... (Auto-Generated Ephemeral Key)"}
               </span>
@@ -864,7 +893,7 @@ function Profile() {
                     meData?.chatPublicKey || "0478bf1e32ad4c90e",
                   );
                 }}
-                className="p-1 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition shrink-0"
+                className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition shrink-0 cursor-pointer"
                 title="Copy public key"
               >
                 <Copy className="h-4 w-4" />
@@ -873,14 +902,14 @@ function Profile() {
           </FrostedPanel>
 
           {/* Zero Data Charter Summary */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center gap-2 mb-3">
-              <ShieldCheck className="h-5 w-5 text-amber-400" />
-              <h3 className="font-serif text-lg font-bold text-white">
+              <ShieldCheck className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+              <h3 className="font-serif text-lg font-bold text-foreground">
                 Sovereign Data Guarantee
               </h3>
             </div>
-            <p className="text-xs text-white/60 mb-4 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
               Social Space is engineered to never collect, store, or profile your personal life.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
@@ -892,9 +921,9 @@ function Profile() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] p-2.5 text-white/80"
+                  className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 dark:bg-white/[0.02] p-2.5 text-foreground"
                 >
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   <span>{item}</span>
                 </div>
               ))}
@@ -912,10 +941,10 @@ function Profile() {
         >
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h2 className="font-serif text-xl font-bold text-white">
+              <h2 className="font-serif text-xl font-bold text-foreground">
                 Your Published Transmissions
               </h2>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-muted-foreground">
                 Signals authored by your sovereign pseudonym. You can review or delete them in real time.
               </p>
             </div>
@@ -938,10 +967,10 @@ function Profile() {
               ))}
             </div>
           ) : myPosts.length === 0 ? (
-            <div className="rounded-3xl border border-white/10 bg-[#0c1017]/80 p-10 text-center flex flex-col items-center">
-              <Radio className="h-10 w-10 text-amber-400/50 mb-3 animate-pulse" />
-              <p className="text-sm font-bold text-white">No active transmissions</p>
-              <p className="text-xs text-white/50 mt-1 mb-5 max-w-xs">
+            <div className="rounded-3xl border border-border bg-muted/40 p-10 text-center flex flex-col items-center">
+              <Radio className="h-10 w-10 text-amber-500/50 dark:text-amber-400/50 mb-3 animate-pulse" />
+              <p className="text-sm font-bold text-foreground">No active transmissions</p>
+              <p className="text-xs text-muted-foreground mt-1 mb-5 max-w-xs">
                 You haven't authored any transmissions under this pseudonym yet.
               </p>
               <Link
@@ -956,30 +985,30 @@ function Profile() {
               {myPosts.map((post: any) => (
                 <FrostedPanel
                   key={post.id}
-                  className="p-5 rounded-2xl border border-white/10 bg-[#0c1017]/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="p-5 rounded-2xl border border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono">
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[10px] font-mono">
                         {post.topic || "Signal"}
                       </span>
-                      <span className="text-[10px] text-white/40">{post.time}</span>
+                      <span className="text-[10px] text-muted-foreground">{post.time}</span>
                       {post.media && (
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px]">
+                        <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px]">
                           Media Attached
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-white/90 line-clamp-2 leading-relaxed">
+                    <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
                       {post.body}
                     </p>
-                    <div className="flex items-center gap-4 mt-2.5 text-xs text-white/50">
+                    <div className="flex items-center gap-4 mt-2.5 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <Heart className="h-3.5 w-3.5 text-amber-400" />
+                        <Heart className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                         {post.reactions}
                       </span>
                       <span className="flex items-center gap-1">
-                        <MessageSquare className="h-3.5 w-3.5 text-white/40" />
+                        <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
                         {post.replies}
                       </span>
                     </div>
@@ -989,7 +1018,7 @@ function Profile() {
                     <Link
                       to="/social"
                       search={{ highlight: post.id }}
-                      className="p-2 rounded-xl border border-white/10 hover:bg-white/10 text-white/70 hover:text-white transition text-xs flex items-center gap-1"
+                      className="p-2 rounded-xl border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition text-xs flex items-center gap-1"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       View
@@ -1001,7 +1030,7 @@ function Profile() {
                         }
                       }}
                       disabled={deletePostMut.isPending}
-                      className="p-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition text-xs flex items-center gap-1"
+                      className="p-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition text-xs flex items-center gap-1"
                       title="Delete transmission"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -1023,19 +1052,19 @@ function Profile() {
           className="space-y-6"
         >
           {/* Biometric Passkeys Panel */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">
-                <Fingerprint className="h-5 w-5 text-amber-400" />
-                <h2 className="font-serif text-xl font-bold text-white">
+                <Fingerprint className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+                <h2 className="font-serif text-xl font-bold text-foreground">
                   Biometric Passkeys
                 </h2>
               </div>
-              <span className="text-xs text-amber-400 font-mono">
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-mono">
                 {passkeys.length} Registered
               </span>
             </div>
-            <p className="text-xs text-white/50 mb-5 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
               Hardware-bound cryptographic credentials. Sign in via Face ID, Touch ID, Windows Hello, or FIDO2 hardware keys without transmitting secrets.
             </p>
 
@@ -1045,13 +1074,13 @@ function Profile() {
                 {passkeys.map((pk: any) => (
                   <li
                     key={pk.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted/30 dark:bg-black/30 px-4 py-3"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-foreground">
                         {pk.nickname || "Cryptographic Key"}
                       </p>
-                      <p className="text-[11px] text-white/40 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
                         Enrolled {formatTs(pk.createdAt)}
                         {pk.lastUsedAt && ` • Active ${formatTs(pk.lastUsedAt)}`}
                       </p>
@@ -1063,7 +1092,7 @@ function Profile() {
                           nickname: pk.nickname || "this key",
                         })
                       }
-                      className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/20"
+                      className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-600 dark:text-red-400 transition hover:bg-red-500/20 cursor-pointer"
                     >
                       Revoke
                     </button>
@@ -1078,25 +1107,25 @@ function Profile() {
                 value={passkeyNickname}
                 onChange={(e) => setPasskeyNickname(e.target.value)}
                 placeholder='Hardware Nickname (e.g. "TouchID MacBook", "YubiKey 5")'
-                className="flex-1 px-3.5 py-2.5 text-xs rounded-xl border border-white/10 bg-white/5 text-white outline-none focus:border-amber-400"
+                className="flex-1 px-3.5 py-2.5 text-xs rounded-xl border border-border bg-card text-foreground outline-none focus:border-amber-400 placeholder:text-muted-foreground"
               />
               <button
                 id="add-passkey-btn"
                 onClick={() => addPasskeyMut.mutate()}
                 disabled={addPasskeyMut.isPending}
-                className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-xs font-bold text-black transition disabled:opacity-40 shrink-0"
+                className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-xs font-bold text-black transition disabled:opacity-40 shrink-0 cursor-pointer"
               >
                 {addPasskeyMut.isPending ? "Prompting Hardware…" : "Enroll Passkey"}
               </button>
             </div>
             {passkeyError && (
-              <p className="flex items-center gap-1.5 text-xs text-red-400 mt-2">
+              <p className="flex items-center gap-1.5 text-xs text-red-500 mt-2">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 {passkeyError}
               </p>
             )}
             {passkeySuccess && (
-              <p className="flex items-center gap-1.5 text-xs text-emerald-400 mt-2">
+              <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 mt-2">
                 <Check className="h-3.5 w-3.5" />
                 {passkeySuccess}
               </p>
@@ -1104,11 +1133,11 @@ function Profile() {
           </FrostedPanel>
 
           {/* Two-Factor Authentication (TOTP) */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">
-                <Smartphone className="h-5 w-5 text-amber-400" />
-                <h2 className="font-serif text-xl font-bold text-white">
+                <Smartphone className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+                <h2 className="font-serif text-xl font-bold text-foreground">
                   Two-Factor Authentication (TOTP)
                 </h2>
               </div>
@@ -1116,14 +1145,14 @@ function Profile() {
                 className={cn(
                   "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
                   isTotpEnabled
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                    : "bg-white/5 text-white/50 border border-white/10",
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                    : "bg-muted text-muted-foreground border border-border",
                 )}
               >
                 {isTotpEnabled ? "Active" : "Disabled"}
               </span>
             </div>
-            <p className="text-xs text-white/50 mb-5 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
               Pair any offline authenticator app (Google Authenticator, Bitwarden, Ente Auth, 1Password) for hardware-isolated time-based one-time codes.
             </p>
 
@@ -1131,7 +1160,7 @@ function Profile() {
               <button
                 onClick={() => setupTotpMut.mutate()}
                 disabled={setupTotpMut.isPending}
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 text-xs font-bold text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-40 cursor-pointer"
               >
                 <QrCode className="h-4 w-4" />
                 {setupTotpMut.isPending ? "Generating Cipher Key…" : "Configure Authenticator App"}
@@ -1140,15 +1169,15 @@ function Profile() {
 
             {/* QR code setup flow */}
             {totpQr && !isTotpEnabled && (
-              <div className="space-y-4 border-t border-white/10 pt-4">
-                <p className="text-xs text-white/80">
+              <div className="space-y-4 border-t border-border pt-4">
+                <p className="text-xs text-foreground">
                   Scan this QR code in your authenticator app, then enter the 6-digit confirmation code:
                 </p>
                 <div className="flex justify-center">
                   <img
                     src={totpQr}
                     alt="TOTP QR Code"
-                    className="h-44 w-44 rounded-2xl border border-white/10 bg-white p-2.5 shadow-2xl"
+                    className="h-44 w-44 rounded-2xl border border-border bg-white p-2.5 shadow-md"
                   />
                 </div>
                 <div className="flex items-center gap-2 max-w-sm mx-auto">
@@ -1162,18 +1191,18 @@ function Profile() {
                       setTotpSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))
                     }
                     placeholder="000000"
-                    className="flex-1 px-3 py-2.5 text-center font-mono text-lg tracking-widest rounded-xl border border-white/10 bg-white/5 text-white focus:border-amber-400 outline-none"
+                    className="flex-1 px-3 py-2.5 text-center font-mono text-lg tracking-widest rounded-xl border border-border bg-card text-foreground focus:border-amber-400 outline-none"
                   />
                   <button
                     onClick={() => enableTotpMut.mutate(totpSetupCode)}
                     disabled={enableTotpMut.isPending || totpSetupCode.length !== 6}
-                    className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-black transition disabled:opacity-40"
+                    className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-black transition disabled:opacity-40 cursor-pointer"
                   >
                     {enableTotpMut.isPending ? "Verifying…" : "Activate 2FA"}
                   </button>
                 </div>
                 {totpSetupError && (
-                  <p className="text-center text-xs text-red-400">
+                  <p className="text-center text-xs text-red-500">
                     {totpSetupError}
                   </p>
                 )}
@@ -1186,7 +1215,7 @@ function Profile() {
                   setDisableTotpModal(true);
                   setDisableTotpError("");
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300 transition hover:bg-amber-500/20 cursor-pointer"
               >
                 <X className="h-4 w-4" />
                 Deactivate 2FA
@@ -1195,42 +1224,42 @@ function Profile() {
           </FrostedPanel>
 
           {/* Passphrase Rotation */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center gap-3 mb-1">
-              <Key className="h-5 w-5 text-amber-400" />
-              <h2 className="font-serif text-xl font-bold text-white">
+              <Key className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+              <h2 className="font-serif text-xl font-bold text-foreground">
                 Rotate Master Passphrase
               </h2>
             </div>
-            <p className="text-xs text-white/50 mb-5 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
               Rotating your master passphrase immediately invalidates all other active sessions and issues a new cryptographic signing key.
             </p>
 
             <div className="space-y-3 max-w-md">
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
-                <KeyRound className="h-4 w-4 text-white/40 shrink-0" />
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-card">
+                <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
                 <input
                   type={showCurPass ? "text" : "password"}
                   value={curPass}
                   onChange={(e) => setCurPass(e.target.value)}
                   placeholder="Current master passphrase"
-                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-white/30"
+                  className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
                 />
-                <button onClick={() => setShowCurPass((v) => !v)} className="text-white/40">
+                <button onClick={() => setShowCurPass((v) => !v)} className="text-muted-foreground cursor-pointer">
                   {showCurPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
-                <KeyRound className="h-4 w-4 text-white/40 shrink-0" />
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-card">
+                <KeyRound className="h-4 w-4 text-muted-foreground shrink-0" />
                 <input
                   type={showNewPass ? "text" : "password"}
                   value={newPass}
                   onChange={(e) => setNewPass(e.target.value)}
                   placeholder="New strong master passphrase (≥60 bits entropy)"
-                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-white/30"
+                  className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
                 />
-                <button onClick={() => setShowNewPass((v) => !v)} className="text-white/40">
+                <button onClick={() => setShowNewPass((v) => !v)} className="text-muted-foreground cursor-pointer">
                   {showNewPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
@@ -1239,19 +1268,19 @@ function Profile() {
                 id="change-passphrase-btn"
                 onClick={() => changePassMut.mutate()}
                 disabled={changePassMut.isPending || !curPass || !newPass}
-                className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-black transition disabled:opacity-40"
+                className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-black transition disabled:opacity-40 cursor-pointer"
               >
                 {changePassMut.isPending ? "Cryptographically Updating…" : "Update Passphrase"}
               </button>
 
               {passError && (
-                <p className="flex items-center gap-1.5 text-xs text-red-400 mt-2">
+                <p className="flex items-center gap-1.5 text-xs text-red-500 mt-2">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   {passError}
                 </p>
               )}
               {passSuccess && (
-                <p className="flex items-center gap-1.5 text-xs text-emerald-400 mt-2">
+                <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 mt-2">
                   <Check className="h-3.5 w-3.5" />
                   {passSuccess}
                 </p>
@@ -1260,14 +1289,14 @@ function Profile() {
           </FrostedPanel>
 
           {/* Recovery Codes Vault */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center gap-3 mb-1">
-              <Shield className="h-5 w-5 text-amber-400" />
-              <h2 className="font-serif text-xl font-bold text-white">
+              <Shield className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+              <h2 className="font-serif text-xl font-bold text-foreground">
                 Offline Recovery Codes Vault
               </h2>
             </div>
-            <p className="text-xs text-white/50 mb-5 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
               If your passphrase is ever forgotten, these one-time cryptographic recovery codes are your only salvation.
             </p>
 
@@ -1283,7 +1312,7 @@ function Profile() {
                   setRegenModal(true);
                   setRegenError("");
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 transition"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/60 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-foreground hover:bg-muted transition cursor-pointer"
               >
                 <RefreshCw className="h-4 w-4" />
                 Issue Fresh Recovery Code Vault
@@ -1301,16 +1330,16 @@ function Profile() {
           className="space-y-6"
         >
           {/* Active Sessions Invalidation */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">
-                <LogOut className="h-5 w-5 text-amber-400" />
-                <h2 className="font-serif text-xl font-bold text-white">
+                <LogOut className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+                <h2 className="font-serif text-xl font-bold text-foreground">
                   Active Multi-Device Sessions
                 </h2>
               </div>
             </div>
-            <p className="text-xs text-white/50 mb-4 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
               Immediately revoke all authorization tokens across other devices, browsers, or stolen cookies. This current device remains authenticated with a fresh cryptographic token.
             </p>
 
@@ -1320,7 +1349,7 @@ function Profile() {
                 setLogoutAllModal(true);
                 setLogoutAllError("");
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition"
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
               Sign Out All Remote Sessions
@@ -1328,37 +1357,37 @@ function Profile() {
           </FrostedPanel>
 
           {/* Security Audit Timeline */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
             <div className="flex items-center gap-3 mb-1">
-              <Activity className="h-5 w-5 text-amber-400" />
-              <h2 className="font-serif text-xl font-bold text-white">
+              <Activity className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+              <h2 className="font-serif text-xl font-bold text-foreground">
                 Anonymized Security Audit Trail
               </h2>
             </div>
-            <p className="text-xs text-white/50 mb-6 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
               Zero-knowledge log of all security events on this node. Replaces invasive email alerts while preserving complete user privacy.
             </p>
 
             {securityEvents.length === 0 ? (
-              <p className="text-xs text-white/40">No audit events logged yet.</p>
+              <p className="text-xs text-muted-foreground">No audit events logged yet.</p>
             ) : (
-              <div className="relative border-l border-white/10 pl-6 ml-3 space-y-6">
+              <div className="relative border-l border-border pl-6 ml-3 space-y-6">
                 {securityEvents.slice(0, 15).map((ev: any) => (
                   <div key={ev.id} className="relative">
                     {/* Glowing pulse indicator dot */}
-                    <div className="absolute -left-[30px] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#0c1017] border-2 border-white/20">
-                      <div className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
+                    <div className="absolute -left-[30px] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-card border-2 border-border">
+                      <div className="h-1 w-1 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse" />
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <span className="mt-0.5 shrink-0 bg-white/5 p-1.5 rounded-xl border border-white/10">
-                        {EVENT_ICONS[ev.type] ?? <Info className="h-4 w-4 text-white/50" />}
+                      <span className="mt-0.5 shrink-0 bg-muted/50 p-1.5 rounded-xl border border-border">
+                        {EVENT_ICONS[ev.type] ?? <Info className="h-4 w-4 text-muted-foreground" />}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-white">
+                        <p className="text-xs font-semibold text-foreground">
                           {EVENT_LABELS[ev.type] ?? ev.type}
                         </p>
-                        <p className="text-[10px] text-white/40 mt-0.5">
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
                           {formatTs(ev.createdAt)}
                           {ev.deviceFingerprintHash && (
                             <span
@@ -1386,14 +1415,14 @@ function Profile() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          <FrostedPanel className="border-red-500/30 bg-red-500/[0.03] p-6 rounded-3xl">
+          <FrostedPanel className="border border-red-500/30 bg-red-500/[0.05] p-6 rounded-3xl">
             <div className="flex items-center gap-3 mb-2">
-              <ShieldAlert className="h-5 w-5 text-red-400" />
-              <h2 className="font-serif text-xl font-bold text-red-400">
+              <ShieldAlert className="h-5 w-5 text-red-500 dark:text-red-400" />
+              <h2 className="font-serif text-xl font-bold text-red-600 dark:text-red-400">
                 Sovereign Node Destruction
               </h2>
             </div>
-            <p className="text-xs text-white/60 mb-5 leading-relaxed">
+            <p className="text-xs text-foreground/80 mb-5 leading-relaxed">
               Permanently and irreversibly obliterate your account. All cryptographic keys, broadcasts, media streams, comments, and private whispers will be hard-purged immediately.
             </p>
 
@@ -1404,7 +1433,7 @@ function Profile() {
                 setDeleteError("");
               }}
               disabled={deleteAccMut.isPending}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-500/20 border border-red-500/40 px-5 py-3 text-xs font-bold text-red-200 transition hover:bg-red-500/30 disabled:opacity-40"
+              className="inline-flex items-center gap-2 rounded-xl bg-red-600/20 border border-red-500/40 px-5 py-3 text-xs font-bold text-red-700 dark:text-red-200 transition hover:bg-red-600/30 disabled:opacity-40 cursor-pointer"
             >
               <Trash2 className="h-4 w-4" />
               {deleteAccMut.isPending ? "Purging Sovereign Node…" : "Permanently Destroy Account & Data"}
@@ -1412,11 +1441,11 @@ function Profile() {
           </FrostedPanel>
 
           {/* Detailed Never Collected Charter */}
-          <FrostedPanel className="p-6 rounded-3xl border border-white/10 bg-[#0c1017]/80">
-            <h3 className="font-serif text-lg font-bold text-white mb-2">
+          <FrostedPanel className="p-6 rounded-3xl border border-border bg-card shadow-sm dark:shadow-xl">
+            <h3 className="font-serif text-lg font-bold text-foreground mb-2">
               Full Sovereign Charter
             </h3>
-            <p className="text-xs text-white/50 mb-4 leading-relaxed">
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
               Every packet on Social Space is routed without surveillance. Here is our architectural guarantee:
             </p>
             <div className="grid gap-2.5 sm:grid-cols-2 text-xs">
@@ -1432,7 +1461,7 @@ function Profile() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-white/80"
+                  className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/30 p-3 text-foreground"
                 >
                   <div className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.8)]" />
                   <span>{item}</span>
@@ -1496,16 +1525,16 @@ function Profile() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#0d121c] p-6 shadow-2xl"
+              className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl"
             >
-              <h3 className="font-serif text-xl font-bold text-white mb-2">
+              <h3 className="font-serif text-xl font-bold text-foreground mb-2">
                 Sign Out All Remote Sessions?
               </h3>
-              <p className="text-xs text-white/60 mb-4 leading-relaxed">
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
                 All tokens on other devices will be immediately invalidated. You will remain signed in here with a newly rotated token.
               </p>
               {logoutAllError && (
-                <p className="text-xs text-red-400 mb-3 flex items-center gap-1.5">
+                <p className="text-xs text-red-500 mb-3 flex items-center gap-1.5">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   {logoutAllError}
                 </p>
@@ -1513,7 +1542,7 @@ function Profile() {
               <div className="flex gap-2.5">
                 <button
                   onClick={() => setLogoutAllModal(false)}
-                  className="flex-1 rounded-xl border border-white/10 py-2.5 text-xs font-semibold text-white/70 hover:text-white transition"
+                  className="flex-1 rounded-xl border border-border py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
                 >
                   Cancel
                 </button>
@@ -1572,7 +1601,7 @@ function Profile() {
 
                 <button
                   onClick={closePremiumModal}
-                  className="absolute right-5 top-5 rounded-lg p-1.5 text-white/50 hover:text-white transition"
+                  className="absolute right-5 top-5 rounded-lg p-1.5 text-muted-foreground hover:text-foreground transition"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1582,13 +1611,13 @@ function Profile() {
                 </div>
 
                 <div className="text-center mb-6">
-                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
                     Sovereign Pro
                   </span>
-                  <h3 className="font-serif text-2xl text-white font-bold mt-2">
+                  <h3 className="font-serif text-2xl text-foreground font-bold mt-2">
                     Premium Sovereign Tier
                   </h3>
-                  <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                     Zero-retention media storage extension, unlimited 4K video broadcasting, and priority cryptographic relays.
                   </p>
                 </div>
@@ -1604,8 +1633,8 @@ function Profile() {
                       key={text}
                       className="flex items-center gap-2 rounded-xl border border-amber-500/15 bg-amber-500/5 px-3 py-2.5"
                     >
-                      <Icon className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                      <span className="text-[11px] font-medium text-white/80">
+                      <Icon className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+                      <span className="text-[11px] font-medium text-foreground">
                         {text}
                       </span>
                     </div>
@@ -1613,10 +1642,10 @@ function Profile() {
                 </div>
 
                 <div className="mb-6 text-center">
-                  <span className="font-serif text-3xl font-bold text-amber-400">
+                  <span className="font-serif text-3xl font-bold text-amber-500 dark:text-amber-400">
                     ₹149
                   </span>
-                  <span className="text-xs text-white/50 ml-1">/ month</span>
+                  <span className="text-xs text-muted-foreground ml-1">/ month</span>
                 </div>
 
                 <div className="space-y-2.5">
@@ -1630,7 +1659,7 @@ function Profile() {
                   </button>
                   <button
                     onClick={closePremiumModal}
-                    className="w-full rounded-xl border border-white/10 py-2.5 text-xs text-white/60 hover:text-white transition"
+                    className="w-full rounded-xl border border-border py-2.5 text-xs text-muted-foreground hover:text-foreground transition"
                   >
                     Maybe Later
                   </button>

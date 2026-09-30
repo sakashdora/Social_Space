@@ -246,7 +246,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   };
 
   return (
-    <div className={cn("prose prose-invert max-w-none text-[15px] leading-relaxed", className)}>
+    <div className={cn("prose dark:prose-invert max-w-none text-[15px] leading-relaxed text-foreground", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, customSanitizeSchema]]}

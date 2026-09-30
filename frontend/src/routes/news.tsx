@@ -82,17 +82,17 @@ function NewsComponent() {
   };
 
   return (
-    <div className="cosmic-theme min-h-screen text-white px-4 py-8 pb-32 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+    <div className="cosmic-theme min-h-screen text-foreground px-4 py-8 pb-32 sm:px-6 lg:px-8 max-w-5xl mx-auto">
       {/* Header */}
       <header className="mb-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium tracking-wide text-amber-300 backdrop-blur-md mb-3">
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium tracking-wide text-amber-700 dark:text-amber-300 backdrop-blur-md mb-3">
           <Newspaper className="h-3.5 w-3.5" />
           <span>VERIFIED WIRE DISPATCHES</span>
         </div>
-        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white">
+        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
           Global Intel & Dispatches
         </h1>
-        <p className="mt-2 text-sm text-white/60 max-w-2xl">
+        <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
           Real-time global reporting decoded with sovereign intelligence summaries. No tracking cookies or paywall trackers.
         </p>
 
@@ -105,10 +105,10 @@ function NewsComponent() {
                 key={topic.id}
                 onClick={() => setSelectedTopic(topic.id)}
                 className={cn(
-                  "rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all border",
+                  "rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer",
                   active
                     ? "bg-amber-500 text-black border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.35)]"
-                    : "bg-[#0c1017]/80 text-white/70 border-white/10 hover:border-amber-500/40 hover:text-white"
+                    : "bg-card text-muted-foreground border-border hover:border-amber-500/40 hover:text-foreground"
                 )}
               >
                 {topic.label}
@@ -124,7 +124,7 @@ function NewsComponent() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-44 rounded-2xl bg-[#0c1017]/80 border border-white/10"
+              className="h-44 rounded-2xl bg-card border border-border"
             />
           ))}
         </div>
@@ -132,7 +132,7 @@ function NewsComponent() {
 
       {/* Error state */}
       {error && (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300 backdrop-blur-xl">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-600 dark:text-red-300 backdrop-blur-xl">
           Failed to fetch dispatches: {(error as Error).message}
         </div>
       )}
@@ -145,16 +145,16 @@ function NewsComponent() {
               <motion.div
                 key={article.id || article.link}
                 onClick={() => handleOpenArticle(article)}
-                className="group relative cursor-pointer rounded-2xl p-5 overflow-hidden border border-white/10 bg-[#0c1017]/80 backdrop-blur-xl transition-all hover:border-amber-500/40 hover:shadow-[0_0_24px_rgba(245,158,11,0.12)] flex flex-col justify-between"
+                className="group relative cursor-pointer rounded-2xl p-5 overflow-hidden border border-border bg-card backdrop-blur-xl transition-all hover:border-amber-500/40 hover:shadow-[0_0_24px_rgba(245,158,11,0.12)] shadow-sm dark:shadow-md flex flex-col justify-between"
                 whileHover={{ y: -3 }}
                 whileTap={{ scale: 0.99 }}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 border border-amber-500/25 text-amber-400">
+                    <span className="inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400">
                       {article.source || "Dispatch"}
                     </span>
-                    <span className="text-[11px] text-white/40 font-mono">
+                    <span className="text-[11px] text-muted-foreground font-mono">
                       {new Date(article.pubDate).toLocaleDateString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -162,18 +162,18 @@ function NewsComponent() {
                     </span>
                   </div>
 
-                  <h2 className="font-serif text-lg font-semibold leading-snug text-white group-hover:text-amber-300 transition-colors line-clamp-2">
+                  <h2 className="font-serif text-lg font-semibold leading-snug text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors line-clamp-2">
                     {article.title}
                   </h2>
 
-                  <p className="mt-2.5 text-xs text-white/60 line-clamp-3 leading-relaxed">
+                  <p className="mt-2.5 text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                     {article.contentSnippet || "Tap to expand and decode with AI briefing."}
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-amber-400/80 font-medium">
-                  <span className="flex items-center gap-1.5 text-[11px] text-white/40 group-hover:text-amber-400 transition-colors">
-                    <Sparkles className="h-3 w-3 text-amber-400" />
+                <div className="mt-5 pt-3 border-t border-border flex items-center justify-between text-xs text-amber-600 dark:text-amber-400/80 font-medium">
+                  <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                    <Sparkles className="h-3 w-3 text-amber-500 dark:text-amber-400" />
                     Decode Intel Brief
                   </span>
                   <ExternalLink className="h-3.5 w-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
@@ -201,7 +201,7 @@ function NewsComponent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/85 backdrop-blur-2xl"
+                className="absolute inset-0 bg-black/60 dark:bg-black/85 backdrop-blur-2xl"
                 onClick={handleCloseArticle}
               />
 
@@ -210,22 +210,22 @@ function NewsComponent() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="relative w-full max-w-5xl flex flex-col p-4 sm:p-6 overflow-hidden max-h-[92vh] z-10 rounded-3xl bg-[#0c1017]/95 border border-amber-500/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl text-white"
+                className="relative w-full max-w-5xl flex flex-col p-4 sm:p-6 overflow-hidden max-h-[92vh] z-10 rounded-3xl bg-card border border-amber-500/30 shadow-2xl backdrop-blur-2xl text-foreground"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+                <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 border border-amber-500/25 text-amber-400">
+                    <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400">
                       {selectedArticle.source || "Dispatch"}
                     </span>
-                    <span className="text-[11px] text-white/40">
+                    <span className="text-[11px] text-muted-foreground">
                       {new Date(selectedArticle.pubDate).toLocaleString()}
                     </span>
                   </div>
 
                   <button
                     onClick={handleCloseArticle}
-                    className="rounded-full p-2 text-white/60 hover:bg-white/10 hover:text-white transition"
+                    className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition cursor-pointer"
                     aria-label="Close reader"
                   >
                     <X className="h-5 w-5" />
@@ -233,7 +233,7 @@ function NewsComponent() {
                 </div>
 
                 {/* Mobile View Toggle */}
-                <div className="lg:hidden flex items-center justify-center p-1 rounded-2xl bg-white/5 border border-white/10 mt-3 shrink-0">
+                <div className="lg:hidden flex items-center justify-center p-1 rounded-2xl bg-muted/60 dark:bg-white/5 border border-border mt-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setModalTab("ai")}
@@ -241,7 +241,7 @@ function NewsComponent() {
                       "flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5",
                       modalTab === "ai"
                         ? "bg-amber-400 text-black shadow-md font-bold"
-                        : "text-white/60 hover:text-white",
+                        : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     <Sparkles className="h-3.5 w-3.5" />
@@ -254,7 +254,7 @@ function NewsComponent() {
                       "flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5",
                       modalTab === "web"
                         ? "bg-amber-400 text-black shadow-md font-bold"
-                        : "text-white/60 hover:text-white",
+                        : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
@@ -266,41 +266,41 @@ function NewsComponent() {
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-y-auto py-4 min-h-[40vh]">
                   {/* Left Column: Summary + AI */}
                   <div className={cn("lg:col-span-2 flex flex-col space-y-4 overflow-y-auto pr-1", modalTab === "web" && "hidden lg:flex")}>
-                    <h2 className="font-serif text-2xl font-bold leading-tight text-white">
+                    <h2 className="font-serif text-2xl font-bold leading-tight text-foreground">
                       {selectedArticle.title}
                     </h2>
 
-                    <div className="border-t border-white/10 pt-3">
-                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-2">
+                    <div className="border-t border-border pt-3">
+                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                         Original Wire Snippet
                       </h3>
-                      <p className="text-xs text-white/80 leading-relaxed font-sans">
+                      <p className="text-xs text-foreground/80 leading-relaxed font-sans">
                         {selectedArticle.contentSnippet}
                       </p>
                     </div>
 
                     {/* AI Briefing */}
-                    <div className="border-t border-white/10 pt-3">
-                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                    <div className="border-t border-border pt-3">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1.5">
                         <Sparkles className="h-4 w-4" />
                         Social Space AI Synthesis
                       </h3>
 
                       {isBriefingLoading && (
-                        <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3.5 animate-pulse text-xs text-amber-300/80 flex items-center gap-2">
+                        <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3.5 animate-pulse text-xs text-amber-700 dark:text-amber-300/80 flex items-center gap-2">
                           <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
                           Synthesizing dispatch intelligence...
                         </div>
                       )}
 
                       {briefingError && (
-                        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-xs text-red-300">
+                        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-xs text-red-600 dark:text-red-300">
                           {briefingError}
                         </div>
                       )}
 
                       {aiBriefing && (
-                        <div className="rounded-xl border border-amber-500/25 bg-[#121824]/90 p-4 leading-relaxed text-white text-xs shadow-inner">
+                        <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] dark:bg-[#121824]/90 p-4 leading-relaxed text-foreground text-xs shadow-inner">
                           <MarkdownRenderer content={aiBriefing} className="text-xs" />
                         </div>
                       )}
@@ -309,11 +309,11 @@ function NewsComponent() {
 
                   {/* Right Column: Web Reader Frame */}
                   <div className={cn("lg:col-span-3 flex flex-col h-full min-h-[300px]", modalTab === "ai" && "hidden lg:flex")}>
-                    <div className="relative flex-1 rounded-2xl overflow-hidden border border-white/10 bg-white">
+                    <div className="relative flex-1 rounded-2xl overflow-hidden border border-border bg-white">
                       {iframeLoading && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 z-10 bg-[#0c1017]">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 z-10 bg-card">
                           <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
-                          <span className="text-[11px] text-white/50 font-mono">
+                          <span className="text-[11px] text-muted-foreground font-mono">
                             Sandboxing external web source...
                           </span>
                         </div>
@@ -326,7 +326,7 @@ function NewsComponent() {
                         sandbox="allow-scripts allow-same-origin allow-popups"
                       />
                     </div>
-                    <p className="mt-2 text-[10px] text-white/40 flex items-center gap-1">
+                    <p className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
                       <Info className="h-3 w-3 shrink-0" />
                       If external publication blocks frame embedding, tap <strong>Open Source</strong>.
                     </p>
@@ -334,10 +334,10 @@ function NewsComponent() {
                 </div>
 
                 {/* Footer Toolbar */}
-                <div className="border-t border-white/10 pt-4 flex flex-col sm:flex-row gap-3 shrink-0">
+                <div className="border-t border-border pt-4 flex flex-col sm:flex-row gap-3 shrink-0">
                   <button
                     onClick={handleShare}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 transition"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-muted/60 dark:bg-white/5 border border-border px-4 py-2.5 text-xs font-semibold text-foreground hover:bg-muted transition cursor-pointer"
                   >
                     <Share2 className="h-4 w-4" />
                     Broadcast to Feed

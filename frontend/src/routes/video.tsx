@@ -107,20 +107,20 @@ function VideoCommentsDrawer({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 220 }}
-      className="absolute inset-x-0 bottom-0 z-40 max-h-[85%] flex flex-col rounded-t-3xl border-t border-amber-500/30 bg-[#090d14]/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
+      className="absolute inset-x-0 bottom-0 z-40 max-h-[85%] flex flex-col rounded-t-3xl border-t border-border bg-card/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Drawer Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
         <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-amber-400" />
-          <span className="text-xs font-bold uppercase tracking-wider text-white">
+          <MessageCircle className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
             Cryptographic Whispers ({postDetails?.comments?.length ?? 0})
           </span>
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition"
+          className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition"
           aria-label="Close whispers"
         >
           <X className="h-4 w-4" />
@@ -130,31 +130,31 @@ function VideoCommentsDrawer({
       {/* Comments List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5 min-h-[160px] max-h-[280px]">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8 text-xs text-white/40 animate-pulse">
+          <div className="flex items-center justify-center py-8 text-xs text-muted-foreground animate-pulse">
             Decrypting transmission comments…
           </div>
         ) : !postDetails?.comments || postDetails.comments.length === 0 ? (
-          <div className="text-center py-8 text-xs text-white/40">
+          <div className="text-center py-8 text-xs text-muted-foreground">
             No whispers recorded yet. Be the first to add your cipher note.
           </div>
         ) : (
           postDetails.comments.map((c: any) => (
             <div
               key={c.id}
-              className="rounded-2xl border border-white/5 bg-white/[0.02] p-3 text-xs"
+              className="rounded-2xl border border-border bg-muted/30 p-3 text-xs"
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-amber-300">
+                <span className="font-semibold text-amber-600 dark:text-amber-300">
                   @{c.user?.handle || "anonymous"}
                 </span>
-                <span className="text-[10px] text-white/40">
+                <span className="text-[10px] text-muted-foreground">
                   {new Date(c.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
                 </span>
               </div>
-              <p className="text-white/80 leading-relaxed break-words">{c.content}</p>
+              <p className="text-foreground/90 leading-relaxed break-words">{c.content}</p>
             </div>
           ))
         )}
@@ -163,7 +163,7 @@ function VideoCommentsDrawer({
       {/* Input Field */}
       <form
         onSubmit={handleSubmit}
-        className="p-3 border-t border-white/10 bg-black/40 flex items-center gap-2"
+        className="p-3 border-t border-border bg-card/95 flex items-center gap-2"
       >
         <input
           ref={inputRef}
@@ -171,7 +171,7 @@ function VideoCommentsDrawer({
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
           placeholder="Transmit an anonymous reply…"
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder:text-white/30 focus:border-amber-500/50 focus:outline-none"
+          className="flex-1 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-amber-500/50 focus:outline-none"
         />
         <button
           type="submit"
@@ -722,18 +722,18 @@ function VideoFeed() {
   }, [allPosts, activeFilter]);
 
   return (
-    <div className="cosmic-theme min-h-screen text-white mx-auto w-full max-w-4xl py-6 sm:py-8 px-4 sm:px-6 pb-36 lg:pb-20">
+    <div className="cosmic-theme min-h-screen text-foreground mx-auto w-full max-w-4xl py-6 sm:py-8 px-4 sm:px-6 pb-36 lg:pb-20">
       {/* Page Header */}
       <header className="text-center mb-7">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-[11px] font-semibold tracking-wide text-amber-300 backdrop-blur-md mb-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-          <Film className="h-3.5 w-3.5 text-amber-400" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-[11px] font-semibold tracking-wide text-amber-600 dark:text-amber-300 backdrop-blur-md mb-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+          <Film className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
           <span>CIPHER MEDIA BROADCASTS</span>
         </div>
 
-        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white">
+        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
           Visual Signals
         </h1>
-        <p className="text-xs sm:text-sm text-white/60 mt-2 max-w-md mx-auto leading-relaxed">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
           Zero-telemetry cryptographic video reels and captures. All EXIF metadata and device fingerprints automatically stripped at ingestion.
         </p>
       </header>
@@ -741,14 +741,14 @@ function VideoFeed() {
       {/* Controls & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-8">
         {/* Category Pills */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl border border-white/10 bg-[#0c1017]/80 backdrop-blur-xl">
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl border border-border bg-card/80 backdrop-blur-xl">
           <button
             onClick={() => setActiveFilter("All")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200",
               activeFilter === "All"
                 ? "bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]"
-                : "text-white/60 hover:text-white hover:bg-white/5",
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             All Signals
@@ -759,7 +759,7 @@ function VideoFeed() {
               "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5",
               activeFilter === "Video"
                 ? "bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]"
-                : "text-white/60 hover:text-white hover:bg-white/5",
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             <Film className="h-3.5 w-3.5" />
@@ -771,7 +771,7 @@ function VideoFeed() {
               "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5",
               activeFilter === "Synthetic"
                 ? "bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]"
-                : "text-white/60 hover:text-white hover:bg-white/5",
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
@@ -782,15 +782,15 @@ function VideoFeed() {
         {/* View Mode & Compose CTA */}
         <div className="flex items-center gap-2">
           {/* Layout switcher */}
-          <div className="flex items-center p-1 rounded-xl border border-white/10 bg-[#0c1017]/80">
+          <div className="flex items-center p-1 rounded-xl border border-border bg-card/80">
             <button
               onClick={() => setViewMode("theater")}
               aria-label="Theater Reel View"
               className={cn(
                 "p-1.5 rounded-lg transition",
                 viewMode === "theater"
-                  ? "bg-white/15 text-amber-300"
-                  : "text-white/50 hover:text-white",
+                  ? "bg-muted text-amber-600 dark:text-amber-300 font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Radio className="h-4 w-4" />
@@ -801,8 +801,8 @@ function VideoFeed() {
               className={cn(
                 "p-1.5 rounded-lg transition",
                 viewMode === "grid"
-                  ? "bg-white/15 text-amber-300"
-                  : "text-white/50 hover:text-white",
+                  ? "bg-muted text-amber-600 dark:text-amber-300 font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <LayoutGrid className="h-4 w-4" />
@@ -826,7 +826,7 @@ function VideoFeed() {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="w-full max-w-lg aspect-[9/16] sm:aspect-[4/5] rounded-[28px] bg-[#0c1017] border border-white/10 shadow-xl"
+              className="w-full max-w-lg aspect-[9/16] sm:aspect-[4/5] rounded-[28px] bg-card border border-border shadow-xl"
             />
           ))}
         </div>
@@ -836,15 +836,15 @@ function VideoFeed() {
       {error && (
         <div className="rounded-3xl border border-red-500/30 bg-red-500/10 p-6 text-center backdrop-blur-xl">
           <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-red-300">
+          <p className="text-sm font-semibold text-red-500 dark:text-red-300">
             Failed to connect to cipher transmission feed
           </p>
-          <p className="text-xs text-red-300/70 mt-1 max-w-sm mx-auto">
+          <p className="text-xs text-red-600/80 dark:text-red-300/70 mt-1 max-w-sm mx-auto">
             {(error as Error).message}
           </p>
           <button
             onClick={() => refetch()}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-500/20 border border-red-500/40 px-4 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/30 transition"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-500/20 border border-red-500/40 px-4 py-2 text-xs font-semibold text-red-600 dark:text-red-200 hover:bg-red-500/30 transition"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Retry Feed
@@ -854,14 +854,14 @@ function VideoFeed() {
 
       {/* Empty State */}
       {!isLoading && !error && filteredPosts.length === 0 && (
-        <div className="rounded-3xl border border-white/10 bg-[#0c1017]/85 backdrop-blur-xl p-10 sm:p-12 text-center text-white/60 text-xs leading-relaxed flex flex-col items-center shadow-2xl">
-          <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
+        <div className="rounded-3xl border border-border bg-card/85 backdrop-blur-xl p-10 sm:p-12 text-center text-muted-foreground text-xs leading-relaxed flex flex-col items-center shadow-2xl">
+          <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-4 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
             <Film className="h-7 w-7" />
           </div>
-          <p className="text-lg font-serif font-bold text-white mb-1">
+          <p className="text-lg font-serif font-bold text-foreground mb-1">
             No transmissions detected
           </p>
-          <p className="max-w-sm text-white/50 mb-6">
+          <p className="max-w-sm text-muted-foreground mb-6">
             There are currently no media broadcasts matching "{activeFilter}". Publish the first sovereign video with zero telemetry.
           </p>
           <Link

@@ -477,15 +477,15 @@ function SocialComponent() {
   );
 
   return (
-    <div className="cosmic-theme w-full min-h-screen bg-[#06070a] text-white selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="cosmic-theme w-full min-h-screen bg-background text-foreground selection:bg-amber-500/30 selection:text-amber-200">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-amber-500/30 bg-[#0c1017]/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
-          <Sparkles className="h-4 w-4 text-amber-400" />
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-amber-500/30 bg-card/95 px-5 py-3 text-sm text-foreground shadow-2xl backdrop-blur-xl">
+          <Sparkles className="h-4 w-4 text-amber-500 dark:text-amber-400" />
           <span>{toastMessage}</span>
           <button
             onClick={() => setToastMessage(null)}
-            className="text-white/60 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
             aria-label="Dismiss"
           >
             <X className="h-3.5 w-3.5" />
@@ -505,26 +505,26 @@ function SocialComponent() {
           <div className="w-full space-y-6">
             {/* Feed Header */}
             <div className="text-left w-full">
-              <span className="text-[10px] tracking-[0.2em] font-semibold text-amber-400 uppercase">
+              <span className="text-[10px] tracking-[0.2em] font-semibold text-amber-600 dark:text-amber-400 uppercase">
                 COMMUNITY CHRONICLES
               </span>
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mt-1">
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground mt-1">
                 Social Stream
               </h1>
-              <p className="text-xs sm:text-sm text-white/60 mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Uncensored thoughts, unfiltered perspectives. Zero tracking algorithms.
               </p>
             </div>
 
             {/* Large Search Bar */}
             <div className="relative w-full">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search feed, handles, or topics..."
-                className="w-full rounded-2xl border border-white/10 bg-[#0c1017]/90 py-3.5 pl-11 pr-12 text-sm text-white outline-none focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 transition-all shadow-inner placeholder:text-white/30"
+                className="w-full rounded-2xl border border-border bg-card py-3.5 pl-11 pr-12 text-sm text-foreground outline-none focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 transition-all shadow-inner placeholder:text-muted-foreground/60"
               />
               <button
                 onClick={() => {
@@ -539,8 +539,8 @@ function SocialComponent() {
                 className={cn(
                   "absolute right-4 top-1/2 -translate-y-1/2 transition p-1 cursor-pointer",
                   activeCategory !== "All" || searchQuery
-                    ? "text-amber-400"
-                    : "text-white/40 hover:text-white"
+                    ? "text-amber-500 dark:text-amber-400"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-label="Filter status"
                 title={activeCategory !== "All" || searchQuery ? "Reset Filters" : "Filter options"}
@@ -567,7 +567,7 @@ function SocialComponent() {
                       </motion.button>
                     ) : (
                       <button
-                        className="rounded-full px-5 py-2 text-xs font-medium bg-white/[0.04] text-white/60 border border-white/10 hover:text-white hover:bg-white/[0.08] hover:border-amber-400/30 transition-all whitespace-nowrap cursor-pointer"
+                        className="rounded-full px-5 py-2 text-xs font-medium bg-muted/60 dark:bg-white/[0.04] text-muted-foreground hover:text-foreground border border-border hover:border-amber-400/30 transition-all whitespace-nowrap cursor-pointer"
                         onClick={() => {
                           setActiveCategory(cat);
                           setExpandedPostId(null);
@@ -611,11 +611,11 @@ function SocialComponent() {
                             setSearchQuery(topic.title);
                             showToast(`Filtered by "${topic.title}"`);
                           }}
-                          className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-[#0c1017]/90 px-3.5 py-2 shrink-0 cursor-pointer hover:border-amber-400/40 transition-colors"
+                          className="flex items-center gap-2.5 rounded-2xl border border-border bg-card px-3.5 py-2 shrink-0 cursor-pointer hover:border-amber-400/40 transition-colors"
                         >
-                          <span className="text-xs font-mono font-bold text-white/40">#{topic.id}</span>
-                          <span className="text-xs font-medium text-white truncate max-w-[150px]">{topic.title}</span>
-                          <span className="text-[10px] text-amber-400/80 font-mono">{topic.posts}</span>
+                          <span className="text-xs font-mono font-bold text-muted-foreground">#{topic.id}</span>
+                          <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{topic.title}</span>
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400/80 font-mono">{topic.posts}</span>
                         </div>
                       ))}
                     </div>
@@ -625,11 +625,11 @@ function SocialComponent() {
             </div>
 
             {/* Inline Quick Transmission Box */}
-            <div className="w-full rounded-[26px] border border-white/10 bg-[#0c1017]/85 p-5 shadow-xl relative overflow-hidden backdrop-blur-xl">
-              <div className="flex items-center justify-between pb-3 border-b border-white/5 text-xs text-white/60">
+            <div className="w-full rounded-[26px] border border-border bg-card p-5 shadow-lg relative overflow-hidden backdrop-blur-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-border text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
-                  <span className="font-semibold text-foreground dark:text-white">Broadcast to {activeCategory}</span>
+                  <span className="font-semibold text-foreground">Broadcast to {activeCategory}</span>
                 </div>
                 <button
                   type="button"
@@ -721,7 +721,7 @@ function SocialComponent() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4 }}
                       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                      className="border border-white/10 bg-[#0c1017]/85 hover:border-amber-400/35 rounded-[28px] p-6 sm:p-7 hover:shadow-2xl shadow-[0_4px_25px_rgba(0,0,0,0.35)] transition-all duration-300 relative overflow-hidden backdrop-blur-xl"
+                      className="border border-border bg-card hover:border-amber-400/40 rounded-[28px] p-6 sm:p-7 hover:shadow-xl shadow-sm dark:shadow-[0_4px_25px_rgba(0,0,0,0.35)] transition-all duration-300 relative overflow-hidden backdrop-blur-xl"
                     >
                       {/* Card Header */}
                       <div className="flex justify-between items-start mb-4">
@@ -734,20 +734,20 @@ function SocialComponent() {
                           </div>
                           <div>
                             <div className="flex items-center">
-                              <span className="font-semibold text-white leading-none">
+                              <span className="font-semibold text-foreground leading-none">
                                 {post.author}
                               </span>
                               {post.author === "anonymous" && (
                                 <CheckCircle2 className="h-4 w-4 fill-amber-400 text-black ml-1.5 shrink-0" />
                               )}
                             </div>
-                            <p className="text-[11px] text-white/40 mt-1">
+                            <p className="text-[11px] text-muted-foreground mt-1">
                               {post.handle} &bull; {post.time}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-white/[0.05] border border-white/10 px-3 py-1 text-[10px] font-medium tracking-wide text-white/60 uppercase">
+                          <span className="rounded-full bg-muted/60 dark:bg-white/[0.05] border border-border px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                             {post.topic}
                           </span>
                           {currentUser &&
@@ -775,7 +775,7 @@ function SocialComponent() {
                               onClick={() =>
                                 showToast("Post options coming soon")
                               }
-                              className="text-white/40 hover:text-white p-1 cursor-pointer"
+                              className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
                               aria-label="Options"
                             >
                               &bull;&bull;&bull;
@@ -1124,14 +1124,14 @@ function SocialComponent() {
         {/* Right Column: Sticky Sidebar Widgets */}
         <aside className="hidden xl:flex flex-col shrink-0 sticky top-4 max-h-[calc(100vh-32px)] w-[320px] overflow-y-auto space-y-6 scrollbar-none pr-1">
           {/* What's Trending Card */}
-          <div className="border border-white/10 bg-[#0c1017]/85 p-6 rounded-[28px] shadow-xl backdrop-blur-xl shrink-0">
+          <div className="border border-border bg-card p-6 rounded-[28px] shadow-sm dark:shadow-xl backdrop-blur-xl shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-sans text-sm font-bold text-foreground dark:text-white flex items-center gap-1.5">
+              <h2 className="font-sans text-sm font-bold text-foreground flex items-center gap-1.5">
                 <Flame className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                 <span>Trending Transmissions</span>
               </h2>
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                 <span>LIVE</span>
               </div>
             </div>
@@ -1144,23 +1144,23 @@ function SocialComponent() {
                     setSearchQuery(topic.title);
                     showToast(`Filtered by "${topic.title}"`);
                   }}
-                  className="flex items-center gap-3.5 group cursor-pointer hover:bg-white/[0.04] p-2 rounded-2xl transition duration-200"
+                  className="flex items-center gap-3.5 group cursor-pointer hover:bg-muted/50 dark:hover:bg-white/[0.04] p-2 rounded-2xl transition duration-200"
                 >
-                  <span className="text-xs font-mono font-bold text-white/40 w-4 text-center">
+                  <span className="text-xs font-mono font-bold text-muted-foreground w-4 text-center">
                     {topic.id}
                   </span>
 
                   <div
-                    className={`h-10 w-10 rounded-xl bg-gradient-to-br ${topic.gradient} shrink-0 border border-white/10 flex items-center justify-center`}
+                    className={`h-10 w-10 rounded-xl bg-gradient-to-br ${topic.gradient} shrink-0 border border-border flex items-center justify-center`}
                   >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-300 group-hover:scale-110 transition duration-300" />
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500 dark:text-amber-300 group-hover:scale-110 transition duration-300" />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs text-white group-hover:text-amber-300 transition truncate">
+                    <p className="font-medium text-xs text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-300 transition truncate">
                       {topic.title}
                     </p>
-                    <p className="text-[10px] text-white/40 mt-0.5 font-mono">
+                    <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
                       {topic.posts}
                     </p>
                   </div>
@@ -1170,9 +1170,9 @@ function SocialComponent() {
           </div>
 
           {/* Who to Follow Card */}
-          <div className="border border-white/10 bg-[#0c1017]/85 p-6 rounded-[28px] shadow-xl backdrop-blur-xl shrink-0">
+          <div className="border border-border bg-card p-6 rounded-[28px] shadow-sm dark:shadow-xl backdrop-blur-xl shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-sans text-sm font-bold text-foreground dark:text-white flex items-center gap-1.5">
+              <h2 className="font-sans text-sm font-bold text-foreground flex items-center gap-1.5">
                 <Users className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                 <span>Community Signals</span>
               </h2>
@@ -1181,7 +1181,7 @@ function SocialComponent() {
                   queryClient.invalidateQueries({ queryKey: ["whoToFollow"] });
                   showToast("Refreshed community signals");
                 }}
-                className="text-[10px] font-semibold text-amber-400/80 hover:text-amber-300 cursor-pointer uppercase tracking-wider transition"
+                className="text-[10px] font-semibold text-amber-600 dark:text-amber-400/80 hover:text-amber-500 cursor-pointer uppercase tracking-wider transition"
                 title="Refresh suggested contacts"
               >
                 Refresh
@@ -1194,19 +1194,19 @@ function SocialComponent() {
                 return (
                   <div
                     key={user.name}
-                    className="flex items-center justify-between gap-2.5 p-1 rounded-2xl hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between gap-2.5 p-1 rounded-2xl hover:bg-muted/40 dark:hover:bg-white/[0.02] transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className={`h-9 w-9 rounded-full flex items-center justify-center text-xs ${user.color} border border-white/10 font-bold shrink-0 text-white`}
+                        className={`h-9 w-9 rounded-full flex items-center justify-center text-xs ${user.color} border border-border font-bold shrink-0 text-white`}
                       >
                         {user.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-xs text-white leading-none truncate">
+                        <p className="font-semibold text-xs text-foreground leading-none truncate">
                           {user.name}
                         </p>
-                        <p className="text-[10px] text-white/40 mt-1 truncate">
+                        <p className="text-[10px] text-muted-foreground mt-1 truncate">
                           {user.handle}
                         </p>
                       </div>
@@ -1215,7 +1215,7 @@ function SocialComponent() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleStartChat(user.name)}
-                        className="rounded-full border border-white/10 bg-white/[0.05] p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white cursor-pointer"
+                        className="rounded-full border border-border bg-muted/60 dark:bg-white/[0.05] p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground cursor-pointer"
                         title={`Encrypted message ${user.handle}`}
                         aria-label={`Message ${user.handle}`}
                       >
@@ -1236,7 +1236,7 @@ function SocialComponent() {
                           "rounded-full border px-3 py-1 text-[10px] font-semibold transition cursor-pointer",
                           isFollowing
                             ? "border-amber-400/40 bg-amber-400/10 text-amber-600 dark:text-amber-300"
-                            : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/10 hover:text-white",
+                            : "border-border bg-muted/60 dark:bg-white/[0.05] text-foreground hover:bg-muted",
                         )}
                       >
                         {isFollowing ? "Connected" : "Connect"}
@@ -1249,7 +1249,7 @@ function SocialComponent() {
           </div>
 
           {/* Sovereign Guarantee Card */}
-          <div className="rounded-[28px] border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-amber-500/[0.03] to-white/95 dark:to-[#0c1017] p-5 relative overflow-hidden shadow-xl w-full shrink-0">
+          <div className="rounded-[28px] border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-amber-500/[0.03] to-card p-5 relative overflow-hidden shadow-sm dark:shadow-xl w-full shrink-0">
             <div className="flex gap-3.5 items-start">
               <div className="h-10 w-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
                 <Shield className="h-5 w-5" />
@@ -1258,7 +1258,7 @@ function SocialComponent() {
                 <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   Zero Surveillance Invariant
                 </h3>
-                <p className="text-xs text-foreground/75 dark:text-white/60 leading-relaxed">
+                <p className="text-xs text-foreground/80 dark:text-white/60 leading-relaxed">
                   No shadow-bans. No engagement scoring. Your posts flow directly to readers in honest chronological order.
                 </p>
               </div>

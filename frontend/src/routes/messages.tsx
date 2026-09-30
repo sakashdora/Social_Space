@@ -16,6 +16,7 @@ import {
   getCurrentUser,
   threadKeyCache,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -43,10 +44,13 @@ function MessagesLayout() {
   const [newHandle, setNewHandle] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [showKeyResetDialog, setShowKeyResetDialog] = useState(false);
+  const { user, isAuthenticated: authed } = useAuth();
 
   const { data: me } = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
+    enabled: authed,
+    retry: false,
   });
 
   React.useEffect(() => {
@@ -122,7 +126,8 @@ function MessagesLayout() {
   const { data: threads = [], isLoading } = useQuery({
     queryKey: ["chats"],
     queryFn: fetchChats,
-    refetchInterval: 4000,
+    enabled: authed,
+    refetchInterval: authed ? 4000 : false,
   });
 
   const createChatMutation = useMutation({
@@ -150,24 +155,24 @@ function MessagesLayout() {
   return (
     <div
       className={cn(
-        "cosmic-theme text-white flex h-full w-full overflow-hidden flex-col lg:flex-row",
+        "cosmic-theme text-foreground flex h-full w-full overflow-hidden flex-col lg:flex-row",
         active ? "pb-0 h-dvh" : "min-h-screen pb-[88px] lg:pb-0",
       )}
     >
       {/* Thread list sidebar */}
       <aside
         className={cn(
-          "flex flex-col shrink-0 overflow-hidden h-full bg-[#0c1017]/90 border-r border-white/10 backdrop-blur-xl",
+          "flex flex-col shrink-0 overflow-hidden h-full bg-card border-r border-border backdrop-blur-xl",
           active ? "hidden lg:flex" : "flex",
           "lg:w-[320px]",
         )}
       >
         {/* Compact header */}
-        <div className="shrink-0 px-5 pt-6 pb-4 border-b border-white/10">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
+        <div className="shrink-0 px-5 pt-6 pb-4 border-b border-border">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">
             E2EE Sealed Sender
           </p>
-          <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-white">
+          <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-foreground">
             Messages
           </h1>
         </div>
@@ -175,16 +180,16 @@ function MessagesLayout() {
         {/* New chat form */}
         <form
           onSubmit={handleStartChat}
-          className="shrink-0 px-4 py-3 border-b border-white/10"
+          className="shrink-0 px-4 py-3 border-b border-border"
         >
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 focus-within:border-amber-500/40 focus-within:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all">
-            <span className="text-xs text-amber-400 select-none">@</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/40 border border-border focus-within:border-amber-500/40 focus-within:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all">
+            <span className="text-xs text-amber-600 dark:text-amber-400 select-none">@</span>
             <input
               type="text"
               placeholder="Chat with @handle..."
               value={newHandle}
               onChange={(e) => setNewHandle(e.target.value)}
-              className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-white/30"
+              className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
             />
             <motion.button
               type="submit"
@@ -201,7 +206,7 @@ function MessagesLayout() {
             </motion.button>
           </div>
           {errorMsg && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400">
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               {errorMsg}
             </p>
@@ -214,17 +219,29 @@ function MessagesLayout() {
             <div className="space-y-2.5 px-3 pt-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3 py-1">
-                  <div className="h-9 w-9 rounded-full bg-white/5 animate-pulse" />
+                  <div className="h-9 w-9 rounded-full bg-muted/60 animate-pulse" />
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-3 w-20 rounded bg-white/5 animate-pulse" />
-                    <div className="h-2 w-32 rounded bg-white/5 animate-pulse" />
+                    <div className="h-3 w-20 rounded bg-muted/60 animate-pulse" />
+                    <div className="h-2 w-32 rounded bg-muted/60 animate-pulse" />
                   </div>
                 </div>
               ))}
             </div>
+          ) : !authed ? (
+            <div className="flex h-48 flex-col items-center justify-center text-center px-4 space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Sign in or create a handle to access end-to-end encrypted direct messaging.
+              </p>
+              <Link
+                to="/onboarding"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black text-xs font-semibold px-4 py-2 hover:brightness-110 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition cursor-pointer"
+              >
+                Sign in / Join
+              </Link>
+            </div>
           ) : threads.length === 0 ? (
             <div className="flex h-32 flex-col items-center justify-center text-center px-4">
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-muted-foreground">
                 No active conversations yet.
               </p>
             </div>
@@ -246,15 +263,15 @@ function MessagesLayout() {
                       className={cn(
                         "flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 select-none relative group border",
                         isCurrent
-                          ? "bg-amber-500/10 text-white border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.12)]"
-                          : "hover:bg-white/[0.03] text-white/70 hover:text-white border-transparent",
+                          ? "bg-amber-500/15 text-foreground border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.12)]"
+                          : "hover:bg-muted/50 text-muted-foreground hover:text-foreground border-transparent",
                       )}
                     >
                       {/* Active indicator bar */}
                       {isCurrent && (
                         <motion.span
                           layoutId="active-thread-indicator"
-                          className="absolute left-1 top-3 bottom-3 w-1 rounded-full bg-amber-400"
+                          className="absolute left-1 top-3 bottom-3 w-1 rounded-full bg-amber-500 dark:bg-amber-400"
                           transition={{
                             type: "spring",
                             stiffness: 380,
@@ -264,7 +281,7 @@ function MessagesLayout() {
                       )}
 
                       <span
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white border border-white/20"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white border border-border"
                         style={{
                           background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 40%, black))`,
                         }}
@@ -273,10 +290,10 @@ function MessagesLayout() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="truncate text-xs font-semibold text-white">
+                          <p className="truncate text-xs font-semibold text-foreground">
                             @{t.handle}
                           </p>
-                          <span className="ml-auto shrink-0 text-[10px] text-white/40">
+                          <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                             {t.time}
                           </span>
                         </div>
@@ -286,7 +303,7 @@ function MessagesLayout() {
                           recipientId={t.recipientId}
                         />
                         {t.disappearing && t.disappearing !== "Off" && (
-                          <span className="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/25">
+                          <span className="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-300 bg-amber-500/10 border border-amber-500/25">
                             <Timer className="h-2.5 w-2.5" />
                             {t.disappearing}
                           </span>
@@ -304,7 +321,7 @@ function MessagesLayout() {
       {/* Thread panel */}
       <section
         className={cn(
-          "min-w-0 flex-1 h-full bg-[#06070a]/60 backdrop-blur-xl",
+          "min-w-0 flex-1 h-full bg-background/60 backdrop-blur-xl",
           active ? "flex flex-col" : "hidden lg:flex lg:flex-col",
         )}
       >
@@ -319,15 +336,15 @@ function MessagesLayout() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-md w-full rounded-3xl p-6 text-center shadow-2xl border border-amber-500/30 bg-[#0c1017] text-white"
+              className="max-w-md w-full rounded-3xl p-6 text-center shadow-2xl border border-border bg-card text-foreground"
             >
-              <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+              <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400">
                 <AlertCircle className="h-6 w-6" />
               </div>
-              <h2 className="font-serif text-xl font-bold tracking-tight text-white">
+              <h2 className="font-serif text-xl font-bold tracking-tight text-foreground">
                 Chat Keys Out of Sync
               </h2>
-              <p className="mt-3 text-xs text-white/60 leading-relaxed">
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
                 You are logging in from a new device, cleared your browser
                 storage, or your local keys are missing. Your previous chat
                 history cannot be decrypted on this device.
@@ -341,7 +358,7 @@ function MessagesLayout() {
                 </button>
                 <button
                   onClick={() => setShowKeyResetDialog(false)}
-                  className="w-full inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/60 hover:text-white transition active:scale-95"
+                  className="w-full inline-flex items-center justify-center rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground transition active:scale-95"
                 >
                   Skip (History stays locked)
                 </button>

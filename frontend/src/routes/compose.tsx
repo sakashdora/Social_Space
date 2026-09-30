@@ -84,7 +84,7 @@ type PrivacyShieldOption =
 
 const EMOJI_LIST = ["✨", "🚀", "🛡️", "🔥", "💡", "⚡", "🌌", "👁️", "🕊️", "💎", "🤖", "🔒"];
 
-export function ComposeStudio() {
+function ComposeStudio() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const authed = isAuthenticated();
@@ -487,12 +487,12 @@ export function ComposeStudio() {
     <div className="cosmic-theme min-h-screen w-full px-4 sm:px-6 lg:px-10 py-6 pb-36 lg:pb-16 max-w-[1440px] mx-auto text-foreground select-text">
       {/* Toast alert */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-[#0c1017]/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
-          <Sparkles className="h-4 w-4 text-amber-400" />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-card/95 px-5 py-3 text-sm text-foreground shadow-2xl backdrop-blur-xl">
+          <Sparkles className="h-4 w-4 text-amber-500 dark:text-amber-400" />
           <span>{toast}</span>
           <button
             onClick={() => setToast(null)}
-            className="text-white/60 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
             aria-label="Dismiss"
           >
             <X className="h-3.5 w-3.5" />
@@ -501,9 +501,9 @@ export function ComposeStudio() {
       )}
 
       {/* ─── Top Studio Header ────────────────────────────────────────────── */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10 mb-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border mb-8">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)] shrink-0">
+          <div className="h-11 w-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)] shrink-0">
             <Radio className="h-6 w-6" />
           </div>
           <div>
@@ -538,8 +538,8 @@ export function ComposeStudio() {
             className={cn(
               "flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-xs font-semibold transition cursor-pointer",
               mobileStudioTab === "preview"
-                ? "border-amber-400/60 bg-amber-400/15 text-amber-300"
-                : "border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-foreground",
+                ? "border-amber-500/60 bg-amber-500/15 text-amber-600 dark:text-amber-300"
+                : "border-border bg-muted/40 hover:bg-muted text-foreground",
             )}
           >
             <Eye className="h-3.5 w-3.5" />
@@ -570,14 +570,14 @@ export function ComposeStudio() {
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-200">
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-400">
             <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
       {/* Mobile Segmented Control: Edit Studio vs Live Preview */}
-      <div className="lg:hidden flex items-center justify-center p-1 rounded-2xl bg-white/5 border border-white/10 mb-6">
+      <div className="lg:hidden flex items-center justify-center p-1 rounded-2xl bg-muted/50 border border-border mb-6">
         <button
           type="button"
           onClick={() => setMobileStudioTab("edit")}
@@ -585,7 +585,7 @@ export function ComposeStudio() {
             "flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2",
             mobileStudioTab === "edit"
               ? "bg-amber-400 text-black shadow-md font-bold"
-              : "text-white/60 hover:text-white",
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           <PenLine className="h-3.5 w-3.5" />
@@ -598,7 +598,7 @@ export function ComposeStudio() {
             "flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2",
             mobileStudioTab === "preview"
               ? "bg-amber-400 text-black shadow-md font-bold"
-              : "text-white/60 hover:text-white",
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           <Eye className="h-3.5 w-3.5" />
@@ -611,7 +611,7 @@ export function ComposeStudio() {
         {/* ── LEFT COLUMN: Composer & Cryptographic Controls (7 Cols) ────── */}
         <div className={cn("lg:col-span-7 space-y-6", mobileStudioTab === "preview" && "hidden lg:block")}>
           {/* Format Selector Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none touch-momentum border-b border-white/5">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none touch-momentum border-b border-border">
             {[
               { id: "text", label: "Text", icon: PenLine },
               { id: "photo", label: "Photo", icon: ImageIcon },
@@ -636,8 +636,8 @@ export function ComposeStudio() {
                   className={cn(
                     "flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition cursor-pointer border",
                     active
-                      ? "border-amber-400/50 bg-amber-400/15 text-amber-600 dark:text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                      : "border-white/10 bg-white/[0.03] text-muted-foreground hover:text-foreground hover:bg-white/[0.06]",
+                      ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                      : "border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60",
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -664,7 +664,7 @@ export function ComposeStudio() {
           />
 
           {/* ── Main Composer Card ────────────────────────────────────────── */}
-          <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl relative backdrop-blur-2xl transition-all">
+          <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl relative backdrop-blur-2xl transition-all">
             <div className="space-y-4">
               <textarea
                 ref={textareaRef}
@@ -677,7 +677,7 @@ export function ComposeStudio() {
 
               {/* Uploaded Media Thumbnail Preview */}
               {mediaPreview && (
-                <div className="relative rounded-2xl overflow-hidden border border-white/15 max-h-56 bg-black/40 flex items-center justify-center group">
+                <div className="relative rounded-2xl overflow-hidden border border-border max-h-56 bg-black/40 flex items-center justify-center group">
                   {mediaType === "video" ? (
                     <video src={mediaPreview} controls className="max-h-56 w-full object-contain" />
                   ) : (
@@ -705,7 +705,7 @@ export function ComposeStudio() {
 
               {/* Poll Options Builder (active when poll tab selected) */}
               {activeTab === "poll" && (
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5">
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2.5">
                   <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                     Poll Choices
                   </span>
@@ -721,13 +721,13 @@ export function ComposeStudio() {
                           setPollOptions(updated);
                         }}
                         placeholder={`Option ${idx + 1}`}
-                        className="flex-1 rounded-xl bg-white/[0.04] border border-white/10 px-3.5 py-2 text-xs text-foreground outline-none focus:border-amber-400/40"
+                        className="flex-1 rounded-xl bg-muted/50 border border-border px-3.5 py-2 text-xs text-foreground outline-none focus:border-amber-500/40"
                       />
                       {pollOptions.length > 2 && (
                         <button
                           type="button"
                           onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== idx))}
-                          className="text-red-400 hover:text-red-300 p-1"
+                          className="text-red-500 hover:text-red-400 p-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -748,7 +748,7 @@ export function ComposeStudio() {
 
               {/* Link Input (active when link tab selected) */}
               {activeTab === "link" && (
-                <div className="flex items-center gap-2 p-2 rounded-2xl bg-white/[0.03] border border-white/10">
+                <div className="flex items-center gap-2 p-2 rounded-2xl bg-muted/30 border border-border">
                   <Link2 className="h-4 w-4 text-amber-500 ml-2" />
                   <input
                     type="url"
@@ -792,13 +792,13 @@ export function ComposeStudio() {
               )}
 
               {/* Composer Toolbar & Character Count */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between pt-4 border-t border-border">
                 {/* Rich text formatting tools */}
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <button
                     type="button"
                     onClick={() => insertFormatting("**", "**")}
-                    className="p-1.5 rounded-lg hover:bg-white/[0.08] hover:text-foreground transition cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-muted hover:text-foreground transition cursor-pointer"
                     title="Bold"
                   >
                     <Bold className="h-4 w-4" />
@@ -806,7 +806,7 @@ export function ComposeStudio() {
                   <button
                     type="button"
                     onClick={() => insertFormatting("*", "*")}
-                    className="p-1.5 rounded-lg hover:bg-white/[0.08] hover:text-foreground transition cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-muted hover:text-foreground transition cursor-pointer"
                     title="Italic"
                   >
                     <Italic className="h-4 w-4" />
@@ -814,7 +814,7 @@ export function ComposeStudio() {
                   <button
                     type="button"
                     onClick={() => insertFormatting("\n- ")}
-                    className="p-1.5 rounded-lg hover:bg-white/[0.08] hover:text-foreground transition cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-muted hover:text-foreground transition cursor-pointer"
                     title="Bullet List"
                   >
                     <List className="h-4 w-4" />
@@ -822,7 +822,7 @@ export function ComposeStudio() {
                   <button
                     type="button"
                     onClick={() => insertFormatting("[", "](https://)")}
-                    className="p-1.5 rounded-lg hover:bg-white/[0.08] hover:text-foreground transition cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-muted hover:text-foreground transition cursor-pointer"
                     title="Link"
                   >
                     <Link2 className="h-4 w-4" />
@@ -833,19 +833,19 @@ export function ComposeStudio() {
                     <button
                       type="button"
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="p-1.5 rounded-lg hover:bg-white/[0.08] hover:text-foreground transition cursor-pointer"
+                      className="p-1.5 rounded-lg hover:bg-muted hover:text-foreground transition cursor-pointer"
                       title="Insert Emoji"
                     >
                       <Smile className="h-4 w-4" />
                     </button>
                     {showEmojiPicker && (
-                      <div className="absolute left-0 bottom-full mb-2 p-2 rounded-2xl bg-[#0c1017] border border-white/15 shadow-2xl z-20 flex flex-wrap gap-1.5 w-48 backdrop-blur-2xl">
+                      <div className="absolute left-0 bottom-full mb-2 p-2 rounded-2xl bg-card border border-border shadow-2xl z-20 flex flex-wrap gap-1.5 w-48 backdrop-blur-2xl">
                         {EMOJI_LIST.map((emo) => (
                           <button
                             key={emo}
                             type="button"
                             onClick={() => appendEmoji(emo)}
-                            className="h-8 w-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-base cursor-pointer"
+                            className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center text-base cursor-pointer"
                           >
                             {emo}
                           </button>
@@ -880,7 +880,7 @@ export function ComposeStudio() {
           </div>
 
           {/* ── Identity Selection ────────────────────────────────────────── */}
-          <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl backdrop-blur-2xl space-y-4">
+          <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl backdrop-blur-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Shield className="h-4 w-4 text-amber-500 dark:text-amber-400" />
@@ -899,8 +899,8 @@ export function ComposeStudio() {
                 className={cn(
                   "flex flex-col p-4 rounded-2xl border text-left transition cursor-pointer relative",
                   identity === "anonymous"
-                    ? "border-amber-400/60 bg-amber-400/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                    : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                    ? "border-amber-500/60 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                    : "border-border bg-muted/20 hover:bg-muted/40",
                 )}
               >
                 {identity === "anonymous" && (
@@ -908,7 +908,7 @@ export function ComposeStudio() {
                     ✓
                   </span>
                 )}
-                <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-300 mb-2.5">
+                <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-300 mb-2.5">
                   <Ghost className="h-4 w-4" />
                 </div>
                 <span className="font-sans text-xs font-bold text-foreground">
@@ -926,8 +926,8 @@ export function ComposeStudio() {
                 className={cn(
                   "flex flex-col p-4 rounded-2xl border text-left transition cursor-pointer relative",
                   identity === "sovereign"
-                    ? "border-amber-400/60 bg-amber-400/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                    : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                    ? "border-amber-500/60 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                    : "border-border bg-muted/20 hover:bg-muted/40",
                 )}
               >
                 {identity === "sovereign" && (
@@ -935,7 +935,7 @@ export function ComposeStudio() {
                     ✓
                   </span>
                 )}
-                <div className="h-9 w-9 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-500 dark:text-blue-300 mb-2.5">
+                <div className="h-9 w-9 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-300 mb-2.5">
                   <User className="h-4 w-4" />
                 </div>
                 <span className="font-sans text-xs font-bold text-foreground">
@@ -956,8 +956,8 @@ export function ComposeStudio() {
                 className={cn(
                   "flex flex-col p-4 rounded-2xl border text-left transition cursor-pointer relative",
                   identity === "persona"
-                    ? "border-amber-400/60 bg-amber-400/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                    : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                    ? "border-amber-500/60 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                    : "border-border bg-muted/20 hover:bg-muted/40",
                 )}
               >
                 {identity === "persona" && (
@@ -965,7 +965,7 @@ export function ComposeStudio() {
                     ✓
                   </span>
                 )}
-                <div className="h-9 w-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-500 dark:text-purple-300 mb-2.5">
+                <div className="h-9 w-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-600 dark:text-purple-300 mb-2.5">
                   <Lock className="h-4 w-4" />
                 </div>
                 <span className="font-sans text-xs font-bold text-foreground">
@@ -979,7 +979,7 @@ export function ComposeStudio() {
           </div>
 
           {/* ── Who Can See This? ─────────────────────────────────────────── */}
-          <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl backdrop-blur-2xl space-y-4">
+          <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl backdrop-blur-2xl space-y-4">
             <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Globe className="h-4 w-4 text-amber-500 dark:text-amber-400" />
               <span>Who Can See This?</span>
@@ -1001,8 +1001,8 @@ export function ComposeStudio() {
                     className={cn(
                       "flex flex-col p-3.5 rounded-2xl border text-left transition cursor-pointer",
                       active
-                        ? "border-amber-400/60 bg-amber-400/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                        ? "border-amber-500/60 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                        : "border-border bg-muted/20 hover:bg-muted/40",
                     )}
                   >
                     <span className="font-sans text-xs font-bold text-foreground">
@@ -1020,7 +1020,7 @@ export function ComposeStudio() {
           {/* ── Transmission Lifetime & Engagement Toggles ────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Lifetime */}
-            <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl backdrop-blur-2xl space-y-3">
+            <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl backdrop-blur-2xl space-y-3">
               <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                 <span>Transmission Lifetime</span>
@@ -1036,8 +1036,8 @@ export function ComposeStudio() {
                       className={cn(
                         "py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border text-center",
                         active
-                          ? "border-amber-400/60 bg-amber-400/15 text-amber-600 dark:text-amber-300"
-                          : "border-white/10 bg-white/[0.02] text-muted-foreground hover:text-foreground",
+                          ? "border-amber-500/60 bg-amber-500/15 text-amber-600 dark:text-amber-300"
+                          : "border-border bg-muted/20 text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {lt === "forever" ? "∞ Forever" : lt}
@@ -1051,7 +1051,7 @@ export function ComposeStudio() {
             </div>
 
             {/* Engagement Controls */}
-            <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl backdrop-blur-2xl space-y-3">
+            <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl backdrop-blur-2xl space-y-3">
               <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Sliders className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                 <span>Engagement</span>
@@ -1094,7 +1094,7 @@ export function ComposeStudio() {
         {/* ── RIGHT COLUMN: Privacy Shield, AI & Live Preview (5 Cols) ───── */}
         <div className={cn("lg:col-span-5 space-y-6", mobileStudioTab === "edit" && "hidden lg:block")}>
           {/* ── Privacy Shield Card ───────────────────────────────────────── */}
-          <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl backdrop-blur-2xl space-y-4">
+          <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl backdrop-blur-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Shield className="h-4 w-4 text-amber-500 dark:text-amber-400" />
@@ -1123,14 +1123,14 @@ export function ComposeStudio() {
                     className={cn(
                       "flex items-start gap-3 w-full p-3 rounded-2xl border text-left transition cursor-pointer",
                       active
-                        ? "border-amber-400/50 bg-amber-400/10"
-                        : "border-white/5 hover:bg-white/[0.03]",
+                        ? "border-amber-500/50 bg-amber-500/10"
+                        : "border-border/50 hover:bg-muted/30",
                     )}
                   >
                     <div
                       className={cn(
                         "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5",
-                        active ? "border-amber-400 bg-amber-400" : "border-white/30",
+                        active ? "border-amber-500 bg-amber-500" : "border-border",
                       )}
                     >
                       {active && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
@@ -1150,14 +1150,14 @@ export function ComposeStudio() {
           </div>
 
           {/* ── AI Intelligence Card ──────────────────────────────────────── */}
-          <div className="rounded-[28px] border border-white/10 bg-[#0c1017]/85 p-6 shadow-xl backdrop-blur-2xl space-y-4">
+          <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl backdrop-blur-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                 <span>AI Intelligence</span>
               </h3>
               {isAiLoading && (
-                <span className="text-[10px] text-amber-500 dark:text-amber-400 flex items-center gap-1 animate-pulse">
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 animate-pulse">
                   <Loader2 className="h-3 w-3 animate-spin" /> Processing…
                 </span>
               )}
@@ -1174,7 +1174,7 @@ export function ComposeStudio() {
                 type="button"
                 onClick={handleAiImprove}
                 disabled={isAiLoading}
-                className="flex items-center gap-2 p-3 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-amber-400/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted hover:border-amber-500/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
               >
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                 <span>Improve</span>
@@ -1184,7 +1184,7 @@ export function ComposeStudio() {
                 type="button"
                 onClick={handlePrivacyCheck}
                 disabled={isAiLoading}
-                className="flex items-center gap-2 p-3 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-emerald-400/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted hover:border-emerald-500/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
               >
                 <ShieldAlert className="h-3.5 w-3.5 text-emerald-500" />
                 <span>Privacy Check</span>
@@ -1194,7 +1194,7 @@ export function ComposeStudio() {
                 type="button"
                 onClick={handleAiGenerate}
                 disabled={isAiLoading}
-                className="flex items-center gap-2 p-3 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-blue-400/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted hover:border-blue-500/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
               >
                 <FileCheck className="h-3.5 w-3.5 text-blue-500" />
                 <span>Generate</span>
@@ -1204,9 +1204,9 @@ export function ComposeStudio() {
                 type="button"
                 onClick={handleAddHashtags}
                 disabled={isAiLoading}
-                className="flex items-center gap-2 p-3 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-purple-400/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted hover:border-purple-500/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
               >
-                <span className="font-mono text-purple-400 font-bold">#</span>
+                <span className="font-mono text-purple-500 dark:text-purple-400 font-bold">#</span>
                 <span>Hashtags</span>
               </button>
             </div>
@@ -1242,7 +1242,7 @@ export function ComposeStudio() {
           {/* ── Live Transmission Preview Card ───────────────────────────── */}
           <div
             id="live-preview-section"
-            className="rounded-[28px] border border-amber-500/30 bg-[#0c1017]/90 p-6 shadow-2xl backdrop-blur-2xl space-y-4"
+            className="rounded-[28px] border border-amber-500/30 bg-card/90 p-6 shadow-2xl backdrop-blur-2xl space-y-4"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -1255,11 +1255,11 @@ export function ComposeStudio() {
             </div>
 
             {/* Post Card Preview */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-3.5">
+            <div className="rounded-2xl border border-border bg-muted/20 p-5 space-y-3.5">
               {/* Card Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500 dark:text-amber-300 font-bold text-xs">
+                  <div className="h-9 w-9 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-300 font-bold text-xs">
                     {identity === "anonymous" ? "AS" : identity === "persona" ? "VP" : (currentUser?.handle?.slice(0, 2).toUpperCase() || "ME")}
                   </div>
                   <div>
@@ -1296,7 +1296,7 @@ export function ComposeStudio() {
 
               {/* Media attached */}
               {mediaPreview && (
-                <div className="rounded-xl overflow-hidden max-h-48 bg-black/40 border border-white/10">
+                <div className="rounded-xl overflow-hidden max-h-48 bg-black/40 border border-border">
                   {mediaType === "video" ? (
                     <video src={mediaPreview} className="max-h-48 w-full object-contain" />
                   ) : (
@@ -1311,7 +1311,7 @@ export function ComposeStudio() {
                   {pollOptions.filter((o) => o.trim()).map((opt, i) => (
                     <div
                       key={i}
-                      className="rounded-xl border border-white/10 p-2.5 text-[11px] text-muted-foreground flex justify-between items-center bg-white/[0.02]"
+                      className="rounded-xl border border-border p-2.5 text-[11px] text-muted-foreground flex justify-between items-center bg-muted/20"
                     >
                       <span>{opt}</span>
                       <span className="text-[10px] font-mono">0%</span>
@@ -1327,13 +1327,13 @@ export function ComposeStudio() {
               </div>
 
               {/* Mock action toolbar */}
-              <div className="flex items-center justify-between pt-3 border-t border-white/10 text-muted-foreground text-xs">
+              <div className="flex items-center justify-between pt-3 border-t border-border text-muted-foreground text-xs">
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1.5">
-                    <Heart className="h-3.5 w-3.5 text-red-400" /> 12
+                    <Heart className="h-3.5 w-3.5 text-red-500" /> 12
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5" /> 4
+                    <MessageSquare className="h-3.5 w-3.5 text-blue-500" /> 4
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Repeat2 className="h-3.5 w-3.5" /> 2

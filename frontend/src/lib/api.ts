@@ -211,6 +211,21 @@ async function handleResponse(response: Response) {
   return response.json();
 }
 
+export function notifyAuthChange() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("veil-auth-change"));
+  }
+}
+
+export function setAuthSession(token: string, user?: any) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("veil_auth_token", token);
+  if (user) {
+    localStorage.setItem("veil_user", JSON.stringify(user));
+  }
+  notifyAuthChange();
+}
+
 /**
  * Register a new anonymous user.
  */
@@ -222,8 +237,7 @@ export async function registerUser(handle: string, passphrase: string) {
   });
   const data = await handleResponse(res);
   if (data.token) {
-    localStorage.setItem("veil_auth_token", data.token);
-    localStorage.setItem("veil_user", JSON.stringify(data.user));
+    setAuthSession(data.token, data.user);
   }
   return data;
 }
@@ -239,8 +253,7 @@ export async function loginUser(handle: string, passphrase: string) {
   });
   const data = await handleResponse(res);
   if (data.token) {
-    localStorage.setItem("veil_auth_token", data.token);
-    localStorage.setItem("veil_user", JSON.stringify(data.user));
+    setAuthSession(data.token, data.user);
   }
   return data;
 }
@@ -249,8 +262,10 @@ export async function loginUser(handle: string, passphrase: string) {
  * Log out user by clearing storage.
  */
 export function logoutUser() {
+  if (typeof window === "undefined") return;
   localStorage.removeItem("veil_auth_token");
   localStorage.removeItem("veil_user");
+  notifyAuthChange();
 }
 
 /**
@@ -732,7 +747,7 @@ export async function changePassphrase(
   });
   const data = await handleResponse(res);
   // Update stored token since tokenVersion changed
-  if (data.token) localStorage.setItem("veil_auth_token", data.token);
+  if (data.token) setAuthSession(data.token);
   return data;
 }
 
@@ -743,7 +758,7 @@ export async function logoutAllDevices() {
   });
   const data = await handleResponse(res);
   // Keep new token for current session
-  if (data.token) localStorage.setItem("veil_auth_token", data.token);
+  if (data.token) setAuthSession(data.token);
   return data;
 }
 
@@ -759,8 +774,7 @@ export async function redeemRecoveryCode(
   });
   const data = await handleResponse(res);
   if (data.token) {
-    localStorage.setItem("veil_auth_token", data.token);
-    localStorage.setItem("veil_user", JSON.stringify(data.user));
+    setAuthSession(data.token, data.user);
   }
   return data;
 }
@@ -859,8 +873,7 @@ export async function verifyPasskeyLogin(
   });
   const data = await handleResponse(res);
   if (data.token) {
-    localStorage.setItem("veil_auth_token", data.token);
-    localStorage.setItem("veil_user", JSON.stringify(data.user));
+    setAuthSession(data.token, data.user);
   }
   return data;
 }
@@ -914,8 +927,7 @@ export async function loginVerifyTotp(
   });
   const data = await handleResponse(res);
   if (data.token) {
-    localStorage.setItem("veil_auth_token", data.token);
-    localStorage.setItem("veil_user", JSON.stringify(data.user));
+    setAuthSession(data.token, data.user);
   }
   return data;
 }

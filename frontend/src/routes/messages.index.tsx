@@ -31,7 +31,7 @@ function EmptyThread() {
 
         {/* Feature List for trust and platform capabilities */}
         <div className="mt-8 space-y-3.5 text-left">
-          <div className="flex items-start gap-3.5 rounded-2xl bg-white/[0.02] p-3 border border-white/[0.04]">
+          <div className="flex items-start gap-3.5 rounded-2xl bg-muted/30 p-3 border border-border">
             <div className="mt-0.5 rounded-lg bg-[color:var(--veil-glow)]/10 p-1.5 text-[color:var(--veil-glow)]">
               <KeyRound className="h-3.5 w-3.5" />
             </div>
@@ -46,7 +46,7 @@ function EmptyThread() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3.5 rounded-2xl bg-white/[0.02] p-3 border border-white/[0.04]">
+          <div className="flex items-start gap-3.5 rounded-2xl bg-muted/30 p-3 border border-border">
             <div className="mt-0.5 rounded-lg bg-[color:var(--veil-glow)]/10 p-1.5 text-[color:var(--veil-glow)]">
               <ShieldCheck className="h-3.5 w-3.5" />
             </div>
@@ -61,7 +61,7 @@ function EmptyThread() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3.5 rounded-2xl bg-white/[0.02] p-3 border border-white/[0.04]">
+          <div className="flex items-start gap-3.5 rounded-2xl bg-muted/30 p-3 border border-border">
             <div className="mt-0.5 rounded-lg bg-[color:var(--veil-glow)]/10 p-1.5 text-[color:var(--veil-glow)]">
               <Timer className="h-3.5 w-3.5" />
             </div>
