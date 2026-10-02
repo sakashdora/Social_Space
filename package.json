@@ -22,6 +22,8 @@
     "prisma:generate": "npm --prefix backend run build"
   },
   "devDependencies": {
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   }
 }
