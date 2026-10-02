@@ -1,5 +1,7 @@
 # VEIL - Anonymous AI Social Space
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+
 Welcome to **VEIL**, an anonymous AI-powered social space. The application features a rich, responsive frontend built with TanStack Start, React 19, and Vite, and an Express backend integrated with Prisma and SQLite for local development.
 
 ---
