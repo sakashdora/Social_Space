@@ -5,6 +5,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": null,
+  "build": {
+    "env": {
+      "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS": "1"
+    }
+  },
   "functions": {
     "api/index.js": {
       "includeFiles": "{backend/**,node_modules/ffmpeg-static/**,node_modules/ffprobe-static/**}",
