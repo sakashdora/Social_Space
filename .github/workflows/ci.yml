@@ -1,42 +1,32 @@
-name: CI Pipeline
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
+name: Verify
+on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
-  validate:
-    name: Build & Test Verification
+  check:
     runs-on: ubuntu-latest
-
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: veil_test
+          POSTGRES_PASSWORD: test_only_password
+          POSTGRES_DB: veil_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veil_test -d veil_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://veil_test:test_only_password@localhost:5432/veil_test
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install dependencies
-        run: npm run install:all
-
-      - name: Generate Prisma Client
-        run: |
-          cd backend
-          npx prisma generate
-
-      - name: Run Backend Integration Tests
-        run: |
-          cd backend
-          npm test -- --passWithNoTests
-
-      - name: Build Frontend & Verify Bundle
-        run: |
-          cd frontend
-          npm run build
-
-      - name: Verify Monorepo Build
-        run: npm run build
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

@@ -74,43 +74,17 @@ if (encKey && !/^[0-9a-fA-F]{64}$/.test(encKey.trim())) {
   errors.push("  ✗ ENCRYPTION_KEY must be exactly 64 hexadecimal characters (32 bytes).");
 }
 
-// Check SUPABASE_URL presence
 if (!process.env.SUPABASE_URL) {
-  warnings.push(
-    "  ⚠ SUPABASE_URL is missing. Falling back to a hard-coded default project " +
-    "(https://qaovcjwalukixbvhgzel.supabase.co). This default exists only for local dev " +
-    "and MUST be overridden via SUPABASE_URL in every real environment. Media uploads/deletions " +
-    "will still fail unless SUPABASE_SERVICE_ROLE_KEY is also set."
-  );
+  (isProd ? errors : warnings).push("SUPABASE_URL is missing; media storage is unavailable.");
 }
-
-// In production, FRONTEND_ORIGIN can be set explicitly or auto-configured for cloud environments (Vercel, etc.)
-if (isProd && !process.env.FRONTEND_ORIGIN) {
-  if (process.env.VERCEL || process.env.VERCEL_URL) {
-    process.env.FRONTEND_ORIGIN = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL},https://*.vercel.app`
-      : "https://*.vercel.app";
-    warnings.push(
-      `  ℹ FRONTEND_ORIGIN not explicitly set; auto-configured for Vercel: "${process.env.FRONTEND_ORIGIN}"`
-    );
-  } else {
-    // In other production environments, warn and default to local/cloud origins instead of aborting boot
-    process.env.FRONTEND_ORIGIN = "http://localhost:5173,https://*.vercel.app";
-    warnings.push(
-      "  ⚠ FRONTEND_ORIGIN is not explicitly set in production. Dynamic multi-platform origin matching will be active."
-    );
-  }
+if (isProd && !process.env.FRONTEND_ORIGIN && !process.env.VERCEL_URL) {
+  errors.push("FRONTEND_ORIGIN must contain the exact production frontend origin.");
 }
-
-// Fix C: SUPABASE_URL must be explicitly set in production — no hard-coded project fallback.
-// A missing SUPABASE_URL in a new/staging deployment would otherwise silently target production storage.
-if (isProd && !process.env.SUPABASE_URL) {
-  errors.push("  ✗ SUPABASE_URL must be set in production. Do not rely on the dev fallback.");
+if (process.env.FRONTEND_ORIGIN?.includes("*")) {
+  errors.push("FRONTEND_ORIGIN must list exact origins; wildcards are not allowed.");
 }
-
-// In production, UPSTASH_REDIS_REST_URL and token are optional but recommended
 if (isProd && (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)) {
-  warnings.push("  ⚠ UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is missing in production. Falling back to in-memory store.");
+  warnings.push("Redis is not configured; authentication challenges use PostgreSQL.");
 }
 
 if (warnings.length > 0) {
@@ -145,7 +119,7 @@ export const env = {
   WEBAUTHN_RP_NAME: process.env.WEBAUTHN_RP_NAME || "Social Space",
   WEBAUTHN_RP_ID: process.env.WEBAUTHN_RP_ID || "localhost",
   WEBAUTHN_ORIGIN: process.env.WEBAUTHN_ORIGIN || "http://localhost:5173",
-  FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || "http://localhost:5173",
+  FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || (isProd ? "" : "http://localhost:5173"),
   TOTP_ISSUER: process.env.TOTP_ISSUER || "Social Space",
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,

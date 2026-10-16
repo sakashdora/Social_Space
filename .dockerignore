@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/tmp
+**/.env
+**/.env.*
+**/*.log
+**/.tanstack
+**/.output
+.git
+.codex
+.agents

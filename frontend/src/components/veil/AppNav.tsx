@@ -18,7 +18,12 @@ import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
-const items = [
+const items: readonly {
+  to: "/" | "/news" | "/social" | "/messages" | "/video" | "/profile";
+  label: string;
+  icon: typeof Home;
+  badge?: number;
+}[] = [
   { to: "/", label: "Home", icon: Home },
   { to: "/news", label: "News", icon: Rss },
   { to: "/social", label: "Social", icon: MessageSquare },
@@ -156,7 +161,8 @@ export function AppNav() {
         <nav
           className="fixed inset-x-2 sm:inset-x-4 max-w-lg mx-auto z-40 flex items-center justify-around rounded-3xl border border-border bg-white/95 dark:bg-[#080b11]/90 px-1.5 py-2 backdrop-blur-2xl lg:hidden shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.65)]"
           style={{
-            bottom: "max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))",
+            bottom:
+              "max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))",
           }}
         >
           {items.slice(0, 3).map((it) => {

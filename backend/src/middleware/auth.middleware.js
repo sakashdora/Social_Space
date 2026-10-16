@@ -1,7 +1,7 @@
 import prisma from "../config/prisma.js";
 import { verifyToken } from "../utils/jwt.js";
 import { verifyPassphrase } from "../utils/crypto.js";
-import { safeWaitUntil } from "../utils/lifecycle.js";
+
 
 /**
  * Authentication middleware — verifies JWT and checks tokenVersion against the DB.
@@ -23,7 +23,7 @@ export async function requireAuth(req, res, next) {
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, handle: true, isBanned: true, tokenVersion: true, totpEnabled: true, lastActiveAt: true },
+      select: { id: true, handle: true, isBanned: true, tokenVersion: true, totpEnabled: true, lastActiveAt: true, pendingDeletionAt: true },
     });
 
     if (!user) {
@@ -39,15 +39,10 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ error: "Session expired. Please sign in again." });
     }
 
-    // Refresh lastActiveAt asynchronously with 2-minute throttle (serverless-safe lifecycle)
+    // Await activity before serving protected work so cleanup cannot delete a returning user.
     const now = Date.now();
-    if (!user.lastActiveAt || (now - new Date(user.lastActiveAt).getTime()) > 120000) {
-      safeWaitUntil(
-        prisma.user.update({
-          where: { id: user.id },
-          data: { lastActiveAt: new Date(now) },
-        }).catch((err) => console.error("Failed to update lastActiveAt:", err.message))
-      );
+    if (user.pendingDeletionAt || !user.lastActiveAt || now - new Date(user.lastActiveAt).getTime() > 120000) {
+      await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date(now), pendingDeletionAt: null } });
     }
 
     req.user = {

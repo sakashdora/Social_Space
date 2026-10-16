@@ -1,3 +1,4 @@
+import { findVisiblePost } from "../services/postPolicy.js";
 import prisma from "../config/prisma.js";
 import { analyzeContent } from "../services/ai.service.js";
 import sanitizeHtml from "sanitize-html";
@@ -54,9 +55,7 @@ export async function createComment(req, res) {
     }
 
     // Verify post exists
-    const post = await prisma.post.findUnique({
-      where: { id: postId }
-    });
+    const post = await findVisiblePost(postId, req.user.id);
 
     if (!post || post.isDeleted) {
       return res.status(404).json({
@@ -67,14 +66,16 @@ export async function createComment(req, res) {
       });
     }
 
+    if (!post.allowReplies) return res.status(403).json({ error: "Replies are disabled for this post." });
     const content = sanitizeContent(rawContent);
+    if (!content.trim()) return res.status(400).json({ error: "Comment cannot be empty." });
 
     // If parentCommentId is provided, verify it exists
     if (parentCommentId) {
       const parentComment = await prisma.comment.findUnique({
         where: { id: parentCommentId }
       });
-      if (!parentComment || parentComment.isDeleted) {
+      if (!parentComment || parentComment.isDeleted || parentComment.postId !== postId) {
         return res.status(404).json({
           error: {
             message: "Parent comment not found.",
@@ -85,7 +86,7 @@ export async function createComment(req, res) {
     }
 
     // Determine comment authorship (fully anonymous or pseudonymous)
-    const commentUserId = mode === "full" ? null : req.user.id;
+    const commentUserId = (mode === "full" || post.anonymousReplies) ? null : req.user.id;
 
     const comment = await prisma.comment.create({
       data: {
@@ -132,7 +133,10 @@ export async function getComments(req, res) {
   try {
     const { postId } = req.params;
 
+    if (!await findVisiblePost(postId, req.user?.id)) return res.status(404).json({ error: "Post not found." });
     const comments = await prisma.comment.findMany({
+      take: 100,
+      skip: Math.max(0, Math.min(10000, parseInt(req.query.offset, 10) || 0)),
       where: {
         postId,
         isDeleted: false

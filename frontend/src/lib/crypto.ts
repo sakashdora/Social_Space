@@ -29,20 +29,61 @@ export async function saveKeyRecord(
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    const request = store.put(record, userId);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
+    const previous = store.get(userId);
+    previous.onsuccess = () => {
+      if (previous.result)
+        store.put(
+          previous.result,
+          userId + ":" + previous.result.publicKeyBase64,
+        );
+      store.put(record, userId + ":" + record.publicKeyBase64);
+      store.put(record, userId);
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(tx.error);
+    };
   });
 }
 
-export async function getKeyRecord(userId: string): Promise<KeyRecord | null> {
+export async function getKeyRecord(
+  userId: string,
+  publicKeyBase64?: string,
+): Promise<KeyRecord | null> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
-    const request = store.get(userId);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result || null);
+    let value: KeyRecord | null = null;
+    const request = store.get(
+      publicKeyBase64 ? userId + ":" + publicKeyBase64 : userId,
+    );
+    request.onsuccess = () => {
+      value = request.result || null;
+      if (!value && publicKeyBase64) {
+        const current = store.get(userId);
+        current.onsuccess = () => {
+          if (current.result?.publicKeyBase64 === publicKeyBase64)
+            value = current.result;
+        };
+      }
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve(value);
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
   });
 }
 
@@ -50,10 +91,26 @@ export async function deletePrivateKey(userId: string): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.delete(userId);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
+    const request = tx.objectStore(STORE_NAME).openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        if (
+          cursor.key === userId ||
+          String(cursor.key).startsWith(userId + ":")
+        )
+          cursor.delete();
+        cursor.continue();
+      }
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
   });
 }
 
@@ -140,6 +197,7 @@ export async function deriveSharedAesKey(
 export async function encryptText(
   text: string,
   aesKey: CryptoKey,
+  context?: string,
 ): Promise<{ ciphertext: string; iv: string }> {
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(text);
@@ -147,6 +205,7 @@ export async function encryptText(
     {
       name: "AES-GCM",
       iv,
+      ...(context ? { additionalData: new TextEncoder().encode(context) } : {}),
     },
     aesKey,
     encoded,
@@ -167,6 +226,7 @@ export async function decryptText(
   ciphertextBase64: string,
   ivBase64: string,
   aesKey: CryptoKey,
+  context?: string,
 ): Promise<string> {
   const ciphertextBinary = atob(ciphertextBase64);
   const ciphertext = new Uint8Array(ciphertextBinary.length);
@@ -184,10 +244,53 @@ export async function decryptText(
     {
       name: "AES-GCM",
       iv,
+      ...(context ? { additionalData: new TextEncoder().encode(context) } : {}),
     },
     aesKey,
     ciphertext,
   );
 
   return new TextDecoder().decode(decryptedBuffer);
+}
+
+const base64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+const fromBase64 = (value: string) =>
+  Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+export async function encryptAttachment(bytes: ArrayBuffer) {
+  const key = await window.crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"],
+  );
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    bytes,
+  );
+  return {
+    bytes: encrypted,
+    key: base64(
+      new Uint8Array(await window.crypto.subtle.exportKey("raw", key)),
+    ),
+    iv: base64(iv),
+  };
+}
+export async function decryptAttachment(
+  bytes: ArrayBuffer,
+  encodedKey: string,
+  encodedIv: string,
+) {
+  const key = await window.crypto.subtle.importKey(
+    "raw",
+    fromBase64(encodedKey),
+    "AES-GCM",
+    false,
+    ["decrypt"],
+  );
+  return window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: fromBase64(encodedIv) },
+    key,
+    bytes,
+  );
 }

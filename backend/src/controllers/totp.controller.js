@@ -60,7 +60,7 @@ export async function enableTotp(req, res) {
   try {
     const { totpCode } = req.body;
 
-    const pending = await store.get(`totp:pending:${req.user.id}`);
+    const pending = await store.take(`totp:pending:${req.user.id}`);
     if (!pending) {
       return res.status(400).json({
         error: {

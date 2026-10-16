@@ -14,11 +14,8 @@ export const startChatSchema = z.object({
 });
 
 export const sendChatMessageSchema = z.object({
-  body: z.string().trim().optional(),
-  mediaUrl: z.string().trim().nullable().optional(),
-}).refine(data => data.body || data.mediaUrl, {
-  message: "Message body or mediaUrl attachment is required.",
-  path: ["body"],
+  body: z.string().trim().min(1).max(20000),
+  mediaId: z.string().uuid().nullable().optional(),
 });
 
 export const updateChatTimerSchema = z.object({

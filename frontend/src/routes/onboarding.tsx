@@ -37,7 +37,6 @@ import {
   startAuthentication,
 } from "@simplewebauthn/browser";
 
-
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
@@ -380,7 +379,8 @@ function Onboarding() {
 
   const pickRandomSuggestion = () => {
     const pool = suggestions.filter((s) => s !== handle);
-    const chosen = pool[Math.floor(Math.random() * pool.length)] || suggestions[0];
+    const chosen =
+      pool[Math.floor(Math.random() * pool.length)] || suggestions[0];
     setHandle(chosen);
   };
 
@@ -460,7 +460,11 @@ function Onboarding() {
             <button
               type="button"
               onClick={toggleTheme}
-              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              aria-label={
+                theme === "dark"
+                  ? "Switch to light theme"
+                  : "Switch to dark theme"
+              }
               className="h-9 w-9 rounded-full bg-muted/50 hover:bg-muted border border-border flex items-center justify-center text-foreground transition cursor-pointer"
             >
               {theme === "dark" ? (
@@ -478,7 +482,6 @@ function Onboarding() {
           </div>
         </div>
       </header>
-
 
       {/* ─── Main Content Body ─────────────────────────────────────────── */}
       <main className="relative z-10 w-full flex-1 flex items-center px-6 sm:px-12 py-8 sm:py-12">
@@ -516,7 +519,9 @@ function Onboarding() {
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
                     Pick a handle.
                     <br />
-                    <span className="text-blue-600 dark:text-[#3b82f6]">That’s the whole</span>{" "}
+                    <span className="text-blue-600 dark:text-[#3b82f6]">
+                      That’s the whole
+                    </span>{" "}
                     signup.
                   </h1>
 
@@ -577,8 +582,8 @@ function Onboarding() {
                     </h2>
 
                     <p className="text-xs sm:text-sm text-muted-foreground mt-3 leading-relaxed">
-                      This will be your identity in Social Space. Keep it simple,
-                      creative, or completely random — it’s up to you.
+                      This will be your identity in Social Space. Keep it
+                      simple, creative, or completely random — it’s up to you.
                     </p>
 
                     {/* Handle Input Field */}
@@ -672,7 +677,10 @@ function Onboarding() {
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
                     Age assurance.
                     <br />
-                    <span className="text-blue-600 dark:text-[#3b82f6]">Zero ID</span> required.
+                    <span className="text-blue-600 dark:text-[#3b82f6]">
+                      Zero ID
+                    </span>{" "}
+                    required.
                   </h1>
 
                   <p className="mt-5 text-muted-foreground text-base sm:text-lg leading-relaxed max-w-lg">
@@ -726,8 +734,9 @@ function Onboarding() {
                     </h2>
 
                     <p className="text-xs sm:text-sm text-muted-foreground mt-3 leading-relaxed">
-                      Social Space requires users to be of legal age. Our zero-knowledge
-                      on-device assurance confirms this without storing or transmitting personal data.
+                      Social Space requires users to be of legal age. Our
+                      zero-knowledge on-device assurance confirms this without
+                      storing or transmitting personal data.
                     </p>
 
                     <div className="mt-8 rounded-2xl border border-border bg-muted/40 p-5 flex items-start gap-4">
@@ -737,7 +746,8 @@ function Onboarding() {
                           On-device cryptographic check
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                          Only a binary pass/fail cryptographic signal is registered with your handle.
+                          Only a binary pass/fail cryptographic signal is
+                          registered with your handle.
                         </p>
 
                         <label className="mt-5 flex cursor-pointer items-center gap-3">
@@ -785,12 +795,16 @@ function Onboarding() {
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
                     Set your passphrase.
                     <br />
-                    <span className="text-blue-600 dark:text-[#3b82f6]">Uncrackable</span> security.
+                    <span className="text-blue-600 dark:text-[#3b82f6]">
+                      Uncrackable
+                    </span>{" "}
+                    security.
                   </h1>
 
                   <p className="mt-5 text-muted-foreground text-base sm:text-lg leading-relaxed max-w-lg">
-                    Your passphrase is your master key. Hashed locally with Argon2id,
-                    it protects your identity without backdoors or recovery emails.
+                    Your passphrase is your master key. Hashed locally with
+                    Argon2id, it protects your identity without backdoors or
+                    recovery emails.
                   </p>
 
                   <div className="mt-10 grid grid-cols-3 gap-6 pt-6 border-t border-border">
@@ -839,8 +853,8 @@ function Onboarding() {
                     </h2>
 
                     <p className="text-xs sm:text-sm text-muted-foreground mt-3 leading-relaxed">
-                      Use several words or a memorable sentence. Aim for at least 60 bits
-                      of entropy.
+                      Use several words or a memorable sentence. Aim for at
+                      least 60 bits of entropy.
                     </p>
 
                     {/* Passphrase Input */}
@@ -880,16 +894,23 @@ function Onboarding() {
                           />
                         </div>
                         <div className="flex justify-between items-center text-xs">
-                          <span style={{ color: entropyColor }} className="font-medium">
+                          <span
+                            style={{ color: entropyColor }}
+                            className="font-medium"
+                          >
                             {entropyLbl} ({Math.round(entropy)} bits)
                           </span>
-                          <span className="text-muted-foreground">Target: 60+ bits</span>
+                          <span className="text-muted-foreground">
+                            Target: 60+ bits
+                          </span>
                         </div>
                       </div>
                     )}
 
                     <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4 text-xs text-muted-foreground leading-relaxed">
-                      💡 <strong>Tip:</strong> Combining 4 or 5 random words creates an ultra-strong phrase that is easy for you to remember and impossible for machines to crack.
+                      💡 <strong>Tip:</strong> Combining 4 or 5 random words
+                      creates an ultra-strong phrase that is easy for you to
+                      remember and impossible for machines to crack.
                     </div>
                   </div>
                 </div>
@@ -918,19 +939,26 @@ function Onboarding() {
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
                     Save your codes.
                     <br />
-                    <span className="text-amber-600 dark:text-amber-400">One-time</span> emergency key.
+                    <span className="text-amber-600 dark:text-amber-400">
+                      One-time
+                    </span>{" "}
+                    emergency key.
                   </h1>
 
                   <p className="mt-5 text-muted-foreground text-base sm:text-lg leading-relaxed max-w-lg">
-                    There are no reset emails or customer support resets. If you ever
-                    forget your passphrase, these 8 recovery codes are your only lifeline.
+                    There are no reset emails or customer support resets. If you
+                    ever forget your passphrase, these 8 recovery codes are your
+                    only lifeline.
                   </p>
 
                   <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] p-4 text-xs text-foreground/80 leading-relaxed flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-foreground">Permanent loss warning:</strong> Store these codes in a
-                      password manager or on printed paper. They are displayed only once.
+                      <strong className="text-foreground">
+                        Permanent loss warning:
+                      </strong>{" "}
+                      Store these codes in a password manager or on printed
+                      paper. They are displayed only once.
                     </div>
                   </div>
                 </div>
@@ -997,12 +1025,16 @@ function Onboarding() {
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
                     Add a passkey.
                     <br />
-                    <span className="text-blue-600 dark:text-blue-400">Instant access</span> with Face ID.
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Instant access
+                    </span>{" "}
+                    with Face ID.
                   </h1>
 
                   <p className="mt-5 text-muted-foreground text-base sm:text-lg leading-relaxed max-w-lg">
-                    Sign in seamlessly using Touch ID, Face ID, or Windows Hello.
-                    Passkeys eliminate phishing risks and let you log in with a single touch.
+                    Sign in seamlessly using Touch ID, Face ID, or Windows
+                    Hello. Passkeys eliminate phishing risks and let you log in
+                    with a single touch.
                   </p>
                 </div>
 
@@ -1018,7 +1050,8 @@ function Onboarding() {
                     </h2>
 
                     <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      Syncs securely with your device's biometric keychain. You will never need to type your passphrase on this machine.
+                      Syncs securely with your device's biometric keychain. You
+                      will never need to type your passphrase on this machine.
                     </p>
 
                     <button
@@ -1027,7 +1060,9 @@ function Onboarding() {
                       className="w-full inline-flex items-center justify-center gap-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 py-3.5 text-sm shadow-[0_0_25px_rgba(245,158,11,0.35)] transition cursor-pointer"
                     >
                       <Fingerprint className="h-5 w-5" />
-                      {isLoading ? "Enrolling passkey…" : "Register device passkey"}
+                      {isLoading
+                        ? "Enrolling passkey…"
+                        : "Register device passkey"}
                     </button>
 
                     <button
@@ -1063,7 +1098,10 @@ function Onboarding() {
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
                     Enter Social Space.
                     <br />
-                    <span className="text-blue-600 dark:text-blue-400">Your sovereign</span> identity.
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Your sovereign
+                    </span>{" "}
+                    identity.
                   </h1>
 
                   <p className="mt-5 text-muted-foreground text-base sm:text-lg leading-relaxed max-w-lg">
@@ -1105,7 +1143,9 @@ function Onboarding() {
                         Handle
                       </label>
                       <div className="mt-1.5 flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2.5 focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                        <span className="text-muted-foreground font-mono">@</span>
+                        <span className="text-muted-foreground font-mono">
+                          @
+                        </span>
                         <input
                           autoFocus
                           id="login-handle"
@@ -1235,7 +1275,9 @@ function Onboarding() {
                     <div className="mt-1.5 flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2.5">
                       <input
                         value={recoveryCode}
-                        onChange={(e) => setRecoveryCode(e.target.value.toLowerCase())}
+                        onChange={(e) =>
+                          setRecoveryCode(e.target.value.toLowerCase())
+                        }
                         placeholder="word-word-word-word"
                         className="flex-1 bg-transparent text-foreground font-mono text-sm outline-none placeholder:text-muted-foreground"
                       />
@@ -1283,7 +1325,8 @@ function Onboarding() {
       <footer
         className="relative z-10 w-full px-4 sm:px-12 py-4 sm:py-6 border-t border-border bg-card/85 backdrop-blur-md"
         style={{
-          paddingBottom: "max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))",
+          paddingBottom:
+            "max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))",
         }}
       >
         <div className="mx-auto max-w-7xl flex items-center justify-between">
@@ -1331,7 +1374,7 @@ function Onboarding() {
                 className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {isLoading
-                  ? (loadingStatus || "Creating account…")
+                  ? loadingStatus || "Creating account…"
                   : step === 2
                     ? "Create account"
                     : "Continue"}
@@ -1374,7 +1417,9 @@ function Onboarding() {
                 type="button"
                 onClick={handlePassphraseLogin}
                 disabled={
-                  isLoading || loginHandle.length < 3 || loginPassphrase.length < 3
+                  isLoading ||
+                  loginHandle.length < 3 ||
+                  loginPassphrase.length < 3
                 }
                 className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 active:scale-[0.98]"
               >

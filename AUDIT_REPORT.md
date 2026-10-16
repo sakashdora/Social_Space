@@ -1,3 +1,5 @@
+> Historical report: this document predates the October 2026 repairs. Its scores and readiness claims are not current. See [REMEDIATION.md](REMEDIATION.md) and [SECURITY.md](SECURITY.md) for verified status and limitations.
+
 # VEIL (Social Space) — Full Functionality Audit Report
 **Date:** September 6, 2026  
 **Repository:** `sakashdora/Social_Space`  

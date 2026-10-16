@@ -33,6 +33,6 @@ export const pgPool = globalForPg.pgPool || new pg.Pool({
 globalForPg.pgPool = pgPool;
 
 pgPool.on("error", (err) => {
-  // Non-fatal: log but do not crash the process -- rate limiters will fail-open
+  // Keep the process available for recovery; protected requests fail closed.
   console.error("[pgPool/rateLimiter] Unexpected pool client error:", err.message);
 });

@@ -2,6 +2,7 @@
 import { env } from "./src/config/env.js";
 
 import express from "express";
+import communityRoutes from "./src/routes/community.routes.js";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -22,6 +23,8 @@ import cronRoutes from "./src/routes/cron.routes.js";
 import prisma from "./src/config/prisma.js";
 
 const app = express();
+app.disable("etag");
+app.use((req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
 
 // Strip duplicate "/api" prefix if requests are double-prefixed (e.g. /api/api/...)
 app.use((req, res, next) => {
@@ -35,58 +38,15 @@ app.use((req, res, next) => {
 // Using `true` would trust all X-Forwarded-For hops, allowing IP spoofing to bypass rate limiters.
 app.set("trust proxy", 1);
 
-// ─── Universal Multi-Platform CORS Policy ─────────────────────────────────────
-// Parse FRONTEND_ORIGIN as a comma-separated list.
-// Automatically allows:
-// 1. All Vercel preview and production subdomains (*.vercel.app)
-// 2. Localhost and loopback IPs (http://localhost:*, http://127.0.0.1:*)
-// 3. Explicitly configured origins (including wildcards like *.azurecontainerapps.io)
-// 4. Same-host requests
-
-const configuredOrigins = (env.FRONTEND_ORIGIN || "http://localhost:5173")
-  .split(",")
-  .map((o) => o.trim().replace(/\/+$/, ""))
-  .filter(Boolean);
-
-console.log("[cors] Configured allowed origins:", configuredOrigins);
-
+// Only this application's explicitly configured origins and Vercel deployments.
+const configuredOrigins = [
+  ...(env.FRONTEND_ORIGIN || "").split(","),
+  ...[process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL].filter(Boolean).map(host => "https://" + host),
+].map(origin => origin.trim().replace(/\/+$/, "").toLowerCase()).filter(Boolean);
 export function isOriginAllowed(origin) {
-  // Allow requests with no origin (same-origin, curl, server-to-server, mobile apps)
   if (!origin) return true;
-
-  const norm = origin.trim().replace(/\/+$/, "").toLowerCase();
-
-  // 1. Wildcard allow-all
-  if (configuredOrigins.includes("*")) return true;
-
-  // 2. Exact match against configured origins
-  if (configuredOrigins.some((allowed) => allowed.toLowerCase() === norm)) {
-    return true;
-  }
-
-  // 3. Automatically allow all Vercel deployment subdomains (*.vercel.app)
-  if (/^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$/.test(norm)) {
-    return true;
-  }
-
-  // 4. Automatically allow local development servers (localhost / 127.0.0.1 on any port)
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(norm)) {
-    return true;
-  }
-
-  // 5. Wildcard pattern matching from configured origins (e.g. "https://*.azurecontainerapps.io")
-  for (const pattern of configuredOrigins) {
-    if (pattern.includes("*")) {
-      const regexPattern = pattern
-        .toLowerCase()
-        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-        .replace(/\*/g, "[a-zA-Z0-9_-]+");
-      const regex = new RegExp(`^${regexPattern}$`);
-      if (regex.test(norm)) return true;
-    }
-  }
-
-  return false;
+  const normalized = origin.trim().replace(/\/+$/, "").toLowerCase();
+  return configuredOrigins.includes(normalized) || (env.NODE_ENV !== "production" && /^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(normalized));
 }
 
 const corsOptions = {
@@ -127,7 +87,9 @@ app.use(express.urlencoded({ limit: "100kb", extended: true }));
 
 // ─── Phase 4 Fix #15: Conditional morgan logging ──────────────────────────────
 // Use 'combined' (Apache-style) in production, 'dev' (colourised) in development
-app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+// Never log query strings: media URLs contain short-lived access tickets.
+if (env.NODE_ENV !== "test") app.use(morgan(":method :safe-path :status :response-time ms"));
+morgan.token("safe-path", req => req.path);
 
 // ─── Base Health Check ────────────────────────────────────────────────────────
 app.get("/", (req, res) => {
@@ -154,7 +116,7 @@ app.get("/healthz", async (req, res) => {
       services: {
         database: "DOWN"
       },
-      error: err.message
+      error: "Database unavailable"
     });
   }
 });
@@ -186,6 +148,8 @@ app.use("/api/v1/chats", chatsRoutes);
 
 // Users Routes
 app.use("/v1/users", usersRoutes);
+app.use("/v1/community", communityRoutes);
+app.use("/api/v1/community", communityRoutes);
 app.use("/api/v1/users", usersRoutes);
 
 // AI Routes

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { env } from "../config/env.js";
 
+const unavailable = () => Object.assign(new Error("AI service is unavailable. Configure a provider or try again later."), { status: 503 });
 const getAiApiKey = () => env.AI_API_KEY;
 const getAiApiUrl = () => env.AI_API_URL;
 const getAiModel = () => env.AI_MODEL;
@@ -154,7 +155,8 @@ async function callGrok(prompt, systemInstruction, options = {}) {
  * Generates an article using both Grok and Gemini (Generator-Critique cycle)
  * Grok generates the draft, Gemini edits and refines it.
  */
-export async function generateArticle(prompt) {
+export async function generateArticle(topic, context) {
+  const prompt = context ? `${topic}\n\nContext: ${context}` : topic;
   let grokDraft = null;
   let critiqueResult = null;
 
@@ -222,9 +224,7 @@ Never explain how it was written, never critique your own output, never explain 
     return grokDraft;
   }
 
-  // 3. Offline Dev Fallback
-  console.log("Orchestration: Both APIs unavailable. Returning mock article.");
-  return `# Mock Article\n\nThis is a mock article generated for prompt: "${prompt}".\n\nConfigure GROK_API_KEY and AI_API_KEY in .env to enable real orchestration.`;
+  throw unavailable();
 }
 
 /**
@@ -252,8 +252,7 @@ Never explain how it was written or corrected, never explain formatting choices,
     }
   }
 
-  console.log("Orchestration: Both APIs unavailable. Returning mock correction.");
-  return text + "\n\n(Mock correction applied - both APIs offline)";
+  throw unavailable();
 }
 
 /**
@@ -308,8 +307,7 @@ export async function getSuggestions(context) {
     }
   }
 
-  console.log("Orchestration: Both APIs unavailable. Returning mock suggestions.");
-  return ["Mock suggestion 1", "Mock suggestion 2", "Mock suggestion 3"];
+  throw unavailable();
 }
 
 /**
@@ -358,7 +356,7 @@ Anonymous Platform Context Calibration (Few-Shot Examples):
       return parseJsonSafe(raw);
     } catch (err) {
       console.error("Failed to parse moderation JSON:", err.message);
-      console.error("Raw unparsed model response was:", raw);
+
       throw err;
     }
   };

@@ -16,6 +16,9 @@ import {
   Sparkles,
   Search,
 } from "lucide-react";
+import { communityRequest, getMe } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
+import { ModerationQueue } from "@/components/ModerationQueue";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,7 +29,7 @@ export const Route = createFileRoute("/safety")({
       {
         name: "description",
         content:
-          "Zero-compromise community integrity, encrypted reporting, human appeals, and sovereign rights manifesto.",
+          "Zero-compromise community integrity, private reporting, moderation appeals, and sovereign rights manifesto.",
       },
     ],
   }),
@@ -53,22 +56,42 @@ const tabs = [
 function SafetyCenter() {
   const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("guidelines");
 
-  // Local storage backed real user reports
-  const [userReports, setUserReports] = useState<UserReport[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("social_space_user_reports");
-        return saved ? JSON.parse(saved) : [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
+  const { user } = useAuth();
+  const [userReports, setUserReports] = useState<UserReport[]>([]);
+  const [appeals, setAppeals] = useState<any[]>([]);
+  const [submissionError, setSubmissionError] = useState("");
+  const [moderator, setModerator] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setUserReports([]);
+    setAppeals([]);
+    setModerator(false);
+    if (!user?.id) return;
+    void Promise.all([
+      communityRequest("reports"),
+      communityRequest("appeals"),
+      getMe(),
+    ])
+      .then(([reports, savedAppeals, me]) => {
+        if (active) {
+          setUserReports(reports);
+          setAppeals(savedAppeals);
+          setModerator(me.isModerator);
+        }
+      })
+      .catch((error) => {
+        if (active) setSubmissionError(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.id, tab]);
 
   // Report Form state
   const [reportTarget, setReportTarget] = useState("");
-  const [reportCategory, setReportCategory] = useState("Harassment & Intimidation");
+  const [reportCategory, setReportCategory] = useState(
+    "Harassment & Intimidation",
+  );
   const [reportDetails, setReportDetails] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
@@ -79,51 +102,68 @@ function SafetyCenter() {
   const [appealSubmitting, setAppealSubmitting] = useState(false);
   const [appealSuccess, setAppealSuccess] = useState(false);
 
-  const handleSubmitReport = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reportTarget.trim() || !reportDetails.trim()) return;
-
+  const handleSubmitReport = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmissionError("");
+    setReportSuccess(false);
     setReportSubmitting(true);
-    setTimeout(() => {
-      const newReport: UserReport = {
-        id: `REP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        target: reportTarget.trim(),
+    try {
+      const report = await communityRequest("reports", {
+        target: reportTarget,
         category: reportCategory,
-        reason: reportDetails.trim(),
-        submittedAt: new Date().toISOString(),
-        status: "received",
-      };
-
-      const updated = [newReport, ...userReports];
-      setUserReports(updated);
-      try {
-        localStorage.setItem("social_space_user_reports", JSON.stringify(updated));
-      } catch {}
-
-      setReportSubmitting(false);
+        reason: reportDetails,
+      });
+      setUserReports((previous) => [report, ...previous]);
       setReportSuccess(true);
       setReportTarget("");
       setReportDetails("");
-      setTimeout(() => setReportSuccess(false), 5000);
-    }, 600);
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error ? error.message : "Report could not be saved.",
+      );
+    } finally {
+      setReportSubmitting(false);
+    }
   };
-
-  const handleSubmitAppeal = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!appealId.trim() || !appealReason.trim()) return;
-
+  const handleSubmitAppeal = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmissionError("");
+    setAppealSuccess(false);
     setAppealSubmitting(true);
-    setTimeout(() => {
-      setAppealSubmitting(false);
+    try {
+      await communityRequest("appeals", {
+        reference: appealId,
+        reason: appealReason,
+      });
+      setAppeals(await communityRequest("appeals"));
       setAppealSuccess(true);
       setAppealId("");
       setAppealReason("");
-      setTimeout(() => setAppealSuccess(false), 5000);
-    }, 600);
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error ? error.message : "Appeal could not be saved.",
+      );
+    } finally {
+      setAppealSubmitting(false);
+    }
   };
 
   return (
     <div className="cosmic-theme min-h-screen text-foreground mx-auto max-w-4xl px-4 pb-32 lg:pb-14 pt-8 sm:px-6">
+      {submissionError && (
+        <p
+          role="alert"
+          className="mb-4 rounded-xl border border-red-500/40 p-3 text-sm text-red-500"
+        >
+          {submissionError}
+        </p>
+      )}
+      {!user && (
+        <p className="mb-4 text-sm">
+          Sign in to submit a report or appeal and view its status.
+        </p>
+      )}
+      {moderator && <ModerationQueue />}
       <header className="mb-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium tracking-wide text-amber-600 dark:text-amber-300 backdrop-blur-md mb-3">
           <ShieldCheck className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
@@ -133,7 +173,8 @@ function SafetyCenter() {
           Trust, Safety & Protocol Ethics
         </h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-          Zero surveillance, zero tolerance for harm. Every report receives an immutable audit trail and fair human arbitration.
+          Submit reports and appeals, and track their review status. Reports are
+          visible to you and authorized moderators.
         </p>
       </header>
 
@@ -168,7 +209,8 @@ function SafetyCenter() {
               Absolute Boundaries
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Cryptographic pseudonymity protects speech, not harm. Violating these principles triggers immediate sovereign revocation without recourse:
+              These community rules apply to every account. Reports require
+              review, and moderation decisions may be appealed.
             </p>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -177,7 +219,8 @@ function SafetyCenter() {
                   Zero Exploitation Material
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Child abuse material and non-consensual exploitation are intercepted pre-anonymization and referred to authorities immediately.
+                  Child abuse material and non-consensual exploitation are
+                  prohibited. Report suspected violations for moderator review.
                 </p>
               </div>
 
@@ -186,7 +229,8 @@ function SafetyCenter() {
                   Doxxing & Real-World Stalking
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Publishing unredacted home addresses, phone records, or physical locations to incite harm is forbidden.
+                  Publishing unredacted home addresses, phone records, or
+                  physical locations to incite harm is forbidden.
                 </p>
               </div>
 
@@ -195,7 +239,8 @@ function SafetyCenter() {
                   Synthetic Weaponization
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Deepfakes generated to impersonate or defame individuals must clearly bear cryptographic synthetic provenance flags.
+                  Mark AI-modified media when publishing. This is an
+                  author-provided label, not a verified provenance certificate.
                 </p>
               </div>
 
@@ -204,7 +249,8 @@ function SafetyCenter() {
                   Autonomous Spam Clusters
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Sybil botnets, automated spam injection, or algorithmic manipulation of public feeds will be neutralized at the gateway.
+                  Automated spam and coordinated manipulation of public feeds
+                  are prohibited. Report suspected abuse for moderator review.
                 </p>
               </div>
             </div>
@@ -219,7 +265,10 @@ function SafetyCenter() {
               Speaking Freely Without Fear
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Social Space was forged for whistleblowers, creative visionaries, truth-tellers, and honest humans who require a realm free from surveillance capitalism and algorithmic rage engines. We foster authentic human discourse grounded in mutual dignity.
+              Social Space was forged for whistleblowers, creative visionaries,
+              truth-tellers, and honest humans who require a realm free from
+              surveillance capitalism and algorithmic rage engines. We foster
+              authentic human discourse grounded in mutual dignity.
             </p>
           </div>
         </div>
@@ -232,13 +281,14 @@ function SafetyCenter() {
             Submit Integrity Incident
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-            Dispatches are sent with sealed sender metadata. The reported subject cannot discover who filed this notice.
+            Reports are stored privately for moderator review. They are not
+            shown to the reported account.
           </p>
 
           {reportSuccess && (
             <div className="mb-6 flex items-center gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:text-emerald-300">
               <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500 dark:text-emerald-400" />
-              Incident report received. It has been routed to human review with sealed sender protection.
+              Your report was saved and is awaiting moderator review.
             </div>
           )}
 
@@ -266,11 +316,21 @@ function SafetyCenter() {
                 onChange={(e) => setReportCategory(e.target.value)}
                 className="w-full rounded-xl bg-card border border-border px-4 py-3 text-sm text-foreground outline-none focus:border-amber-500/50 transition cursor-pointer"
               >
-                <option value="Harassment & Intimidation">Harassment & Coordinated Intimidation</option>
-                <option value="Doxxing & Privacy Violation">Doxxing or Personal Data Leak</option>
-                <option value="Synthetic Impersonation">Undisclosed AI Impersonation / Deepfake</option>
-                <option value="Scam / Sybil Botnet">Malicious Scam or Automated Botnet</option>
-                <option value="Severe Harm / CSAM">Severe Harm / Exploitation (Emergency Priority)</option>
+                <option value="Harassment & Intimidation">
+                  Harassment & Coordinated Intimidation
+                </option>
+                <option value="Doxxing & Privacy Violation">
+                  Doxxing or Personal Data Leak
+                </option>
+                <option value="Synthetic Impersonation">
+                  Undisclosed AI Impersonation / Deepfake
+                </option>
+                <option value="Scam / Sybil Botnet">
+                  Malicious Scam or Automated Botnet
+                </option>
+                <option value="Severe Harm / CSAM">
+                  Severe Harm / Exploitation (Emergency Priority)
+                </option>
               </select>
             </div>
 
@@ -290,7 +350,11 @@ function SafetyCenter() {
 
             <button
               type="submit"
-              disabled={reportSubmitting || !reportTarget.trim() || !reportDetails.trim()}
+              disabled={
+                reportSubmitting ||
+                !reportTarget.trim() ||
+                !reportDetails.trim()
+              }
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-6 py-3 text-xs font-bold transition shadow-[0_0_20px_rgba(245,158,11,0.25)] disabled:opacity-40"
             >
               {reportSubmitting ? (
@@ -318,7 +382,9 @@ function SafetyCenter() {
                 Zero Active Strikes or Open Reports
               </h3>
               <p className="max-w-md text-muted-foreground mb-6">
-                Your sovereign account maintains pristine protocol standing (Trust Token: 100%). Any dispatches you file will appear here with live tracking.
+                Your sovereign account maintains pristine protocol standing
+                (Trust Token: 100%). Any dispatches you file will appear here
+                with live tracking.
               </p>
               <button
                 onClick={() => setTab("submit")}
@@ -339,7 +405,9 @@ function SafetyCenter() {
                       <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
                         {report.id}
                       </span>
-                      <span className="text-[11px] text-muted-foreground">&bull;</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        &bull;
+                      </span>
                       <span className="text-xs font-semibold text-foreground">
                         {report.target}
                       </span>
@@ -350,7 +418,9 @@ function SafetyCenter() {
                   </div>
 
                   <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-300">
-                    {report.status === "received" ? "Under Review" : report.status}
+                    {report.status === "received"
+                      ? "Under Review"
+                      : report.status}
                   </span>
                 </div>
 
@@ -359,9 +429,12 @@ function SafetyCenter() {
                 </p>
 
                 <div className="flex items-center justify-between pt-2 border-t border-border text-[11px] text-muted-foreground">
-                  <span>Logged: {new Date(report.submittedAt).toLocaleDateString()}</span>
+                  <span>
+                    Logged: {new Date(report.submittedAt).toLocaleDateString()}
+                  </span>
                   <span className="flex items-center gap-1 text-emerald-500 dark:text-emerald-400 font-medium">
-                    <ShieldCheck className="h-3 w-3" /> Sealed Sender Guard Active
+                    <ShieldCheck className="h-3 w-3" /> Sealed Sender Guard
+                    Active
                   </span>
                 </div>
               </div>
@@ -371,6 +444,15 @@ function SafetyCenter() {
       )}
 
       {/* TAB 4: APPEALS */}
+      {tab === "appeals" && appeals.length > 0 && (
+        <ul className="mb-4 space-y-2 text-sm">
+          {appeals.map((appeal) => (
+            <li key={appeal.id} className="rounded-lg border border-border p-3">
+              Appeal {appeal.id}: {appeal.status}
+            </li>
+          ))}
+        </ul>
+      )}
       {tab === "appeals" && (
         <div className="rounded-3xl border border-border bg-card/85 p-6 sm:p-8 backdrop-blur-xl">
           <div className="flex items-start gap-4 mb-6">
@@ -382,7 +464,9 @@ function SafetyCenter() {
                 Decentralized Appeal Tribunal
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Every moderation decision can be contested. Appeals are audited by an independent secondary moderator, never the original reviewer. Median response window: under 48 hours.
+                Every moderation decision can be contested. Appeals are audited
+                by an independent secondary moderator, never the original
+                reviewer. Median response window: under 48 hours.
               </p>
             </div>
           </div>
@@ -390,7 +474,8 @@ function SafetyCenter() {
           {appealSuccess && (
             <div className="mb-6 flex items-center gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:text-emerald-300">
               <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500 dark:text-emerald-400" />
-              Appeal filed into the tribunal queue. You will receive an encrypted system update when reviewed.
+              Your appeal was saved. Return to this page to check its review
+              status.
             </div>
           )}
 
@@ -425,7 +510,9 @@ function SafetyCenter() {
 
             <button
               type="submit"
-              disabled={appealSubmitting || !appealId.trim() || !appealReason.trim()}
+              disabled={
+                appealSubmitting || !appealId.trim() || !appealReason.trim()
+              }
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-6 py-3 text-xs font-bold transition shadow-[0_0_20px_rgba(245,158,11,0.25)] disabled:opacity-40"
             >
               {appealSubmitting ? (
@@ -443,4 +530,3 @@ function SafetyCenter() {
     </div>
   );
 }
-

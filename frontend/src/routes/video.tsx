@@ -1,5 +1,11 @@
+import { PostPoll } from "@/components/PostPoll";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   fetchFeed,
   mapApiPostToUiPost,
@@ -154,7 +160,9 @@ function VideoCommentsDrawer({
                   })}
                 </span>
               </div>
-              <p className="text-foreground/90 leading-relaxed break-words">{c.content}</p>
+              <p className="text-foreground/90 leading-relaxed break-words">
+                {c.content}
+              </p>
             </div>
           ))
         )}
@@ -323,23 +331,34 @@ function ModernVideoPlayer({
     }
   };
 
+  const [reactionError, setReactionError] = useState("");
+
   // Real-time Like Mutation
   const reactionMutation = useMutation({
-    mutationFn: () => toggleReaction({ postId: post.id, reactionType: "heart" }),
-    onMutate: () => {
-      setIsLiked((prev) => !prev);
-      setReactionCount((prev) => (isLiked ? Math.max(0, prev - 1) : prev + 1));
-      setShowHeartBurst(true);
+    mutationFn: () =>
+      toggleReaction({ postId: post.id, reactionType: "heart" }),
+    onSuccess: (response) => {
+      setReactionCount((count) =>
+        Math.max(
+          0,
+          count +
+            (response.reacted === isLiked ? 0 : response.reacted ? 1 : -1),
+        ),
+      );
+      setIsLiked(response.reacted);
+      setReactionError("");
+      setShowHeartBurst(response.reacted);
       setTimeout(() => setShowHeartBurst(false), 900);
+      void qc.invalidateQueries({ queryKey: ["posts"] });
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["posts"] });
-    },
+    onError: (error) =>
+      setReactionError(error.message || "Could not save reaction."),
   });
 
   const handleDoubleTap = (e: React.MouseEvent) => {
     e.stopPropagation();
-    reactionMutation.mutate();
+    if (post.allowReactions && !reactionMutation.isPending)
+      reactionMutation.mutate();
   };
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -368,6 +387,11 @@ function ModernVideoPlayer({
       )}
     >
       {/* Double Tap Heart Burst Animation */}
+      {reactionError && (
+        <p role="alert" className="p-2 text-xs text-red-500">
+          {reactionError}
+        </p>
+      )}
       <AnimatePresence>
         {showHeartBurst && (
           <motion.div
@@ -395,7 +419,8 @@ function ModernVideoPlayer({
             Visual Signal Expired
           </p>
           <p className="text-xs text-white/50 max-w-xs mb-4 leading-relaxed">
-            This media payload was safely purged under Social Space's zero-retention privacy policy.
+            This media payload was safely purged under Social Space's
+            zero-retention privacy policy.
           </p>
           <button
             onClick={() => {
@@ -461,6 +486,7 @@ function ModernVideoPlayer({
             {/* Heart Reaction */}
             <button
               onClick={() => reactionMutation.mutate()}
+              disabled={!post.allowReactions}
               aria-label="React to transmission"
               className="flex flex-col items-center gap-1 group/btn"
             >
@@ -486,6 +512,7 @@ function ModernVideoPlayer({
 
             {/* Comment Drawer Trigger */}
             <button
+              disabled={!post.allowReplies}
               onClick={() => setShowComments((v) => !v)}
               aria-label="View or post whispers"
               className="flex flex-col items-center gap-1 group/btn"
@@ -624,22 +651,34 @@ function ModernVideoPlayer({
               >
                 <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
               </div>
-              <span className="text-[10px] font-bold text-white/80">{reactionCount}</span>
+              <span className="text-[10px] font-bold text-white/80">
+                {reactionCount}
+              </span>
             </button>
 
             <button
+              disabled={!post.allowReplies}
               onClick={() => setShowComments((v) => !v)}
               className="flex flex-col items-center gap-1"
             >
               <div className="h-11 w-11 rounded-full bg-black/50 border border-white/15 text-white flex items-center justify-center backdrop-blur-md shadow-lg">
                 <MessageCircle className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-bold text-white/80">{post.replies || 0}</span>
+              <span className="text-[10px] font-bold text-white/80">
+                {post.replies || 0}
+              </span>
             </button>
 
-            <button onClick={handleCopyLink} className="flex flex-col items-center gap-1">
+            <button
+              onClick={handleCopyLink}
+              className="flex flex-col items-center gap-1"
+            >
               <div className="h-11 w-11 rounded-full bg-black/50 border border-white/15 text-white flex items-center justify-center backdrop-blur-md shadow-lg">
-                {copied ? <Check className="h-5 w-5 text-emerald-400" /> : <Share2 className="h-5 w-5" />}
+                {copied ? (
+                  <Check className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <Share2 className="h-5 w-5" />
+                )}
               </div>
               <span className="text-[10px] font-bold text-white/80">Share</span>
             </button>
@@ -687,25 +726,38 @@ function ModernVideoPlayer({
 
 /* ─── Main VideoFeed Page Component ───────────────────────────────────────── */
 function VideoFeed() {
-  const [activeFilter, setActiveFilter] = useState<"All" | "Video" | "Synthetic">("All");
+  const [activeFilter, setActiveFilter] = useState<
+    "All" | "Video" | "Synthetic"
+  >("All");
   const [viewMode, setViewMode] = useState<"theater" | "grid">("theater");
 
   // Fetch posts with media
   const {
-    data: allPosts = [],
+    data: feedPages,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
     isLoading,
     error,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ["posts", "media-feed"],
-    queryFn: () => fetchFeed(undefined, 1, { hasMedia: true }),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      fetchFeed(undefined, pageParam, { hasMedia: true }),
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length === 10 ? pages.length + 1 : undefined,
   });
 
   // Filter posts client-side for ultra-fast snappy switching
   const filteredPosts = React.useMemo(() => {
-    return allPosts.filter((post: UiPostType) => {
+    return (feedPages?.pages.flat() || []).filter((post: UiPostType) => {
       // Must have stream URL or media
-      if (!post.mediaStreamUrl && !post.mediaUrl) return false;
+      if (
+        post.mediaType === "audio" ||
+        (!post.mediaStreamUrl && !post.mediaUrl)
+      )
+        return false;
 
       if (activeFilter === "Video") {
         return (
@@ -719,7 +771,7 @@ function VideoFeed() {
       }
       return true;
     });
-  }, [allPosts, activeFilter]);
+  }, [feedPages, activeFilter]);
 
   return (
     <div className="cosmic-theme min-h-screen text-foreground mx-auto w-full max-w-4xl py-6 sm:py-8 px-4 sm:px-6 pb-36 lg:pb-20">
@@ -734,7 +786,9 @@ function VideoFeed() {
           Visual Signals
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
-          Zero-telemetry cryptographic video reels and captures. All EXIF metadata and device fingerprints automatically stripped at ingestion.
+          Images and short videos. New uploads are processed to remove file
+          metadata; visible faces, voices, and locations can still identify
+          people.
         </p>
       </header>
 
@@ -862,7 +916,8 @@ function VideoFeed() {
             No transmissions detected
           </p>
           <p className="max-w-sm text-muted-foreground mb-6">
-            There are currently no media broadcasts matching "{activeFilter}". Publish the first sovereign video with zero telemetry.
+            There are currently no media broadcasts matching "{activeFilter}".
+            Publish an image or short video.
           </p>
           <Link
             to="/compose"
@@ -886,9 +941,19 @@ function VideoFeed() {
           {filteredPosts.map((post: UiPostType) => (
             <div key={post.id} className="w-full">
               <ModernVideoPlayer post={post} />
+              <PostPoll post={post} />
             </div>
           ))}
         </div>
+      )}
+      {hasNextPage && (
+        <button
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+          className="mt-5 w-full rounded-xl border border-border p-3"
+        >
+          {isFetchingNextPage ? "Loading…" : "Load more media"}
+        </button>
       )}
     </div>
   );

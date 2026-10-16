@@ -1,6 +1,6 @@
 import Parser from 'rss-parser';
 
-const parser = new Parser();
+const parser = new Parser({ timeout: 8000 });
 
 // Base Google News RSS URL
 const GOOGLE_NEWS_RSS_URL = 'https://news.google.com/rss';
@@ -36,7 +36,7 @@ export async function getNewsFeed(topic = '', locale = 'en-US') {
     const feed = await parser.parseURL(url);
     
     // Map to a cleaner format for our frontend
-    const articles = feed.items.map(item => ({
+    const articles = feed.items.slice(0, 50).map(item => ({
       id: item.guid || item.id,
       title: item.title,
       link: item.link,
@@ -45,6 +45,8 @@ export async function getNewsFeed(topic = '', locale = 'en-US') {
       contentSnippet: item.contentSnippet || item.content,
     }));
 
+    // Bound cache growth for arbitrary topic searches.
+    if (Object.keys(feedCache).length >= 100) delete feedCache[Object.keys(feedCache)[0]];
     // Cache the result
     feedCache[cacheKey] = {
       timestamp: Date.now(),

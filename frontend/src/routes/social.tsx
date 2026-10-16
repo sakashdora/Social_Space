@@ -1,3 +1,4 @@
+import { PostPoll } from "@/components/PostPoll";
 import {
   createFileRoute,
   Link,
@@ -8,11 +9,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useState, useEffect, useRef } from "react";
 import {
   fetchFeed,
+  followUser,
   createPost,
   toggleReaction,
   createComment,
-  isAuthenticated,
-  getCurrentUser,
   createChat,
   fetchChats,
   detectMediaType,
@@ -56,8 +56,19 @@ import { ThemeToggle } from "@/components/veil/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/social")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { highlight?: string } => ({
+    highlight:
+      typeof search.highlight === "string"
+        ? search.highlight
+        : typeof search.post === "string"
+          ? search.post
+          : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Social Feed — Social Space" },
@@ -203,8 +214,14 @@ function SocialComponent() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const authed = isAuthenticated();
-  const currentUser = getCurrentUser();
+  const { user: currentUser, isAuthenticated: authed } = useAuth();
+  const { highlight } = Route.useSearch();
+  const highlighted = useQuery({
+    queryKey: ["posts", "highlight", highlight, currentUser?.id],
+    queryFn: () => fetchPostDetails(highlight!),
+    enabled: !!highlight,
+    retry: false,
+  });
 
   // Fetch trending topics dynamically
   const { data: trendingTopicsData } = useQuery({
@@ -215,35 +232,54 @@ function SocialComponent() {
 
   // Fetch who to follow recommendations dynamically
   const { data: whoToFollowData } = useQuery({
-    queryKey: ["whoToFollow"],
+    queryKey: ["whoToFollow", currentUser?.id],
     queryFn: fetchWhoToFollow,
     refetchOnWindowFocus: false,
   });
 
-  const trendingTopics = trendingTopicsData || defaultTrendingTopics;
-  const whoToFollow = whoToFollowData || defaultWhoToFollow;
+  const trendingTopics = trendingTopicsData || [];
+  const whoToFollow = whoToFollowData || [];
 
-  // Local state to track followed handles (interactive simulation)
-  const [followedHandles, setFollowedHandles] = useState<string[]>([]);
+  // Track an in-flight follow request
+  const [followingBusy, setFollowingBusy] = useState<string | null>(null);
 
-  // Local state for client-side encrypted vault bookmarks
-  const [bookmarkedPostIds, setBookmarkedPostIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
+  // Local state for per-account bookmarks on this device
+  const [bookmarkedPostIds, setBookmarkedPostIds] = useState<string[]>([]);
+
+  useEffect(() => {
     try {
-      return JSON.parse(localStorage.getItem("veil_bookmarked_ids") || "[]");
+      setBookmarkedPostIds(
+        JSON.parse(
+          localStorage.getItem(
+            "veil_bookmarks_" + (currentUser?.id || "guest"),
+          ) || "[]",
+        ),
+      );
     } catch {
-      return [];
+      setBookmarkedPostIds([]);
     }
-  });
+    setAllPosts([]);
+    setPage(1);
+    setLocalReactions({});
+  }, [currentUser?.id]);
 
   const toggleBookmark = (postId: string) => {
     setBookmarkedPostIds((prev) => {
       const exists = prev.includes(postId);
-      const next = exists ? prev.filter((id) => id !== postId) : [...prev, postId];
+      const next = exists
+        ? prev.filter((id) => id !== postId)
+        : [...prev, postId];
       try {
-        localStorage.setItem("veil_bookmarked_ids", JSON.stringify(next));
-      } catch {}
-      showToast(exists ? "Removed from local vault" : "Saved to local vault");
+        localStorage.setItem(
+          "veil_bookmarks_" + (currentUser?.id || "guest"),
+          JSON.stringify(next),
+        );
+      } catch {
+        showToast("Could not save this bookmark on this device.");
+      }
+      showToast(
+        exists ? "Removed from device bookmarks" : "Saved to device bookmarks",
+      );
       return next;
     });
   };
@@ -290,7 +326,7 @@ function SocialComponent() {
     isFetching,
     error,
   } = useQuery({
-    queryKey: ["posts", activeCategory, page],
+    queryKey: ["posts", currentUser?.id, activeCategory, page],
     queryFn: () => fetchFeed(activeCategory, page),
   });
 
@@ -302,7 +338,10 @@ function SocialComponent() {
         const updates: Record<string, { count: number; active: boolean }> = {};
         pagePosts.forEach((p: any) => {
           if (!(p.id in prev)) {
-            updates[p.id] = { count: p.reactions, active: p.userHasReacted ?? false };
+            updates[p.id] = {
+              count: p.reactions,
+              active: p.userHasReacted ?? false,
+            };
           }
         });
         return Object.keys(updates).length > 0 ? { ...updates, ...prev } : prev;
@@ -375,7 +414,27 @@ function SocialComponent() {
   // React Mutation
   const reactMutation = useMutation({
     mutationFn: toggleReaction,
-    onSuccess: (_, variables) => {
+    onError: (error) => showToast(error.message || "Could not save reaction."),
+    onSuccess: (response, variables) => {
+      setLocalReactions((previous) => {
+        const current = previous[variables.postId || ""];
+        if (!current) return previous;
+        return {
+          ...previous,
+          [variables.postId!]: {
+            active: response.reacted,
+            count: Math.max(
+              0,
+              current.count +
+                (response.reacted === current.active
+                  ? 0
+                  : response.reacted
+                    ? 1
+                    : -1),
+            ),
+          },
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       if (expandedPostId === variables.postId) {
         queryClient.invalidateQueries({
@@ -389,6 +448,7 @@ function SocialComponent() {
   const commentMutation = useMutation({
     mutationFn: ({ postId, text }: { postId: string; text: string }) =>
       createComment(postId, text, "pseudo"),
+    onError: (error) => showToast(error.message || "Could not save reply."),
     onSuccess: (_, variables) => {
       setCommentTexts((prev) => ({ ...prev, [variables.postId]: "" }));
       queryClient.invalidateQueries({ queryKey: ["posts"] });
@@ -443,15 +503,7 @@ function SocialComponent() {
       return;
     }
 
-    const hasReacted = localReactions[postId]?.active;
-    setLocalReactions((prev) => ({
-      ...prev,
-      [postId]: {
-        active: !hasReacted,
-        count: hasReacted ? currentCount - 1 : currentCount + 1,
-      },
-    }));
-
+    if (reactMutation.isPending) return;
     reactMutation.mutate({ postId, reactionType: "heart" });
   };
 
@@ -469,15 +521,31 @@ function SocialComponent() {
     commentMutation.mutate({ postId, text });
   };
 
-  const filteredPosts = allPosts.filter(
-    (p: any) =>
-      p.body.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.topic.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const visibleFeed = highlighted.data
+    ? [
+        highlighted.data,
+        ...allPosts.filter((post) => post.id !== highlighted.data.id),
+      ]
+    : allPosts;
+  const filteredPosts = visibleFeed
+    .filter(
+      (post) =>
+        !post.expiresAt || new Date(post.expiresAt).getTime() > Date.now(),
+    )
+    .filter(
+      (p: any) =>
+        p.body.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.topic.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
 
   return (
     <div className="cosmic-theme w-full min-h-screen bg-background text-foreground selection:bg-amber-500/30 selection:text-amber-200">
+      {highlighted.error && (
+        <p role="alert" className="p-4 text-sm text-red-500">
+          This post is unavailable or you do not have access.
+        </p>
+      )}
       {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-amber-500/30 bg-card/95 px-5 py-3 text-sm text-foreground shadow-2xl backdrop-blur-xl">
@@ -512,7 +580,8 @@ function SocialComponent() {
                 Social Stream
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Uncensored thoughts, unfiltered perspectives. Zero tracking algorithms.
+                Uncensored thoughts, unfiltered perspectives. Zero tracking
+                algorithms.
               </p>
             </div>
 
@@ -533,17 +602,23 @@ function SocialComponent() {
                     setSearchQuery("");
                     showToast("Filters reset to all topics");
                   } else {
-                    showToast("Feed active: showing all verified transmissions");
+                    showToast(
+                      "Feed active: showing all verified transmissions",
+                    );
                   }
                 }}
                 className={cn(
                   "absolute right-4 top-1/2 -translate-y-1/2 transition p-1 cursor-pointer",
                   activeCategory !== "All" || searchQuery
                     ? "text-amber-500 dark:text-amber-400"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 aria-label="Filter status"
-                title={activeCategory !== "All" || searchQuery ? "Reset Filters" : "Filter options"}
+                title={
+                  activeCategory !== "All" || searchQuery
+                    ? "Reset Filters"
+                    : "Filter options"
+                }
               >
                 <SlidersHorizontal className="h-4 w-4" />
               </button>
@@ -592,7 +667,11 @@ function SocialComponent() {
                 className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer shadow-sm"
               >
                 <Flame className="h-3.5 w-3.5 text-amber-400" />
-                <span>{showMobileTrending ? "Hide Trending Topics" : "View Trending Topics"}</span>
+                <span>
+                  {showMobileTrending
+                    ? "Hide Trending Topics"
+                    : "View Trending Topics"}
+                </span>
               </button>
 
               <AnimatePresence>
@@ -613,9 +692,15 @@ function SocialComponent() {
                           }}
                           className="flex items-center gap-2.5 rounded-2xl border border-border bg-card px-3.5 py-2 shrink-0 cursor-pointer hover:border-amber-400/40 transition-colors"
                         >
-                          <span className="text-xs font-mono font-bold text-muted-foreground">#{topic.id}</span>
-                          <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{topic.title}</span>
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400/80 font-mono">{topic.posts}</span>
+                          <span className="text-xs font-mono font-bold text-muted-foreground">
+                            #{topic.id}
+                          </span>
+                          <span className="text-xs font-medium text-foreground truncate max-w-[150px]">
+                            {topic.title}
+                          </span>
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400/80 font-mono">
+                            {topic.posts}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -629,11 +714,15 @@ function SocialComponent() {
               <div className="flex items-center justify-between pb-3 border-b border-border text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
-                  <span className="font-semibold text-foreground">Broadcast to {activeCategory}</span>
+                  <span className="font-semibold text-foreground">
+                    Broadcast to {activeCategory}
+                  </span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setQuickAnon(quickAnon === "full" ? "pseudo" : "full")}
+                  onClick={() =>
+                    setQuickAnon(quickAnon === "full" ? "pseudo" : "full")
+                  }
                   className={cn(
                     "rounded-full px-3 py-1 text-[11px] font-medium border transition cursor-pointer flex items-center gap-1.5",
                     quickAnon === "full"
@@ -647,7 +736,8 @@ function SocialComponent() {
                     </>
                   ) : (
                     <>
-                      <UserRound className="h-3 w-3" /> @{currentUser?.handle || "pseudonym"}
+                      <UserRound className="h-3 w-3" /> @
+                      {currentUser?.handle || "pseudonym"}
                     </>
                   )}
                 </button>
@@ -656,7 +746,11 @@ function SocialComponent() {
               <textarea
                 value={quickText}
                 onChange={(e) => setQuickText(e.target.value)}
-                placeholder={authed ? "Share a thought, confession, or idea anonymously..." : "Sign in or pick a handle to broadcast..."}
+                placeholder={
+                  authed
+                    ? "Share a thought, confession, or idea anonymously..."
+                    : "Sign in or pick a handle to broadcast..."
+                }
                 rows={2}
                 className="mt-3 w-full bg-transparent text-foreground dark:text-white text-sm outline-none resize-none placeholder:text-muted-foreground"
               />
@@ -666,7 +760,8 @@ function SocialComponent() {
                   to="/compose"
                   className="text-xs text-muted-foreground hover:text-foreground transition flex items-center gap-1.5"
                 >
-                  <PlusCircle className="h-3.5 w-3.5" /> Full Studio (Media, Articles)
+                  <PlusCircle className="h-3.5 w-3.5" /> Full Studio (Media,
+                  Articles)
                 </Link>
 
                 <button
@@ -680,7 +775,6 @@ function SocialComponent() {
                 </button>
               </div>
             </div>
-
 
             {/* Loading skeletons on first load */}
             {isLoading && page === 1 && (
@@ -750,9 +844,7 @@ function SocialComponent() {
                           <span className="rounded-full bg-muted/60 dark:bg-white/[0.05] border border-border px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                             {post.topic}
                           </span>
-                          {currentUser &&
-                          post.author === currentUser.handle &&
-                          post.author !== "anonymous" ? (
+                          {currentUser && post.canDelete ? (
                             <button
                               onClick={() => {
                                 if (
@@ -772,11 +864,9 @@ function SocialComponent() {
                             </button>
                           ) : (
                             <button
-                              onClick={() =>
-                                showToast("Post options coming soon")
-                              }
+                              onClick={() => navigate({ to: "/safety" })}
                               className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-                              aria-label="Options"
+                              aria-label="Report a post"
                             >
                               &bull;&bull;&bull;
                             </button>
@@ -784,10 +874,10 @@ function SocialComponent() {
                         </div>
                       </div>
 
-
                       {/* Card Body Content */}
                       <div className="mb-4">
                         <MarkdownRenderer content={post.body} />
+                        <PostPoll post={post} />
                       </div>
 
                       {/* Media container: fits media without cropping; type detected client-side */}
@@ -796,8 +886,11 @@ function SocialComponent() {
                         const mediaObj = streamUrl
                           ? {
                               url: streamUrl,
-                              thumbUrl: post.thumbStreamUrl || `${streamUrl}?thumb=true`,
-                              type: post.mediaType === "video" ? "video" : detectMediaType(streamUrl),
+                              thumbUrl: post.thumbStreamUrl || undefined,
+                              type:
+                                post.mediaType !== "unknown"
+                                  ? post.mediaType
+                                  : detectMediaType(streamUrl),
                             }
                           : detectMediaInText(post.body);
 
@@ -806,11 +899,21 @@ function SocialComponent() {
 
                         return (
                           <div className="rounded-[20px] border border-border overflow-hidden mb-4 bg-black/40 relative">
-                            {isVideo ? (
+                            {mediaObj.type === "audio" ? (
+                              <audio
+                                controls
+                                src={mediaObj.url}
+                                className="w-full"
+                              />
+                            ) : isVideo ? (
                               <div className="relative w-full flex justify-center">
                                 <video
                                   src={mediaObj.url}
-                                  poster={"thumbUrl" in mediaObj ? mediaObj.thumbUrl : undefined}
+                                  poster={
+                                    "thumbUrl" in mediaObj
+                                      ? mediaObj.thumbUrl
+                                      : undefined
+                                  }
                                   controls
                                   loop
                                   muted
@@ -839,7 +942,10 @@ function SocialComponent() {
                         <div className="mt-3 mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 text-xs text-foreground/90">
                           <div className="flex items-center gap-2 mb-1.5 text-muted-foreground font-medium">
                             <Repeat className="h-3.5 w-3.5 text-amber-400" />
-                            <span>Original transmission by {(post as any).sharedPost.handle || "@anonymous"}</span>
+                            <span>
+                              Original transmission by{" "}
+                              {(post as any).sharedPost.handle || "@anonymous"}
+                            </span>
                           </div>
                           <p className="line-clamp-3 italic text-foreground/80">
                             {(post as any).sharedPost.body}
@@ -866,6 +972,7 @@ function SocialComponent() {
                         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
                           {/* Like */}
                           <button
+                            disabled={!post.allowReactions}
                             onClick={() => handleReact(post.id, post.reactions)}
                             className={cn(
                               "flex items-center gap-2 text-xs font-semibold transition hover:scale-105 cursor-pointer",
@@ -885,6 +992,7 @@ function SocialComponent() {
 
                           {/* Comment */}
                           <button
+                            disabled={!post.allowReplies}
                             onClick={() => handleToggleComments(post.id)}
                             className={cn(
                               "flex items-center gap-2 text-xs font-semibold transition hover:scale-105 cursor-pointer",
@@ -906,7 +1014,9 @@ function SocialComponent() {
                               }
                               repostMutation.mutate(post.id);
                             }}
-                            disabled={repostMutation.isPending}
+                            disabled={
+                              repostMutation.isPending || !post.allowReposts
+                            }
                             className={cn(
                               "flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-amber-400 transition hover:scale-105 cursor-pointer disabled:opacity-50",
                               repostMutation.isPending && "animate-pulse",
@@ -924,7 +1034,10 @@ function SocialComponent() {
                               const url = `${window.location.origin}/social?post=${post.id}`;
                               if (typeof navigator.share === "function") {
                                 try {
-                                  await navigator.share({ title: "Veil Social Post", url });
+                                  await navigator.share({
+                                    title: "Veil Social Post",
+                                    url,
+                                  });
                                   return;
                                 } catch {
                                   // User cancelled or browser denied — fall through to clipboard
@@ -956,14 +1069,15 @@ function SocialComponent() {
                           aria-label="Bookmark"
                           title={
                             bookmarkedPostIds.includes(post.id)
-                              ? "Remove from vault"
-                              : "Save to local vault"
+                              ? "Remove bookmark"
+                              : "Save to device bookmarks"
                           }
                         >
                           <Bookmark
                             className={cn(
                               "h-4.5 w-4.5",
-                              bookmarkedPostIds.includes(post.id) && "fill-amber-400",
+                              bookmarkedPostIds.includes(post.id) &&
+                                "fill-amber-400",
                             )}
                           />
                         </button>
@@ -1034,7 +1148,8 @@ function SocialComponent() {
                               onClick={() => handleSendComment(post.id)}
                               disabled={
                                 (commentMutation.isPending &&
-                                  commentMutation.variables?.postId === post.id) ||
+                                  commentMutation.variables?.postId ===
+                                    post.id) ||
                                 !commentTexts[post.id]?.trim()
                               }
                               className="rounded-xl bg-[color:var(--primary)] px-3.5 py-2.5 text-primary-foreground transition hover:brightness-110 disabled:opacity-50 cursor-pointer flex items-center"
@@ -1190,7 +1305,7 @@ function SocialComponent() {
 
             <div className="space-y-3.5">
               {whoToFollow.map((user) => {
-                const isFollowing = followedHandles.includes(user.name);
+                const isFollowing = user.following === true;
                 return (
                   <div
                     key={user.name}
@@ -1223,13 +1338,26 @@ function SocialComponent() {
                       </button>
 
                       <button
-                        onClick={() => {
-                          if (isFollowing) {
-                            setFollowedHandles((prev) => prev.filter((h) => h !== user.name));
-                            showToast(`Unfollowed ${user.handle}`);
-                          } else {
-                            setFollowedHandles((prev) => [...prev, user.name]);
-                            showToast(`Following ${user.handle}`);
+                        disabled={followingBusy === user.name}
+                        onClick={async () => {
+                          if (!authed) {
+                            navigate({ to: "/onboarding" });
+                            return;
+                          }
+                          setFollowingBusy(user.name);
+                          try {
+                            await followUser(user.name, !isFollowing);
+                            await queryClient.invalidateQueries({
+                              queryKey: ["whoToFollow"],
+                            });
+                          } catch (error) {
+                            showToast(
+                              error instanceof Error
+                                ? error.message
+                                : "Could not update follow.",
+                            );
+                          } finally {
+                            setFollowingBusy(null);
                           }
                         }}
                         className={cn(
@@ -1259,7 +1387,8 @@ function SocialComponent() {
                   Zero Surveillance Invariant
                 </h3>
                 <p className="text-xs text-foreground/80 dark:text-white/60 leading-relaxed">
-                  No shadow-bans. No engagement scoring. Your posts flow directly to readers in honest chronological order.
+                  No shadow-bans. No engagement scoring. Your posts flow
+                  directly to readers in honest chronological order.
                 </p>
               </div>
             </div>

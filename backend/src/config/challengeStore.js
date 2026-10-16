@@ -1,116 +1,35 @@
-/**
- * config/challengeStore.js
- *
- * Unified key-value store for short-lived challenge data (MFA challenges,
- * pending TOTP secrets, WebAuthn registration/authentication challenges).
- *
- * Strategy:
- *   - If UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN are configured,
- *     uses Upstash Redis with native TTL — safe for multi-instance deployments.
- *   - Otherwise, falls back to an in-memory Map (single-instance dev only).
- *     A startup warning is printed so this is never silently used in production.
- *
- * API (same interface regardless of backend):
- *   await store.set(key, value, ttlSeconds)
- *   await store.get(key)           → value | null
- *   await store.del(key)
- *
- * Values are JSON-serialised for Redis compatibility.
- */
-
 import { Redis } from "@upstash/redis";
 import { env } from "./env.js";
+import prisma from "./prisma.js";
+import { encrypt, decrypt } from "../utils/crypto.js";
 
-// ─── Redis backend ─────────────────────────────────────────────────────────────
-
-let redisClient = null;
-
-const warnPrefix = "[challengeStore] WARNING:";
-
-if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
-  redisClient = new Redis({
-    url: env.UPSTASH_REDIS_REST_URL,
-    token: env.UPSTASH_REDIS_REST_TOKEN,
-  });
-  console.log("[challengeStore] Using Upstash Redis backend.");
-} else {
-  console.warn(`${warnPrefix} UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN not configured — falling back to in-memory store.`);
-  console.warn(`${warnPrefix} This is only safe for single-instance deployments.`);
-}
-
-// ─── In-memory fallback (dev only) ────────────────────────────────────────────
-
-const memStore = new Map(); // key → { value, expiresAt }
-
-function memSet(key, value, ttlSeconds) {
-  memStore.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
-}
-
-function memGet(key) {
-  const entry = memStore.get(key);
-  if (!entry) return null;
-  if (entry.expiresAt < Date.now()) {
-    memStore.delete(key);
-    return null;
-  }
-  return entry.value;
-}
-
-function memDel(key) {
-  memStore.delete(key);
-}
-
-// Prune expired in-memory entries every 2 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of memStore) {
-    if (v.expiresAt < now) memStore.delete(k);
-  }
-}, 2 * 60 * 1000);
-
-// ─── Unified store interface ───────────────────────────────────────────────────
+const redis = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
+  ? new Redis({ url: env.UPSTASH_REDIS_REST_URL, token: env.UPSTASH_REDIS_REST_TOKEN }) : null;
+const decode = value => {
+  const stored = typeof value === "string" ? JSON.parse(value) : value;
+  // Existing short-lived challenges can finish during a rolling deployment.
+  return stored?.encryptedValue ? JSON.parse(decrypt(stored.encryptedValue)) : stored;
+};
 
 export const store = {
-  /**
-   * Store a value with a TTL.
-   * @param {string} key
-   * @param {any} value  (will be JSON-serialised)
-   * @param {number} ttlSeconds
-   */
   async set(key, value, ttlSeconds) {
-    if (redisClient) {
-      // Upstash Redis: SET key value EX ttlSeconds
-      await redisClient.set(key, JSON.stringify(value), { ex: ttlSeconds });
-    } else {
-      memSet(key, value, ttlSeconds);
-    }
+    const encrypted = { encryptedValue: encrypt(JSON.stringify(value)) };
+    if (redis) return redis.set(key, JSON.stringify(encrypted), { ex: ttlSeconds });
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+    await prisma.authChallenge.upsert({ where: { key }, create: { key, value: encrypted, expiresAt }, update: { value: encrypted, expiresAt } });
   },
-
-  /**
-   * Retrieve a value. Returns null if missing or expired.
-   * @param {string} key
-   * @returns {Promise<any|null>}
-   */
   async get(key) {
-    if (redisClient) {
-      const raw = await redisClient.get(key);
-      if (raw === null || raw === undefined) return null;
-      // Upstash client auto-parses JSON; if it's already an object, return directly
-      return typeof raw === "string" ? JSON.parse(raw) : raw;
-    } else {
-      return memGet(key);
-    }
+    if (redis) return decode(await redis.get(key));
+    const entry = await prisma.authChallenge.findUnique({ where: { key } });
+    return entry && entry.expiresAt > new Date() ? decode(entry.value) : null;
   },
-
-  /**
-   * Delete a key (e.g., after a challenge is consumed).
-   * @param {string} key
-   */
   async del(key) {
-    if (redisClient) {
-      await redisClient.del(key);
-    } else {
-      memDel(key);
-    }
+    if (redis) return redis.del(key);
+    await prisma.authChallenge.deleteMany({ where: { key } });
+  },
+  async take(key) {
+    if (redis) return decode(await redis.getdel(key));
+    const entries = await prisma.$queryRaw`DELETE FROM "AuthChallenge" WHERE "key" = ${key} AND "expiresAt" > (NOW() AT TIME ZONE 'UTC') RETURNING "value"`;
+    return decode(entries[0]?.value ?? null);
   },
 };

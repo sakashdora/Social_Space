@@ -45,577 +45,121 @@ async function analyzeAndModeratePost(postId, content) {
   }
 }
 
-/**
- * Create a new post.
- * POST /v1/posts
- */
+
+import { findVisiblePost, visiblePosts, publicAuthor, publicMedia, serializePost, unexpired } from "../services/postPolicy.js";
+
+const includePost = (viewerId) => ({
+  user: { select: publicAuthor }, media: { select: publicMedia },
+  _count: { select: { comments: { where: { isDeleted: false } }, reactions: true } },
+  reactions: { where: { userId: viewerId || "", reactionType: "heart" }, select: { userId: true, reactionType: true } },
+  pollVotes: { select: { userId: true, optionIndex: true } },
+});
+
+async function formatPosts(posts, viewerId) {
+  const ids = [...new Set(posts.map(p => p.sharedPostId).filter(Boolean))];
+  const shared = ids.length ? await prisma.post.findMany({
+    where: { id: { in: ids }, ...visiblePosts(viewerId) }, include: includePost(viewerId),
+  }) : [];
+  const byId = new Map(shared.map(p => [p.id, p]));
+  return posts.map(p => serializePost({ ...p, sharedPost: byId.get(p.sharedPostId) ?? null }, viewerId));
+}
+
 export async function createPost(req, res) {
   try {
-    const {
-      content: rawContent,
-      category,
-      mode,
-      mediaUrl,
-      storagePath,
-      thumbStoragePath,
-      mediaId: incomingMediaId,
-      sharedPostId,
-    } = req.body;
-
-    if (!rawContent || !category) {
-      return res.status(400).json({
-        error: {
-          message: "Content and category are required.",
-          code: "BAD_REQUEST",
-        },
-      });
+    const { category, mode, mediaId, sharedPostId, audience = "everyone", lifetime = "forever",
+      selectedHandles = [], engagement = {}, pollOptions = [], isAiModifiedMedia = false } = req.body;
+    const content = sanitizeContent(req.body.content || "");
+    if ((!content && !mediaId) || content.length > 500) return res.status(400).json({ error: "Provide text (up to 500 characters) or verified media." });
+    if ((req.body.storagePath || req.body.mediaUrl || req.body.thumbStoragePath) && !mediaId) {
+      return res.status(400).json({ error: "Attach verified media by mediaId." });
     }
-
-    // Sanitize before any further processing
-    const content = sanitizeContent(rawContent);
-
-    if (content.length > 500) {
-      return res.status(400).json({
-        error: {
-          message: "Content exceeds 500 characters limit.",
-          code: "CONTENT_TOO_LONG",
-        },
-      });
-    }
-
-    let validSharedPostId = null;
     if (sharedPostId) {
-      const targetPost = await prisma.post.findUnique({
-        where: { id: sharedPostId },
-      });
-      if (targetPost && !targetPost.isDeleted) {
-        validSharedPostId = targetPost.id;
-      } else {
-        return res.status(404).json({
-          error: {
-            message: "Shared post not found or has been deleted.",
-            code: "NOT_FOUND",
-          },
-        });
-      }
+      const shared = await findVisiblePost(sharedPostId, req.user.id);
+      if (!shared) return res.status(404).json({ error: "Shared post not found." });
+      if (!shared.allowReposts) return res.status(403).json({ error: "The author disabled reposts." });
     }
-
-    // Handle anonymity mode:
-    const postUserId = mode === "full" ? null : req.user.id;
-
-    let mediaId = incomingMediaId || null;
-    let finalStoragePath = storagePath || null;
-    let finalThumbPath = thumbStoragePath || null;
-
-    if (!finalStoragePath && mediaUrl) {
-      const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-      const match = mediaUrl.match(uuidRegex);
-      if (match) {
-        const extractedMediaId = match[0];
-        const mediaRecord = await prisma.media.findUnique({
-          where: { id: extractedMediaId }
-        });
-        if (mediaRecord) {
-          mediaId = mediaRecord.id;
-          finalStoragePath = mediaRecord.storagePath;
-          finalThumbPath = mediaRecord.thumbnailPath;
-        }
-      }
-    } else if (mediaId && !finalStoragePath) {
-      const mediaRecord = await prisma.media.findUnique({
-        where: { id: mediaId }
-      });
-      if (mediaRecord) {
-        finalStoragePath = mediaRecord.storagePath;
-        finalThumbPath = mediaRecord.thumbnailPath;
-      }
+    const recipients = audience === "selected" ? await prisma.user.findMany({
+      where: { handle: { in: selectedHandles }, isBanned: false }, select: { id: true },
+    }) : [];
+    if (audience === "selected" && (recipients.length !== selectedHandles.length || !recipients.length)) {
+      return res.status(400).json({ error: "Choose valid recipient handles for a selected audience." });
     }
-
-    const post = await prisma.post.create({
-      data: {
-        userId: postUserId,
-        content,
-        category,
-        mediaUrl: null, // Task 1: Stop writing to mediaUrl
-        storagePath: finalStoragePath,
-        thumbStoragePath: finalThumbPath,
-        mediaId,
-        sharedPostId: validSharedPostId,
-        aiLabels: null,
-        sentimentAnalysis: null,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            handle: true,
-            avatarUrl: true
-          }
-        },
-        sharedPost: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                handle: true,
-                avatarUrl: true
-              }
-            },
-            media: {
-              select: {
-                type: true,
-                thumbnailPath: true
-              }
-            }
-          }
-        }
+    const days = { "24h": 1, "7d": 7, "30d": 30 };
+    const post = await prisma.$transaction(async tx => {
+      // Serialize attachment with media/account deletion and quota changes.
+      if (mediaId) {
+        await tx.$queryRaw`SELECT id FROM "Media" WHERE id = ${mediaId} FOR UPDATE`;
+        const owned = await tx.media.findFirst({ where: {
+          id: mediaId, userId: req.user.id, status: "ready", purpose: "post", ...unexpired(),
+        } });
+        if (!owned) throw Object.assign(new Error("Media is unavailable or does not belong to you."), { status: 403 });
       }
+      return tx.post.create({ data: {
+        ownerId: req.user.id, userId: mode === "full" || audience === "anonymous_feed" ? null : req.user.id,
+        content, category, mediaId: mediaId || null, sharedPostId: sharedPostId || null,
+        audience, allowedUserIds: recipients.map(u => u.id),
+        expiresAt: days[lifetime] ? new Date(Date.now() + days[lifetime] * 86400000) : null,
+        allowReplies: engagement.allowReplies ?? true, allowReactions: engagement.allowReactions ?? true,
+        allowReposts: engagement.allowReposts ?? true, anonymousReplies: engagement.anonymousReplies ?? false,
+        isAiModifiedMedia, pollOptions,
+      }, include: includePost(req.user.id) });
     });
-
-    // Run background AI moderation (non-blocking, serverless-safe lifecycle)
-    safeWaitUntil(
-      analyzeAndModeratePost(post.id, content).catch((err) => {
-        console.error(`Background post moderation fail-to-launch for ${post.id}:`, err);
-      })
-    );
-
-    return res.status(201).json(post);
+    if (content) safeWaitUntil(analyzeAndModeratePost(post.id, content));
+    return res.status(201).json((await formatPosts([post], req.user.id))[0]);
   } catch (error) {
-    console.error("Create post error:", error);
-    return res.status(500).json({
-      error: {
-        message: "Failed to create post.",
-        code: "INTERNAL_SERVER_ERROR",
-      },
-    });
+    console.error("Create post failed:", error.message);
+    return res.status(error.status || 500).json({ error: error.status ? error.message : "Failed to create post." });
   }
 }
 
-/**
- * Get posts feed.
- * GET /v1/posts
- */
 export async function getFeed(req, res) {
   try {
-    const { category, page = 1, limit = 10, userId, handle, hasMedia } = req.query;
-
-    const skip = (parseInt(page) - 1) * Math.min(parseInt(limit) || 10, 50);
-    const take = Math.min(parseInt(limit) || 10, 50);
-
-    const where = {
-      isDeleted: false
-    };
-
-    if (category && category !== "All") {
-      where.category = category;
-    }
-
-    if (userId) {
-      where.userId = userId;
-    } else if (handle) {
-      where.user = { handle: handle };
-    }
-
-    if (hasMedia === "true" || hasMedia === true) {
-      where.OR = [
-        { storagePath: { not: null } },
-        { mediaId: { not: null } }
-      ];
-    }
-
-    const posts = await prisma.post.findMany({
-      where,
-      skip,
-      take,
-      orderBy: {
-        createdAt: "desc"
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            handle: true,
-            avatarUrl: true
-          }
-        },
-        media: {
-          select: {
-            type: true,
-            thumbnailPath: true
-          }
-        },
-        sharedPost: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                handle: true,
-                avatarUrl: true
-              }
-            },
-            media: {
-              select: {
-                type: true,
-                thumbnailPath: true
-              }
-            }
-          }
-        },
-        _count: {
-          select: {
-            comments: true,
-            reactions: true
-          }
-        }
-      }
-    });
-
-    // Batch-fetch current user's reactions for all returned posts in one query
-    let userReactedPostIds = new Set();
-    if (req.user && posts.length > 0) {
-      const postIds = posts.map(p => p.id);
-      const userReactions = await prisma.reaction.findMany({
-        where: {
-          userId: req.user.id,
-          postId: { in: postIds },
-          reactionType: "heart"
-        },
-        select: { postId: true }
-      });
-      userReactedPostIds = new Set(userReactions.map(r => r.postId));
-    }
-
-    const formattedPosts = posts.map(p => {
-      const hasMedia = p.storagePath || p.media?.storagePath;
-      const hasThumb = p.thumbStoragePath || p.media?.thumbnailPath;
-
-      const sharedMedia = p.sharedPost ? (p.sharedPost.storagePath || p.sharedPost.media?.storagePath) : false;
-      const sharedThumb = p.sharedPost ? (p.sharedPost.thumbStoragePath || p.sharedPost.media?.thumbnailPath) : false;
-
-      return {
-        id: p.id,
-        content: p.content,
-        category: p.category,
-        mediaStreamUrl: hasMedia ? `/api/media/stream/${p.id}` : null,
-        thumbStreamUrl: hasThumb ? `/api/media/stream/${p.id}?thumb=true` : null,
-        mediaId: p.mediaId,
-        sharedPostId: p.sharedPostId,
-        sharedPost: p.sharedPost ? {
-          id: p.sharedPost.id,
-          content: p.sharedPost.content,
-          category: p.sharedPost.category,
-          mediaStreamUrl: sharedMedia ? `/api/media/stream/${p.sharedPost.id}` : null,
-          thumbStreamUrl: sharedThumb ? `/api/media/stream/${p.sharedPost.id}?thumb=true` : null,
-          createdAt: p.sharedPost.createdAt,
-          user: p.sharedPost.user ?? null,
-        } : null,
-        isDeleted: p.isDeleted,
-        isAiModifiedMedia: p.isAiModifiedMedia,
-        aiLabels: p.aiLabels ? JSON.parse(p.aiLabels) : null,
-        sentimentAnalysis: p.sentimentAnalysis ? JSON.parse(p.sentimentAnalysis) : null,
-        createdAt: p.createdAt,
-        user: p.user ?? null,
-        media: p.media ?? null,
-        commentCount: p._count.comments,
-        reactionCount: p._count.reactions,
-        userHasReacted: userReactedPostIds.has(p.id)
-      };
-    });
-
-    return res.status(200).json(formattedPosts);
+    const page = Math.min(10000, Math.max(1, parseInt(req.query.page, 10) || 1));
+    const take = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const where = visiblePosts(req.user?.id);
+    if (req.query.category && req.query.category !== "All") where.category = String(req.query.category);
+    if (req.query.userId) where.userId = String(req.query.userId);
+    if (req.query.handle) where.user = { handle: String(req.query.handle).replace(/^@/, "") };
+    if (req.query.mine === "true" && req.user) where.ownerId = req.user.id;
+    if (req.query.hasMedia === "true") where.media = { status: "ready", ...unexpired() };
+    if (req.query.synthetic === "true") where.isAiModifiedMedia = true;
+    const posts = await prisma.post.findMany({ where, skip: (page - 1) * take, take,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: includePost(req.user?.id) });
+    return res.json(await formatPosts(posts, req.user?.id));
   } catch (error) {
-    console.error("Get feed error:", error);
-    return res.status(500).json({
-      error: {
-        message: "Failed to retrieve feed posts.",
-        code: "INTERNAL_SERVER_ERROR",
-      },
-    });
+    console.error("Feed failed:", error.message);
+    return res.status(500).json({ error: "Failed to retrieve posts." });
   }
 }
 
-/**
- * Get single post details with its comments.
- * GET /v1/posts/:id
- */
 export async function getPostDetails(req, res) {
   try {
-    const { id } = req.params;
-
-    const post = await prisma.post.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            handle: true,
-            avatarUrl: true
-          }
-        },
-        media: true,
-        sharedPost: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                handle: true,
-                avatarUrl: true
-              }
-            },
-            media: {
-              select: {
-                type: true,
-                thumbnailPath: true
-              }
-            }
-          }
-        },
-        comments: {
-          where: { isDeleted: false },
-          orderBy: { createdAt: "asc" },
-          include: {
-            user: {
-              select: {
-                id: true,
-                handle: true,
-                avatarUrl: true
-              }
-            }
-          }
-        },
-        reactions: {
-          select: { userId: true, reactionType: true }
-        }
-      }
-    });
-
-    if (!post || post.isDeleted) {
-      return res.status(404).json({
-        error: {
-          message: "Post not found or has been deleted.",
-          code: "NOT_FOUND",
-        },
-      });
-    }
-
-    const hasMedia = post.storagePath || post.media?.storagePath;
-    const hasThumb = post.thumbStoragePath || post.media?.thumbnailPath;
-
-    const sharedMedia = post.sharedPost ? (post.sharedPost.storagePath || post.sharedPost.media?.storagePath) : false;
-    const sharedThumb = post.sharedPost ? (post.sharedPost.thumbStoragePath || post.sharedPost.media?.thumbnailPath) : false;
-
-    // Check if requesting user has reacted (optional auth)
-    const userHasReacted = req.user
-      ? post.reactions.some(r => r.userId === req.user.id && r.reactionType === "heart")
-      : false;
-
-    const formattedPost = {
-      ...post,
-      mediaUrl: undefined,
-      mediaStreamUrl: hasMedia ? `/api/media/stream/${post.id}` : null,
-      thumbStreamUrl: hasThumb ? `/api/media/stream/${post.id}?thumb=true` : null,
-      sharedPost: post.sharedPost ? {
-        id: post.sharedPost.id,
-        content: post.sharedPost.content,
-        category: post.sharedPost.category,
-        mediaStreamUrl: sharedMedia ? `/api/media/stream/${post.sharedPost.id}` : null,
-        thumbStreamUrl: sharedThumb ? `/api/media/stream/${post.sharedPost.id}?thumb=true` : null,
-        createdAt: post.sharedPost.createdAt,
-        user: post.sharedPost.user ?? null,
-      } : null,
-      aiLabels: post.aiLabels ? JSON.parse(post.aiLabels) : null,
-      sentimentAnalysis: post.sentimentAnalysis ? JSON.parse(post.sentimentAnalysis) : null,
-      commentCount: post.comments.length,
-      reactionCount: post.reactions.length,
-      userHasReacted
-    };
-
-    return res.status(200).json(formattedPost);
-  } catch (error) {
-    console.error("Get post details error:", error);
-    return res.status(500).json({
-      error: {
-        message: "Failed to retrieve post details.",
-        code: "INTERNAL_SERVER_ERROR",
-      },
-    });
-  }
+    const post = await findVisiblePost(req.params.id, req.user?.id, { include: includePost(req.user?.id) });
+    if (!post) return res.status(404).json({ error: "Post not found." });
+    return res.json((await formatPosts([post], req.user?.id))[0]);
+  } catch (error) { return res.status(500).json({ error: "Failed to retrieve post." }); }
 }
 
-/**
- * Delete a post (soft delete).
- * DELETE /v1/posts/:id
- */
 export async function deletePost(req, res) {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const post = await prisma.post.findUnique({
-      where: { id }
-    });
-
-    if (!post || post.isDeleted) {
-      return res.status(404).json({
-        error: {
-          message: "Post not found or already deleted.",
-          code: "NOT_FOUND",
-        },
-      });
-    }
-
-    // Check authorization: user must be the author (only possible for non-anonymous posts where userId !== null)
-    if (post.userId !== userId) {
-      return res.status(403).json({
-        error: {
-          message: "You are not authorized to delete this post.",
-          code: "FORBIDDEN",
-        },
-      });
-    }
-
-    // Soft delete by setting isDeleted to true
-    await prisma.post.update({
-      where: { id },
-      data: { isDeleted: true }
-    });
-
-    return res.status(200).json({ success: true, message: "Post deleted successfully." });
-  } catch (error) {
-    console.error("Delete post error:", error);
-    return res.status(500).json({
-      error: {
-        message: "Failed to delete post.",
-        code: "INTERNAL_SERVER_ERROR",
-      },
-    });
-  }
+  const deleted = await prisma.post.updateMany({ where: { id: req.params.id, ownerId: req.user.id, isDeleted: false }, data: { isDeleted: true } });
+  if (!deleted.count) return res.status(404).json({ error: "Post not found or not owned by you." });
+  return res.json({ success: true });
 }
 
-/**
- * Retrieve trending topics (hashtags, categories, AI labels).
- * GET /v1/posts/trending
- */
+export async function voteOnPoll(req, res) {
+  const post = await findVisiblePost(req.params.id, req.user.id);
+  const index = req.body.optionIndex;
+  if (!post) return res.status(404).json({ error: "Post not found." });
+  if (!Number.isInteger(index) || index < 0 || index >= post.pollOptions.length) return res.status(400).json({ error: "Choose a valid poll option." });
+  await prisma.pollVote.upsert({ where: { postId_userId: { postId: post.id, userId: req.user.id } },
+    create: { postId: post.id, userId: req.user.id, optionIndex: index }, update: { optionIndex: index } });
+  return getPostDetails(req, res);
+}
+
 export async function getTrendingTopics(req, res) {
   try {
-    const posts = await prisma.post.findMany({
-      where: { isDeleted: false },
-      select: {
-        content: true,
-        category: true,
-        aiLabels: true
-      }
-    });
-
-    const frequencyMap = {};
-
-    const defaultTopics = [
-      { id: 1, title: "AI is changing the world", posts: 12500, gradient: "from-purple-500/20 to-indigo-500/20" },
-      { id: 2, title: "Healing in silence", posts: 9800, gradient: "from-blue-500/20 to-cyan-500/20" },
-      { id: 3, title: "Late night thoughts", posts: 8200, gradient: "from-pink-500/20 to-rose-500/20" },
-      { id: 4, title: "Building in public", posts: 6700, gradient: "from-amber-500/20 to-orange-500/20" },
-      { id: 5, title: "The power of mindset", posts: 5300, gradient: "from-teal-500/20 to-emerald-500/20" }
-    ];
-
-    const gradients = [
-      "from-purple-500/20 to-indigo-500/20",
-      "from-blue-500/20 to-cyan-500/20",
-      "from-pink-500/20 to-rose-500/20",
-      "from-amber-500/20 to-orange-500/20",
-      "from-teal-500/20 to-emerald-500/20"
-    ];
-
-    const addTopic = (name, count = 1) => {
-      if (!name) return;
-      const cleanName = name.trim();
-      if (!cleanName || cleanName.length < 2) return;
-      const key = cleanName.toLowerCase();
-      if (frequencyMap[key]) {
-        frequencyMap[key].count += count;
-      } else {
-        frequencyMap[key] = {
-          title: cleanName,
-          count: count
-        };
-      }
-    };
-
-    for (const post of posts) {
-      if (post.category) {
-        addTopic(post.category);
-      }
-
-      const hashtagRegex = /#([a-zA-Z0-9_-]+)/g;
-      let match;
-      while ((match = hashtagRegex.exec(post.content)) !== null) {
-        addTopic(`#${match[1]}`);
-      }
-
-      if (post.aiLabels) {
-        try {
-          const labels = JSON.parse(post.aiLabels);
-          if (Array.isArray(labels)) {
-            labels.forEach(label => addTopic(label));
-          } else if (labels && Array.isArray(labels.labels)) {
-            labels.labels.forEach(label => addTopic(label));
-          }
-        } catch (e) {
-          // ignore parsing error
-        }
-      }
-    }
-
-    let topics = Object.values(frequencyMap).sort((a, b) => b.count - a.count);
-
-    const mergedTopicsMap = {};
-    
-    topics.forEach(t => {
-      mergedTopicsMap[t.title.toLowerCase()] = {
-        title: t.title,
-        postsCount: t.count
-      };
-    });
-
-    let backfillIndex = 0;
-    while (Object.keys(mergedTopicsMap).length < 5 && backfillIndex < defaultTopics.length) {
-      const def = defaultTopics[backfillIndex];
-      const key = def.title.toLowerCase();
-      if (!mergedTopicsMap[key]) {
-        mergedTopicsMap[key] = {
-          title: def.title,
-          postsCount: def.posts
-        };
-      }
-      backfillIndex++;
-    }
-
-    const finalTopics = Object.values(mergedTopicsMap)
-      .sort((a, b) => b.postsCount - a.postsCount)
-      .slice(0, 5);
-
-    const result = finalTopics.map((t, idx) => {
-      const gradient = gradients[idx % gradients.length];
-      let postsStr = `${t.postsCount} posts`;
-      if (t.postsCount >= 1000) {
-        postsStr = `${(t.postsCount / 1000).toFixed(1).replace(/\.0$/, "")}K posts`;
-      }
-      return {
-        id: idx + 1,
-        title: t.title,
-        posts: postsStr,
-        gradient: gradient
-      };
-    });
-
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Get trending topics error:", error);
-    return res.status(500).json({
-      error: {
-        message: "Failed to retrieve trending topics.",
-        code: "INTERNAL_SERVER_ERROR",
-      },
-    });
-  }
+    const groups = await prisma.post.groupBy({ by: ["category"], where: { ...visiblePosts(null), createdAt: { gte: new Date(Date.now() - 7 * 86400000) } },
+      _count: { _all: true }, orderBy: { _count: { category: "desc" } }, take: 5 });
+    return res.json(groups.map((g, index) => ({ id: index + 1, title: g.category, posts: g._count._all + " posts this week", gradient: "from-purple-500/20 to-indigo-500/20" })));
+  } catch (error) { return res.status(500).json({ error: "Failed to retrieve trending topics." }); }
 }
-

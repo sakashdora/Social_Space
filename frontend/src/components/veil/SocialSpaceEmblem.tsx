@@ -31,13 +31,25 @@ export function SocialSpaceEmblem({
       {...props}
     >
       <defs>
-        <linearGradient id={`gold-grad-1-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient
+          id={`gold-grad-1-${id}`}
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="100%"
+        >
           <stop offset="0%" stopColor="#fef08a" />
           <stop offset="45%" stopColor="#fbbf24" />
           <stop offset="85%" stopColor="#d97706" />
           <stop offset="100%" stopColor="#92400e" />
         </linearGradient>
-        <linearGradient id={`gold-grad-2-${id}`} x1="100%" y1="0%" x2="0%" y2="100%">
+        <linearGradient
+          id={`gold-grad-2-${id}`}
+          x1="100%"
+          y1="0%"
+          x2="0%"
+          y2="100%"
+        >
           <stop offset="0%" stopColor="#fef3c7" stopOpacity="0.9" />
           <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.7" />
           <stop offset="100%" stopColor="#b45309" stopOpacity="0.2" />

@@ -102,7 +102,7 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer",
               activeTab === "edit"
                 ? "bg-white/10 text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Edit3 className="h-3.5 w-3.5" />
@@ -115,7 +115,7 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer",
               activeTab === "preview"
                 ? "bg-white/10 text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Eye className="h-3.5 w-3.5" />
@@ -146,7 +146,8 @@ export function GrokEditor({ value, onChange }: GrokEditorProps) {
               <MarkdownRenderer content={value} />
             ) : (
               <p className="text-sm text-muted-foreground italic py-8 text-center">
-                No content to preview yet. Generate or type some content in the Write tab.
+                No content to preview yet. Generate or type some content in the
+                Write tab.
               </p>
             )}
           </div>

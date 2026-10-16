@@ -19,10 +19,10 @@ export async function generate(req, res) {
     return res.status(200).json({ article });
   } catch (error) {
     console.error("Generate article error:", error);
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       error: {
-        message: "Failed to generate article.",
-        code: "INTERNAL_SERVER_ERROR",
+        message: error.status === 503 ? error.message : "Failed to generate article.",
+        code: error.status === 503 ? "SERVICE_UNAVAILABLE" : "INTERNAL_SERVER_ERROR",
       },
     });
   }
@@ -47,10 +47,10 @@ export async function correct(req, res) {
     return res.status(200).json({ correctedText });
   } catch (error) {
     console.error("Correct grammar error:", error);
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       error: {
-        message: "Failed to correct grammar.",
-        code: "INTERNAL_SERVER_ERROR",
+        message: error.status === 503 ? error.message : "Failed to correct grammar.",
+        code: error.status === 503 ? "SERVICE_UNAVAILABLE" : "INTERNAL_SERVER_ERROR",
       },
     });
   }
@@ -75,10 +75,10 @@ export async function suggest(req, res) {
     return res.status(200).json({ suggestions });
   } catch (error) {
     console.error("Get suggestions error:", error);
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       error: {
-        message: "Failed to get suggestions.",
-        code: "INTERNAL_SERVER_ERROR",
+        message: error.status === 503 ? error.message : "Failed to get suggestions.",
+        code: error.status === 503 ? "SERVICE_UNAVAILABLE" : "INTERNAL_SERVER_ERROR",
       },
     });
   }

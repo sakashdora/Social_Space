@@ -1,89 +1,42 @@
-# VEIL - Anonymous AI Social Space
+# VEIL Social
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+A React 19 / TanStack Start social application with an Express API, Prisma/PostgreSQL, private Supabase Storage, and optional Supabase Realtime notifications. The deployment target is Vercel + Supabase.
 
-Welcome to **VEIL**, an anonymous AI-powered social space. The application features a rich, responsive frontend built with TanStack Start, React 19, and Vite, and an Express backend integrated with Prisma and SQLite for local development.
+## Start locally
 
----
+Use Node.js 22.12 or newer. Install from the repository root with `npm ci`; the root `package-lock.json` is the workspace lockfile.
 
-## Workspace Structure
+1. Copy `backend/.env.example` to `backend/.env` and configure a development PostgreSQL database and independent random secrets.
+2. Copy `frontend/.env.example` to `frontend/.env`. Leave `VITE_API_URL` empty for the local Vite proxy or same-origin Vercel deployment.
+3. Apply migrations to your **development** database: `npm exec --workspace backend -- prisma migrate deploy`.
+4. In separate terminals run `npm run dev:backend` and `npm run dev:frontend`. Open http://localhost:5173.
 
-- **`/frontend`**: The TanStack Start React 19 application.
-- **`/backend`**: The Express.js server, Prisma ORM, and local SQLite database (`dev.db`).
+PostgreSQL is required; this application does not use SQLite. Media requires a private Supabase bucket. AI providers and Redis are optional; absent Redis, authentication challenges use PostgreSQL. AI writing tools return an unavailable error without a working provider.
 
----
+## Verify
 
-## Prerequisites
-
-- **Node.js** (v18 or higher recommended)
-- **npm** (comes packaged with Node.js)
-
----
-
-## Local Setup & Development
-
-### 1. Backend Setup & Run
-
-The backend is configured to use a local **SQLite** database (`dev.db`), removing any external dependencies.
-
-1. Navigate to the `backend/` directory:
-   ```bash
-   cd backend
-   ```
-2. Confirm the environment configuration in `backend/.env`. The database URL should point to the SQLite file:
-   ```env
-   PORT=3000
-   DATABASE_URL="file:./dev.db"
-   ```
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-4. Start the development server:
-   - For development auto-reload (using nodemon):
-     ```bash
-     npm run dev
-     ```
-   - For a standard start:
-     ```bash
-     npm start
-     ```
-
-The backend server will run and listen on **`http://localhost:3000`**. You can verify it by visiting `http://localhost:3000/` or executing:
-```bash
-curl http://localhost:3000/
-# Response: {"message": "Veil Shine Backend API is running!"}
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm run build
 ```
 
-### 2. Frontend Setup & Run
+Tests use an isolated local PostgreSQL instance, or `TEST_DATABASE_URL` pointing to a local database whose name starts with `veil_test`. They never use the development/production database URL. Test databases are disposable; the suite truncates their tables. Portable test clusters are left under ignored `tmp/` for diagnostics and are stopped after the run. External storage is mocked in API tests; video-processing tests run FFmpeg/FFprobe on generated local fixtures. Encryption tests exercise Web Crypto and IndexedDB.
 
-The frontend uses TanStack Start/Vite and is pre-configured to proxy/query the local backend on port 3000.
+The build generates Prisma Client, prerenders the frontend, and copies static assets to `dist/`. It does **not** apply database migrations.
 
-1. Navigate to the `frontend/` directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the frontend developer server:
-   ```bash
-   npm run dev
-   ```
+## Implemented behavior
 
-The frontend server will start and bind to a local port (typically **`http://localhost:5173`**). Open the URL in your browser to interact with the platform.
+- Anonymous/pseudonymous posts with enforced audiences, expiry, engagement permissions, and polls.
+- Private storage uploads with server-issued reservations, ownership checks, quotas, actual image/video inspection, metadata processing, and retryable cleanup.
+- Browser-encrypted direct messages and attachments, paginated history, disappearing timers, and optional realtime invalidation notifications with polling fallback.
+- Passphrases, passkeys, TOTP, one-use recovery codes, shared rate limits, and account deletion.
+- Saved follows, reports, appeals, waitlist enrollment, and a moderator review-status queue.
+- Optional AI writing/moderation providers and news RSS.
 
----
+See [deployment setup](DEPLOYMENT.md), [security boundaries](SECURITY.md), and [repair status](REMEDIATION.md). [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) records the original audit at commit `7d1dcec`; older audit scores are not current assurance.
 
-## Database Commands (Prisma)
+## Free service choice
 
-If you want to clear/refresh the database content and re-seed default data (users, categories, posts), run these commands inside the `backend/` folder:
-
-```bash
-# Force reset database schema/tables
-npx prisma db push --force-reset
-
-# Seed default mock data
-npm run seed
-```
+For this project, Supabase Realtime + Storage is the simplest integrated starting point alongside Vercel. The free plan has finite storage, bandwidth, and realtime quotas; it is suitable for a small prototype, not unlimited video hosting. [Deployment notes](DEPLOYMENT.md#free-plan-capacity) compare the current limits and explain when Cloudflare R2 may be useful.

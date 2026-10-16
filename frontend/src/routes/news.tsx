@@ -1,8 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { fetchNews, generateArticle } from "@/lib/api";
-import { ExternalLink, X, Sparkles, Share2, Info, Newspaper, Compass, ShieldCheck } from "lucide-react";
+import {
+  ExternalLink,
+  X,
+  Sparkles,
+  Share2,
+  Info,
+  Newspaper,
+  Compass,
+  ShieldCheck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -28,6 +37,7 @@ const springTransition = {
 
 function NewsComponent() {
   const navigate = useNavigate();
+  const briefingRequest = useRef(0);
   const [selectedTopic, setSelectedTopic] = useState("world");
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
   const [aiBriefing, setAiBriefing] = useState<string>("");
@@ -54,21 +64,28 @@ function NewsComponent() {
   };
 
   const handleCloseArticle = () => {
+    briefingRequest.current++;
     setSelectedArticle(null);
   };
 
   const autoGenerateBriefing = async (article: any) => {
+    const request = ++briefingRequest.current;
     setIsBriefingLoading(true);
     setBriefingError("");
     try {
       const res = await generateArticle(
-        `Provide a concise, 3-sentence analytical intelligence overview of this news: "${article.title}". Context: ${article.contentSnippet || ""}`,
+        String(article.title || "News briefing").slice(0, 100),
+        `Write a concise three-sentence overview. ${article.title || ""} ${article.contentSnippet || ""}`.slice(
+          0,
+          500,
+        ),
       );
-      setAiBriefing(res.article);
+      if (request === briefingRequest.current) setAiBriefing(res.article);
     } catch (err: any) {
-      setBriefingError("Failed to synthesize AI briefing.");
+      if (request === briefingRequest.current)
+        setBriefingError(err.message || "AI briefing is unavailable.");
     } finally {
-      setIsBriefingLoading(false);
+      if (request === briefingRequest.current) setIsBriefingLoading(false);
     }
   };
 
@@ -93,7 +110,8 @@ function NewsComponent() {
           Global Intel & Dispatches
         </h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-          Real-time global reporting decoded with sovereign intelligence summaries. No tracking cookies or paywall trackers.
+          Real-time global reporting decoded with sovereign intelligence
+          summaries. No tracking cookies or paywall trackers.
         </p>
 
         {/* Topic Category Pills */}
@@ -108,7 +126,7 @@ function NewsComponent() {
                   "rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer",
                   active
                     ? "bg-amber-500 text-black border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.35)]"
-                    : "bg-card text-muted-foreground border-border hover:border-amber-500/40 hover:text-foreground"
+                    : "bg-card text-muted-foreground border-border hover:border-amber-500/40 hover:text-foreground",
                 )}
               >
                 {topic.label}
@@ -167,7 +185,8 @@ function NewsComponent() {
                   </h2>
 
                   <p className="mt-2.5 text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                    {article.contentSnippet || "Tap to expand and decode with AI briefing."}
+                    {article.contentSnippet ||
+                      "Tap to expand and decode with AI briefing."}
                   </p>
                 </div>
 
@@ -265,7 +284,12 @@ function NewsComponent() {
                 {/* Content Grid */}
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-y-auto py-4 min-h-[40vh]">
                   {/* Left Column: Summary + AI */}
-                  <div className={cn("lg:col-span-2 flex flex-col space-y-4 overflow-y-auto pr-1", modalTab === "web" && "hidden lg:flex")}>
+                  <div
+                    className={cn(
+                      "lg:col-span-2 flex flex-col space-y-4 overflow-y-auto pr-1",
+                      modalTab === "web" && "hidden lg:flex",
+                    )}
+                  >
                     <h2 className="font-serif text-2xl font-bold leading-tight text-foreground">
                       {selectedArticle.title}
                     </h2>
@@ -301,14 +325,22 @@ function NewsComponent() {
 
                       {aiBriefing && (
                         <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] dark:bg-[#121824]/90 p-4 leading-relaxed text-foreground text-xs shadow-inner">
-                          <MarkdownRenderer content={aiBriefing} className="text-xs" />
+                          <MarkdownRenderer
+                            content={aiBriefing}
+                            className="text-xs"
+                          />
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Right Column: Web Reader Frame */}
-                  <div className={cn("lg:col-span-3 flex flex-col h-full min-h-[300px]", modalTab === "ai" && "hidden lg:flex")}>
+                  <div
+                    className={cn(
+                      "lg:col-span-3 flex flex-col h-full min-h-[300px]",
+                      modalTab === "ai" && "hidden lg:flex",
+                    )}
+                  >
                     <div className="relative flex-1 rounded-2xl overflow-hidden border border-border bg-white">
                       {iframeLoading && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 z-10 bg-card">
@@ -328,7 +360,8 @@ function NewsComponent() {
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
                       <Info className="h-3 w-3 shrink-0" />
-                      If external publication blocks frame embedding, tap <strong>Open Source</strong>.
+                      If external publication blocks frame embedding, tap{" "}
+                      <strong>Open Source</strong>.
                     </p>
                   </div>
                 </div>
@@ -361,4 +394,3 @@ function NewsComponent() {
     </div>
   );
 }
-

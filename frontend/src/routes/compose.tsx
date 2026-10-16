@@ -43,11 +43,10 @@ import {
   uploadMedia,
   correctGrammar,
   generateArticle,
-  getCurrentUser,
-  isAuthenticated,
   type MediaKind,
 } from "@/lib/api";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/compose")({
   head: () => ({
@@ -55,7 +54,8 @@ export const Route = createFileRoute("/compose")({
       { title: "Create Transmission — Social Space" },
       {
         name: "description",
-        content: "Share something real. Your identity stays yours. Zero surveillance.",
+        content:
+          "Share something real. Your identity stays yours. Zero surveillance.",
       },
     ],
   }),
@@ -63,47 +63,58 @@ export const Route = createFileRoute("/compose")({
 });
 
 type FormatTab =
-  | "text"
-  | "photo"
-  | "video"
-  | "poll"
-  | "question"
-  | "voice"
-  | "link"
-  | "ai";
+  "text" | "photo" | "video" | "poll" | "question" | "voice" | "link" | "ai";
 
 type IdentityOption = "anonymous" | "sovereign" | "persona";
 type AudienceOption = "everyone" | "circle" | "selected" | "anonymous_feed";
 type LifetimeOption = "24h" | "7d" | "30d" | "forever";
 type PrivacyShieldOption =
-  | "face_shield"
-  | "pixelate"
-  | "blur_bg"
-  | "remove_meta"
-  | "original";
+  "face_shield" | "pixelate" | "blur_bg" | "remove_meta" | "original";
 
-const EMOJI_LIST = ["✨", "🚀", "🛡️", "🔥", "💡", "⚡", "🌌", "👁️", "🕊️", "💎", "🤖", "🔒"];
+const EMOJI_LIST = [
+  "✨",
+  "🚀",
+  "🛡️",
+  "🔥",
+  "💡",
+  "⚡",
+  "🌌",
+  "👁️",
+  "🕊️",
+  "💎",
+  "🤖",
+  "🔒",
+];
 
 function ComposeStudio() {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const authed = isAuthenticated();
+  const { user: currentUser, isAuthenticated: authed } = useAuth();
 
   // ─── Format Tabs ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<FormatTab>("text");
-  const [mobileStudioTab, setMobileStudioTab] = useState<"edit" | "preview">("edit");
+  const [mobileStudioTab, setMobileStudioTab] = useState<"edit" | "preview">(
+    "edit",
+  );
 
   // ─── Composer Content & Auto-Draft ───────────────────────────────────────────
-  const [text, setText] = useState(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const urlContent = params.get("content");
-      if (urlContent) return urlContent;
-      return localStorage.getItem("veil_transmission_draft") || "";
-    }
-    return "";
-  });
+  const [text, setText] = useState("");
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftUnavailable, setDraftUnavailable] = useState(false);
   const [draftSaved, setDraftSaved] = useState(true);
+  useEffect(() => {
+    const urlContent = new URLSearchParams(window.location.search).get(
+      "content",
+    );
+    try {
+      setText(
+        urlContent || localStorage.getItem("veil_transmission_draft") || "",
+      );
+    } catch {
+      setText(urlContent || "");
+      setDraftUnavailable(true);
+    }
+    setDraftLoaded(true);
+  }, []);
 
   // ─── Media State ─────────────────────────────────────────────────────────────
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -125,13 +136,18 @@ function ComposeStudio() {
   // ─── Link Embed ──────────────────────────────────────────────────────────────
   const [linkUrl, setLinkUrl] = useState("");
 
-  // ─── Voice Simulation ────────────────────────────────────────────────────────
+  // ─── Voice Recording ─────────────────────────────────────────────────────────
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceDuration, setVoiceDuration] = useState(0);
 
   // ─── Identity, Audience, Lifetime, Engagement ────────────────────────────────
   const [identity, setIdentity] = useState<IdentityOption>("anonymous");
   const [personaName, setPersonaName] = useState("phantom-drifter");
+  const [selectedHandles, setSelectedHandles] = useState("");
+  const sourceFile = useRef<File | null>(null);
+  const processingRequest = useRef(0);
+  const recorder = useRef<MediaRecorder | null>(null);
+  const recordingStream = useRef<MediaStream | null>(null);
   const [audience, setAudience] = useState<AudienceOption>("everyone");
   const [lifetime, setLifetime] = useState<LifetimeOption>("24h");
 
@@ -146,6 +162,7 @@ function ComposeStudio() {
   // ─── Privacy Shield & AI Intelligence ────────────────────────────────────────
   const [privacyShield, setPrivacyShield] =
     useState<PrivacyShieldOption>("face_shield");
+  const [aiModifiedMedia, setAiModifiedMedia] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiActionMessage, setAiActionMessage] = useState<string | null>(null);
   const [privacyReport, setPrivacyReport] = useState<{
@@ -161,17 +178,41 @@ function ComposeStudio() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const mounted = useRef(true);
+
   // Auto-save draft to localStorage
   useEffect(() => {
+    if (!draftLoaded) return;
     setDraftSaved(false);
     const t = setTimeout(() => {
-      if (typeof window !== "undefined") {
+      try {
         localStorage.setItem("veil_transmission_draft", text);
         setDraftSaved(true);
+        setDraftUnavailable(false);
+      } catch {
+        setDraftUnavailable(true);
       }
     }, 600);
     return () => clearTimeout(t);
-  }, [text]);
+  }, [text, draftLoaded]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (recorder.current?.state === "recording") {
+        recorder.current.onstop = null;
+        recorder.current.stop();
+      }
+      recordingStream.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+  useEffect(
+    () => () => {
+      if (mediaPreview?.startsWith("blob:")) URL.revokeObjectURL(mediaPreview);
+    },
+    [mediaPreview],
+  );
 
   // Handle Voice Record Timer
   useEffect(() => {
@@ -180,107 +221,116 @@ function ComposeStudio() {
       interval = setInterval(() => {
         setVoiceDuration((prev) => prev + 1);
       }, 1000);
-    } else {
-      setVoiceDuration(0);
     }
     return () => clearInterval(interval);
   }, [isRecordingVoice]);
 
   // ─── Media & Privacy Shield Anonymization ────────────────────────────────────
-  async function handleMediaSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  async function processMedia(file: File, mode: PrivacyShieldOption) {
+    const request = ++processingRequest.current;
     setIsProcessingMedia(true);
     setError(null);
-
+    setMediaFile(null);
+    setMediaPreview(null);
     try {
+      if (file.size > 50 * 1024 * 1024)
+        throw new Error("Choose a file smaller than 50 MB.");
       if (file.type.startsWith("image/")) {
+        const { processImagePrivacy } = await import("@/lib/imagePrivacy");
+        const processed = await processImagePrivacy(file, mode);
+        if (!mounted.current || request !== processingRequest.current) return;
         setMediaType("image");
-        if (privacyShield === "face_shield" || privacyShield === "pixelate") {
-          const anonymized = await anonymizeImageFace(file);
-          setMediaFile(anonymized);
-          setMediaPreview(URL.createObjectURL(anonymized));
-          setToast("Privacy Shield: Face detection & pixelation applied");
-        } else {
-          setMediaFile(file);
-          setMediaPreview(URL.createObjectURL(file));
-        }
-      } else if (file.type.startsWith("video/")) {
-        // Fast client UX size check
-        if (file.size > 52428800) {
-          setError("Video exceeds 50MB limit. Please select a smaller video file.");
-          return;
-        }
-
-        setMediaType("video");
+        setMediaFile(processed.file);
+        setMediaPreview(URL.createObjectURL(processed.file));
+        setToast(
+          processed.faces
+            ? `Processed ${processed.faces} detected face(s). Review the preview before posting.`
+            : "Image metadata removed. Review the preview before posting.",
+        );
+      } else if (
+        file.type.startsWith("video/") ||
+        file.type.startsWith("audio/")
+      ) {
+        if (!mounted.current || request !== processingRequest.current) return;
+        setPrivacyShield("remove_meta");
+        setMediaType(file.type.startsWith("video/") ? "video" : "audio");
         setMediaFile(file);
-
-        // Client-side estimated duration check (UX-only, fast warning)
-        const { getVideoDurationInBrowser, captureLocalVideoFrame } = await import("@/lib/api");
-        const estDuration = await getVideoDurationInBrowser(file);
-        if (estDuration !== null && estDuration > 60) {
-          setError(`Video duration (~${Math.round(estDuration)}s) exceeds 60-second limit for free accounts.`);
-          return;
-        }
-
-        // Local canvas preview frame for instant UI display (never uploaded)
-        const localFrame = await captureLocalVideoFrame(file);
-        if (localFrame) {
-          setMediaPreview(localFrame);
-        } else {
-          setMediaPreview(URL.createObjectURL(file));
-        }
-      }
-    } catch (err: any) {
-      setError("Failed to process media file: " + err.message);
+        setMediaPreview(URL.createObjectURL(file));
+        setToast(
+          "Clip metadata will be removed on upload. Faces and voices remain visible and audible.",
+        );
+      } else throw new Error("Choose a supported image, video or audio file.");
+    } catch (error) {
+      if (mounted.current && request === processingRequest.current)
+        setError(
+          error instanceof Error ? error.message : "Media processing failed.",
+        );
     } finally {
-      setIsProcessingMedia(false);
+      if (mounted.current && request === processingRequest.current)
+        setIsProcessingMedia(false);
     }
   }
-
-  async function anonymizeImageFace(file: File): Promise<File> {
+  async function handleMediaSelected(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    sourceFile.current = file;
+    await processMedia(file, privacyShield);
+    event.target.value = "";
+  }
+  async function toggleVoiceRecording() {
+    if (recorder.current?.state === "recording") {
+      recorder.current.stop();
+      return;
+    }
     try {
-      const { detectFace, loadImageFromFile } = await import("../lib/faceDetect");
-      const { image } = await loadImageFromFile(file);
-      const box = await detectFace(image);
-      if (!box) return file;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth || image.width;
-      canvas.height = image.naturalHeight || image.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return file;
-
-      ctx.drawImage(image, 0, 0);
-
-      const px = box.x * canvas.width;
-      const py = box.y * canvas.height;
-      const pw = box.w * canvas.width;
-      const ph = box.h * canvas.height;
-
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = Math.max(8, Math.round(pw / 10));
-      tempCanvas.height = Math.max(8, Math.round(ph / 10));
-      const tempCtx = tempCanvas.getContext("2d");
-      if (tempCtx) {
-        tempCtx.drawImage(canvas, px, py, pw, ph, 0, 0, tempCanvas.width, tempCanvas.height);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, px, py, pw, ph);
+      if (
+        !navigator.mediaDevices?.getUserMedia ||
+        typeof MediaRecorder === "undefined"
+      )
+        throw new Error("Voice recording is unavailable in this browser.");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!mounted.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
       }
-
-      return new Promise<File>((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(new File([blob], file.name, { type: file.type }));
-          } else {
-            resolve(file);
-          }
-        }, file.type);
-      });
-    } catch (err) {
-      console.warn("Face detection fallback:", err);
-      return file;
+      recordingStream.current = stream;
+      const mimeType = ["audio/webm", "audio/mp4", "audio/ogg"].find((type) =>
+        MediaRecorder.isTypeSupported(type),
+      );
+      if (!mimeType) {
+        stream.getTracks().forEach((track) => track.stop());
+        throw new Error("No supported audio format is available.");
+      }
+      const recording = new MediaRecorder(stream, { mimeType });
+      const chunks: BlobPart[] = [];
+      recorder.current = recording;
+      setVoiceDuration(0);
+      setIsRecordingVoice(true);
+      setError(null);
+      recording.ondataavailable = (event) => {
+        if (event.data.size) chunks.push(event.data);
+      };
+      const stopTimer = setTimeout(() => {
+        if (recording.state === "recording") recording.stop();
+      }, 60000);
+      recording.onstop = () => {
+        clearTimeout(stopTimer);
+        stream.getTracks().forEach((track) => track.stop());
+        setIsRecordingVoice(false);
+        const file = new File(chunks, "voice." + mimeType.split("/")[1], {
+          type: mimeType,
+        });
+        sourceFile.current = file;
+        void processMedia(file, "remove_meta");
+      };
+      recording.start();
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Microphone access failed.",
+      );
+      setIsRecordingVoice(false);
     }
   }
 
@@ -292,11 +342,15 @@ function ComposeStudio() {
     const end = el.selectionEnd;
     const sel = text.substring(start, end);
     const replacement = prefix + (sel || "text") + suffix;
-    const updated = text.substring(0, start) + replacement + text.substring(end);
+    const updated =
+      text.substring(0, start) + replacement + text.substring(end);
     setText(updated);
     setTimeout(() => {
       el.focus();
-      el.setSelectionRange(start + prefix.length, start + prefix.length + (sel.length || 4));
+      el.setSelectionRange(
+        start + prefix.length,
+        start + prefix.length + (sel.length || 4),
+      );
     }, 10);
   }
 
@@ -329,10 +383,17 @@ function ComposeStudio() {
 
   async function handleAiGenerate() {
     setIsAiLoading(true);
-    setAiActionMessage("Synthesizing sovereign transmission on decentralization...");
+    setAiActionMessage(
+      "Synthesizing sovereign transmission on decentralization...",
+    );
     try {
-      const topic = text.trim() ? text.trim().slice(0, 50) : "Decentralized privacy and freedom of thought";
-      const res = await generateArticle(topic, "Create a concise, punchy 2-sentence transmission for Social Space.");
+      const topic = text.trim()
+        ? text.trim().slice(0, 50)
+        : "Decentralized privacy and freedom of thought";
+      const res = await generateArticle(
+        topic,
+        "Create a concise, punchy 2-sentence transmission for Social Space.",
+      );
       if (res.article) {
         setText(res.article.slice(0, 480));
         setToast("✨ Generated transmission concept!");
@@ -374,7 +435,9 @@ function ComposeStudio() {
     const currentTags: string[] = text.match(/#\w+/g) || [];
     const tagsToAdd = tags.filter((t) => !currentTags.includes(t));
     if (tagsToAdd.length > 0) {
-      setText((prev) => (prev.trim() + " " + tagsToAdd.slice(0, 3).join(" ")).slice(0, 500));
+      setText((prev) =>
+        (prev.trim() + " " + tagsToAdd.slice(0, 3).join(" ")).slice(0, 500),
+      );
       setToast("Added trending decentralized hashtags!");
     }
   }
@@ -383,13 +446,25 @@ function ComposeStudio() {
   async function handleBroadcast() {
     let finalBody = text.trim();
 
-    // If poll format, append poll details
-    if (activeTab === "poll" && pollOptions.filter((o) => o.trim()).length >= 2) {
-      const formattedPoll = "\n\n📊 **Poll:**\n" + pollOptions.filter((o) => o.trim()).map((o, idx) => `${idx + 1}. [ ] ${o}`).join("\n");
-      if (finalBody.length + formattedPoll.length <= 500) {
-        finalBody += formattedPoll;
-      }
+    if (isProcessingMedia || isRecordingVoice) {
+      setError("Finish recording or processing media first.");
+      return;
     }
+    if (
+      activeTab === "poll" &&
+      (pollOptions.filter((option) => option.trim()).length < 2 ||
+        new Set(pollOptions.map((option) => option.trim())).size !==
+          pollOptions.length)
+    ) {
+      setError("A poll needs at least two distinct options.");
+      return;
+    }
+    if (audience === "selected" && !selectedHandles.trim()) {
+      setError("Enter the handles allowed to see this post.");
+      return;
+    }
+    if (identity === "persona")
+      finalBody = `*Sent via ${personaName}*\n\n${finalBody}`;
 
     // If link format, append link
     if (activeTab === "link" && linkUrl.trim()) {
@@ -399,7 +474,9 @@ function ComposeStudio() {
     }
 
     if (!finalBody && !mediaFile) {
-      setError("Please write a transmission or upload media before broadcasting.");
+      setError(
+        "Please write a transmission or upload media before broadcasting.",
+      );
       return;
     }
 
@@ -419,7 +496,7 @@ function ComposeStudio() {
           if (status === "uploading") {
             setToast("Uploading media to secure storage...");
           } else if (status === "processing") {
-            setToast("Processing (safety review + thumbnail)...");
+            setToast("Validating media and generating its preview...");
           } else if (status === "ready") {
             setToast("Media verified and ready to post!");
           }
@@ -427,19 +504,18 @@ function ComposeStudio() {
       }
 
       // Map identity mode
-      const backendMode = (identity === "anonymous" || audience === "anonymous_feed") ? "full" : "pseudo";
+      const backendMode =
+        identity === "anonymous" || audience === "anonymous_feed"
+          ? "full"
+          : "pseudo";
 
       // Map category
       let category = "Ideas";
       if (activeTab === "video") category = "Video";
       else if (activeTab === "poll") category = "Ideas";
       else if (activeTab === "question") category = "Life";
-      else if (identity === "anonymous" || audience === "anonymous_feed") category = "Confessions";
-
-      // Append persona watermark if persona active
-      if (identity === "persona") {
-        finalBody = `*Sent via ${personaName}*\n\n${finalBody}`;
-      }
+      else if (identity === "anonymous" || audience === "anonymous_feed")
+        category = "Confessions";
 
       await createPost(
         finalBody,
@@ -447,11 +523,24 @@ function ComposeStudio() {
         backendMode,
         mediaResult
           ? {
-              storagePath: mediaResult.storagePath,
-              thumbStoragePath: mediaResult.thumbStoragePath,
               mediaId: mediaResult.mediaId,
             }
           : null,
+        null,
+        {
+          audience,
+          lifetime,
+          isAiModifiedMedia: aiModifiedMedia,
+          selectedHandles: selectedHandles
+            .split(/[\s,]+/)
+            .map((handle) => handle.replace(/^@/, "").toLowerCase())
+            .filter(Boolean),
+          engagement,
+          pollOptions:
+            activeTab === "poll"
+              ? pollOptions.map((option) => option.trim())
+              : [],
+        },
       );
 
       // Clean up draft
@@ -459,6 +548,7 @@ function ComposeStudio() {
         localStorage.removeItem("veil_transmission_draft");
       }
       setText("");
+      sourceFile.current = null;
       setMediaFile(null);
       setMediaPreview(null);
       setToast("🚀 Transmission broadcast into the cosmic stream!");
@@ -468,7 +558,9 @@ function ComposeStudio() {
         navigate({ to: "/social" });
       }, 1200);
     } catch (err: any) {
-      setError(err.message || "Failed to broadcast transmission. Please try again.");
+      setError(
+        err.message || "Failed to broadcast transmission. Please try again.",
+      );
     } finally {
       setIsPublishing(false);
     }
@@ -476,8 +568,24 @@ function ComposeStudio() {
 
   // ─── Persona Generator ───────────────────────────────────────────────────────
   function randomizePersona() {
-    const adjectives = ["quantum", "phantom", "stellar", "sovereign", "astral", "lunar", "silent"];
-    const nouns = ["drifter", "nomad", "spectre", "signal", "cipher", "falcon", "voyager"];
+    const adjectives = [
+      "quantum",
+      "phantom",
+      "stellar",
+      "sovereign",
+      "astral",
+      "lunar",
+      "silent",
+    ];
+    const nouns = [
+      "drifter",
+      "nomad",
+      "spectre",
+      "signal",
+      "cipher",
+      "falcon",
+      "voyager",
+    ];
     const randAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const randNoun = nouns[Math.floor(Math.random() * nouns.length)];
     setPersonaName(`${randAdj}-${randNoun}`);
@@ -521,7 +629,13 @@ function ComposeStudio() {
           {/* Draft Saved Indicator */}
           <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            <span>{draftSaved ? "Draft saved" : "Saving…"}</span>
+            <span>
+              {draftUnavailable
+                ? "Draft saving unavailable"
+                : draftSaved
+                  ? "Draft saved"
+                  : "Saving…"}
+            </span>
           </div>
 
           {/* Preview Trigger */}
@@ -529,9 +643,13 @@ function ComposeStudio() {
             type="button"
             onClick={() => {
               if (window.innerWidth < 1024) {
-                setMobileStudioTab(mobileStudioTab === "edit" ? "preview" : "edit");
+                setMobileStudioTab(
+                  mobileStudioTab === "edit" ? "preview" : "edit",
+                );
               } else {
-                const previewEl = document.getElementById("live-preview-section");
+                const previewEl = document.getElementById(
+                  "live-preview-section",
+                );
                 previewEl?.scrollIntoView({ behavior: "smooth" });
               }
             }}
@@ -543,7 +661,9 @@ function ComposeStudio() {
             )}
           >
             <Eye className="h-3.5 w-3.5" />
-            <span>{mobileStudioTab === "preview" ? "Edit Mode" : "Preview"}</span>
+            <span>
+              {mobileStudioTab === "preview" ? "Edit Mode" : "Preview"}
+            </span>
           </button>
 
           {/* Publish Header Button */}
@@ -570,7 +690,10 @@ function ComposeStudio() {
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-400">
+          <button
+            onClick={() => setError(null)}
+            className="text-red-500 hover:text-red-400"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -609,7 +732,12 @@ function ComposeStudio() {
       {/* ─── Two-Column Responsive Grid Studio ────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* ── LEFT COLUMN: Composer & Cryptographic Controls (7 Cols) ────── */}
-        <div className={cn("lg:col-span-7 space-y-6", mobileStudioTab === "preview" && "hidden lg:block")}>
+        <div
+          className={cn(
+            "lg:col-span-7 space-y-6",
+            mobileStudioTab === "preview" && "hidden lg:block",
+          )}
+        >
           {/* Format Selector Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none touch-momentum border-b border-border">
             {[
@@ -678,10 +806,24 @@ function ComposeStudio() {
               {/* Uploaded Media Thumbnail Preview */}
               {mediaPreview && (
                 <div className="relative rounded-2xl overflow-hidden border border-border max-h-56 bg-black/40 flex items-center justify-center group">
-                  {mediaType === "video" ? (
-                    <video src={mediaPreview} controls className="max-h-56 w-full object-contain" />
+                  {mediaType === "audio" ? (
+                    <audio
+                      controls
+                      src={mediaPreview || undefined}
+                      className="w-full"
+                    />
+                  ) : mediaType === "video" ? (
+                    <video
+                      src={mediaPreview}
+                      controls
+                      className="max-h-56 w-full object-contain"
+                    />
                   ) : (
-                    <img src={mediaPreview} alt="Attached" className="max-h-56 w-full object-contain" />
+                    <img
+                      src={mediaPreview}
+                      alt="Attached"
+                      className="max-h-56 w-full object-contain"
+                    />
                   )}
                   <button
                     type="button"
@@ -711,7 +853,9 @@ function ComposeStudio() {
                   </span>
                   {pollOptions.map((opt, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground font-mono w-4">{idx + 1}.</span>
+                      <span className="text-xs text-muted-foreground font-mono w-4">
+                        {idx + 1}.
+                      </span>
                       <input
                         type="text"
                         value={opt}
@@ -726,7 +870,11 @@ function ComposeStudio() {
                       {pollOptions.length > 2 && (
                         <button
                           type="button"
-                          onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== idx))}
+                          onClick={() =>
+                            setPollOptions(
+                              pollOptions.filter((_, i) => i !== idx),
+                            )
+                          }
                           className="text-red-500 hover:text-red-400 p-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -766,7 +914,7 @@ function ComposeStudio() {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setIsRecordingVoice(!isRecordingVoice)}
+                      onClick={() => void toggleVoiceRecording()}
                       className={cn(
                         "h-10 w-10 rounded-full flex items-center justify-center transition cursor-pointer",
                         isRecordingVoice
@@ -778,10 +926,14 @@ function ComposeStudio() {
                     </button>
                     <div>
                       <p className="text-xs font-semibold text-foreground">
-                        {isRecordingVoice ? "Voice Signal Staging…" : "Encrypted Voice Transmission"}
+                        {isRecordingVoice
+                          ? "Stop recording"
+                          : "Record voice clip"}
                       </p>
                       <p className="text-[10px] text-muted-foreground font-mono">
-                        {voiceDuration > 0 ? `00:${voiceDuration.toString().padStart(2, "0")} (Audio server coming in v2)` : "Direct microphone audio streaming (Preview mode)"}
+                        {voiceDuration > 0
+                          ? `00:${voiceDuration.toString().padStart(2, "0")} recorded`
+                          : "Direct microphone audio streaming (Preview mode)"}
                       </p>
                     </div>
                   </div>
@@ -869,7 +1021,9 @@ function ComposeStudio() {
                   <span
                     className={cn(
                       "text-xs font-mono font-medium",
-                      text.length > 480 ? "text-red-500 font-bold" : "text-muted-foreground",
+                      text.length > 480
+                        ? "text-red-500 font-bold"
+                        : "text-muted-foreground",
                     )}
                   >
                     {text.length} / 500
@@ -887,7 +1041,7 @@ function ComposeStudio() {
                 <span>Identity</span>
               </h3>
               <span className="text-[10px] text-muted-foreground font-mono">
-                Cryptographic Signature
+                Posting identity
               </span>
             </div>
 
@@ -987,10 +1141,26 @@ function ComposeStudio() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {[
-                { id: "everyone", label: "Everyone", desc: "Public transmission" },
-                { id: "circle", label: "Social Circle", desc: "People you follow" },
-                { id: "selected", label: "Selected", desc: "Choose specific people" },
-                { id: "anonymous_feed", label: "Anonymous Feed", desc: "Discoverable without profile attribution" },
+                {
+                  id: "everyone",
+                  label: "Everyone",
+                  desc: "Public transmission",
+                },
+                {
+                  id: "circle",
+                  label: "Social Circle",
+                  desc: "People you follow",
+                },
+                {
+                  id: "selected",
+                  label: "Selected",
+                  desc: "Choose specific people",
+                },
+                {
+                  id: "anonymous_feed",
+                  label: "Anonymous Feed",
+                  desc: "Discoverable without profile attribution",
+                },
               ].map((aud) => {
                 const active = audience === aud.id;
                 return (
@@ -1017,6 +1187,28 @@ function ComposeStudio() {
             </div>
           </div>
 
+          {audience === "selected" && (
+            <label className="block rounded-2xl border border-border p-4 text-sm">
+              Recipient handles (comma separated)
+              <input
+                value={selectedHandles}
+                onChange={(event) => setSelectedHandles(event.target.value)}
+                placeholder="alice, bob"
+                className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2"
+              />
+            </label>
+          )}
+
+          {mediaFile && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={aiModifiedMedia}
+                onChange={(event) => setAiModifiedMedia(event.target.checked)}
+              />
+              This media was created or altered with AI
+            </label>
+          )}
           {/* ── Transmission Lifetime & Engagement Toggles ────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Lifetime */}
@@ -1026,27 +1218,30 @@ function ComposeStudio() {
                 <span>Transmission Lifetime</span>
               </h3>
               <div className="grid grid-cols-4 gap-1.5">
-                {(["24h", "7d", "30d", "forever"] as LifetimeOption[]).map((lt) => {
-                  const active = lifetime === lt;
-                  return (
-                    <button
-                      key={lt}
-                      type="button"
-                      onClick={() => setLifetime(lt)}
-                      className={cn(
-                        "py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border text-center",
-                        active
-                          ? "border-amber-500/60 bg-amber-500/15 text-amber-600 dark:text-amber-300"
-                          : "border-border bg-muted/20 text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {lt === "forever" ? "∞ Forever" : lt}
-                    </button>
-                  );
-                })}
+                {(["24h", "7d", "30d", "forever"] as LifetimeOption[]).map(
+                  (lt) => {
+                    const active = lifetime === lt;
+                    return (
+                      <button
+                        key={lt}
+                        type="button"
+                        onClick={() => setLifetime(lt)}
+                        className={cn(
+                          "py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border text-center",
+                          active
+                            ? "border-amber-500/60 bg-amber-500/15 text-amber-600 dark:text-amber-300"
+                            : "border-border bg-muted/20 text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {lt === "forever" ? "∞ Forever" : lt}
+                      </button>
+                    );
+                  },
+                )}
               </div>
               <p className="text-[10.5px] text-muted-foreground">
-                How long should this signal exist? (Stored permanently on ledger until deleted by author)
+                Expired posts stop appearing immediately. Stored media is
+                cleaned up by the retention job.
               </p>
             </div>
 
@@ -1062,7 +1257,11 @@ function ComposeStudio() {
                   { key: "allowReplies", label: "Allow replies" },
                   { key: "allowReactions", label: "Allow reactions" },
                   { key: "allowReposts", label: "Allow reposts" },
-                  { key: "anonymousReplies", label: "Anonymous replies", beta: true },
+                  {
+                    key: "anonymousReplies",
+                    label: "Anonymous replies",
+                    beta: true,
+                  },
                 ].map((item) => (
                   <label
                     key={item.key}
@@ -1080,7 +1279,10 @@ function ComposeStudio() {
                       type="checkbox"
                       checked={(engagement as any)[item.key]}
                       onChange={(e) =>
-                        setEngagement({ ...engagement, [item.key]: e.target.checked })
+                        setEngagement({
+                          ...engagement,
+                          [item.key]: e.target.checked,
+                        })
                       }
                       className="h-4 w-4 rounded accent-amber-500 cursor-pointer"
                     />
@@ -1092,7 +1294,12 @@ function ComposeStudio() {
         </div>
 
         {/* ── RIGHT COLUMN: Privacy Shield, AI & Live Preview (5 Cols) ───── */}
-        <div className={cn("lg:col-span-5 space-y-6", mobileStudioTab === "edit" && "hidden lg:block")}>
+        <div
+          className={cn(
+            "lg:col-span-5 space-y-6",
+            mobileStudioTab === "edit" && "hidden lg:block",
+          )}
+        >
           {/* ── Privacy Shield Card ───────────────────────────────────────── */}
           <div className="rounded-[28px] border border-border bg-card/90 p-6 shadow-xl backdrop-blur-2xl space-y-4">
             <div className="flex items-center justify-between">
@@ -1108,18 +1315,48 @@ function ComposeStudio() {
 
             <div className="space-y-2.5">
               {[
-                { id: "face_shield", label: "Face Shield", desc: "Automatically protect faces" },
-                { id: "pixelate", label: "Pixelate Faces", desc: "Blur detected faces" },
-                { id: "blur_bg", label: "Blur Background", desc: "Blur sensitive background" },
-                { id: "remove_meta", label: "Remove Metadata", desc: "Remove location & device data" },
-                { id: "original", label: "Original Media", desc: "No changes applied" },
+                {
+                  id: "face_shield",
+                  label: "Face Shield",
+                  desc: "Automatically protect faces",
+                },
+                {
+                  id: "pixelate",
+                  label: "Pixelate Faces",
+                  desc: "Blur detected faces",
+                },
+                {
+                  id: "blur_bg",
+                  label: "Blur Background",
+                  desc: "Keep detected faces sharp; blur the surrounding image",
+                },
+                {
+                  id: "remove_meta",
+                  label: "Remove Metadata",
+                  desc: "Remove location & device data",
+                },
+                {
+                  id: "original",
+                  label: "Original Media",
+                  desc: "Keep faces and background; remove metadata",
+                },
               ].map((opt) => {
                 const active = privacyShield === opt.id;
                 return (
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setPrivacyShield(opt.id as PrivacyShieldOption)}
+                    disabled={
+                      mediaType !== "image" &&
+                      mediaType !== null &&
+                      ["face_shield", "pixelate", "blur_bg"].includes(opt.id)
+                    }
+                    onClick={() => {
+                      const mode = opt.id as PrivacyShieldOption;
+                      setPrivacyShield(mode);
+                      if (sourceFile.current)
+                        void processMedia(sourceFile.current, mode);
+                    }}
                     className={cn(
                       "flex items-start gap-3 w-full p-3 rounded-2xl border text-left transition cursor-pointer",
                       active
@@ -1130,10 +1367,14 @@ function ComposeStudio() {
                     <div
                       className={cn(
                         "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5",
-                        active ? "border-amber-500 bg-amber-500" : "border-border",
+                        active
+                          ? "border-amber-500 bg-amber-500"
+                          : "border-border",
                       )}
                     >
-                      {active && <div className="h-1.5 w-1.5 rounded-full bg-black" />}
+                      {active && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-black" />
+                      )}
                     </div>
                     <div>
                       <p className="font-sans text-xs font-bold text-foreground leading-none">
@@ -1206,7 +1447,9 @@ function ComposeStudio() {
                 disabled={isAiLoading}
                 className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-muted/30 hover:bg-muted hover:border-purple-500/40 text-xs font-semibold text-foreground transition cursor-pointer disabled:opacity-50"
               >
-                <span className="font-mono text-purple-500 dark:text-purple-400 font-bold">#</span>
+                <span className="font-mono text-purple-500 dark:text-purple-400 font-bold">
+                  #
+                </span>
                 <span>Hashtags</span>
               </button>
             </div>
@@ -1223,7 +1466,8 @@ function ComposeStudio() {
               >
                 {privacyReport.clean ? (
                   <span className="flex items-center gap-1.5 font-medium">
-                    <CheckCircle2 className="h-4 w-4" /> Passed Privacy Audit: Zero PII detected.
+                    <CheckCircle2 className="h-4 w-4" /> No matching patterns
+                    found. This basic check can miss identifying information.
                   </span>
                 ) : (
                   <div>
@@ -1260,18 +1504,24 @@ function ComposeStudio() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="h-9 w-9 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-300 font-bold text-xs">
-                    {identity === "anonymous" ? "AS" : identity === "persona" ? "VP" : (currentUser?.handle?.slice(0, 2).toUpperCase() || "ME")}
+                    {identity === "anonymous"
+                      ? "AS"
+                      : identity === "persona"
+                        ? "VP"
+                        : currentUser?.handle?.slice(0, 2).toUpperCase() ||
+                          "ME"}
                   </div>
                   <div>
                     <p className="font-sans text-xs font-bold text-foreground leading-none">
                       {identity === "anonymous"
                         ? "Anonymous Signal"
                         : identity === "persona"
-                        ? `@${personaName}`
-                        : `@${currentUser?.handle || "sovereign"}`}
+                          ? `@${personaName}`
+                          : `@${currentUser?.handle || "sovereign"}`}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Just now &bull; {audience === "everyone" ? "Global" : audience}
+                      Just now &bull;{" "}
+                      {audience === "everyone" ? "Global" : audience}
                     </p>
                   </div>
                 </div>
@@ -1289,7 +1539,8 @@ function ComposeStudio() {
                   <MarkdownRenderer content={text} />
                 ) : (
                   <p className="text-muted-foreground italic">
-                    "What's something you wish someone had told you before graduating?"
+                    "What's something you wish someone had told you before
+                    graduating?"
                   </p>
                 )}
               </div>
@@ -1297,10 +1548,23 @@ function ComposeStudio() {
               {/* Media attached */}
               {mediaPreview && (
                 <div className="rounded-xl overflow-hidden max-h-48 bg-black/40 border border-border">
-                  {mediaType === "video" ? (
-                    <video src={mediaPreview} className="max-h-48 w-full object-contain" />
+                  {mediaType === "audio" ? (
+                    <audio
+                      controls
+                      src={mediaPreview || undefined}
+                      className="w-full"
+                    />
+                  ) : mediaType === "video" ? (
+                    <video
+                      src={mediaPreview}
+                      className="max-h-48 w-full object-contain"
+                    />
                   ) : (
-                    <img src={mediaPreview} alt="Preview" className="max-h-48 w-full object-contain" />
+                    <img
+                      src={mediaPreview}
+                      alt="Preview"
+                      className="max-h-48 w-full object-contain"
+                    />
                   )}
                 </div>
               )}
@@ -1308,22 +1572,24 @@ function ComposeStudio() {
               {/* Poll preview */}
               {activeTab === "poll" && (
                 <div className="space-y-1.5 pt-1">
-                  {pollOptions.filter((o) => o.trim()).map((opt, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-border p-2.5 text-[11px] text-muted-foreground flex justify-between items-center bg-muted/20"
-                    >
-                      <span>{opt}</span>
-                      <span className="text-[10px] font-mono">0%</span>
-                    </div>
-                  ))}
+                  {pollOptions
+                    .filter((o) => o.trim())
+                    .map((opt, i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl border border-border p-2.5 text-[11px] text-muted-foreground flex justify-between items-center bg-muted/20"
+                      >
+                        <span>{opt}</span>
+                        <span className="text-[10px] font-mono">0%</span>
+                      </div>
+                    ))}
                 </div>
               )}
 
               {/* Identity protected badge */}
               <div className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 font-semibold pt-1">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Identity protected &bull; Client-side hashed</span>
+                <span>Public identity follows your posting choice</span>
               </div>
 
               {/* Mock action toolbar */}
@@ -1366,7 +1632,9 @@ function ComposeStudio() {
           )}
           <div className="text-left">
             <p className="font-sans text-base sm:text-lg font-extrabold tracking-wide uppercase leading-none">
-              {isPublishing ? "Broadcasting Transmission…" : "Broadcast Transmission"}
+              {isPublishing
+                ? "Broadcasting Transmission…"
+                : "Broadcast Transmission"}
             </p>
             <p className="text-[11px] font-medium opacity-80 mt-1 leading-none">
               Your signal will be sent to the cosmos

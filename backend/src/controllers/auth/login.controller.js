@@ -84,7 +84,7 @@ export async function login(req, res) {
       });
     }
 
-    await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
+    await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date(), pendingDeletionAt: null } });
     await logSecurityEvent(user.id, "LOGIN_SUCCESS", req);
 
     const token = generateToken(user.id, user.tokenVersion);
@@ -111,7 +111,7 @@ export async function loginVerifyTotp(req, res) {
   try {
     const { challengeToken, totpCode } = req.body;
 
-    const challenge = await store.get(`mfa:${challengeToken}`);
+    const challenge = await store.take(`mfa:${challengeToken}`);
     if (!challenge) {
       return res.status(401).json({
         error: {
@@ -155,7 +155,7 @@ export async function loginVerifyTotp(req, res) {
       await recordFailedAttempt(user.handle, req.ip);
       return res.status(401).json({
         error: {
-          message: "Invalid TOTP code.",
+          message: "Invalid TOTP code. Please sign in again for a new challenge.",
           code: "INVALID_TOTP_CODE",
         },
       });
@@ -163,7 +163,7 @@ export async function loginVerifyTotp(req, res) {
 
     await store.del(`mfa:${challengeToken}`);
     await clearFailedAttempts(user.handle, req.ip);
-    await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
+    await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date(), pendingDeletionAt: null } });
     await logSecurityEvent(user.id, "LOGIN_TOTP_SUCCESS", req);
 
     const token = generateToken(user.id, user.tokenVersion);

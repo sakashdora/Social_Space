@@ -1,3 +1,4 @@
+import { PostPoll } from "@/components/PostPoll";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -44,7 +45,12 @@ import {
 import { FrostedPanel } from "@/components/veil/FrostedPanel";
 import { SocialSpaceEmblem } from "@/components/veil/SocialSpaceEmblem";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getCurrentUser,
   logoutUser,
@@ -63,6 +69,7 @@ import {
   getSecurityEvents,
   getMe,
   fetchFeed,
+  communityRequest,
   deletePost,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -162,7 +169,9 @@ function PassphraseModal({
       >
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="font-serif text-xl text-foreground font-bold">{title}</h3>
+            <h3 className="font-serif text-xl text-foreground font-bold">
+              {title}
+            </h3>
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
           <button
@@ -188,7 +197,11 @@ function PassphraseModal({
             onClick={() => setShow((v) => !v)}
             className="text-muted-foreground hover:text-foreground"
           >
-            {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {show ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
           </button>
         </div>
 
@@ -234,7 +247,9 @@ function RecoveryCodesReveal({
       <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex items-start gap-2.5">
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
         <p className="text-xs text-amber-300 leading-relaxed">
-          These recovery ciphers are shown <strong>exactly once</strong>. Each code can be redeemed once to restore access if your passphrase is lost. Keep them offline in a physical vault.
+          These recovery ciphers are shown <strong>exactly once</strong>. Each
+          code can be redeemed once to restore access if your passphrase is
+          lost. Keep them offline in a physical vault.
         </p>
       </div>
 
@@ -244,7 +259,9 @@ function RecoveryCodesReveal({
             key={i}
             className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 font-mono text-xs text-amber-600 dark:text-amber-300 select-all"
           >
-            <span className="text-[10px] text-muted-foreground w-4 shrink-0">{i + 1}.</span>
+            <span className="text-[10px] text-muted-foreground w-4 shrink-0">
+              {i + 1}.
+            </span>
             <span className="tracking-wide">{code}</span>
           </div>
         ))}
@@ -270,10 +287,17 @@ function RecoveryCodesReveal({
           className="peer sr-only"
         />
         <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-border bg-muted/40 mt-0.5 transition peer-checked:border-amber-400 peer-checked:bg-amber-500/20">
-          {acknowledged && <Check className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
+          {acknowledged && (
+            <Check className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+          )}
         </span>
         <span className="text-xs leading-relaxed text-muted-foreground">
-          I have safely vaulted these recovery codes. I acknowledge that losing both my passphrase and recovery keys results in <strong className="text-foreground">permanent, irreversible loss of this sovereign node</strong>.
+          I have safely vaulted these recovery codes. I acknowledge that losing
+          both my passphrase and recovery keys results in{" "}
+          <strong className="text-foreground">
+            permanent, irreversible loss of this sovereign node
+          </strong>
+          .
         </span>
       </label>
 
@@ -347,12 +371,14 @@ function Profile() {
   >("overview");
 
   // Avatar theme customization
-  const [avatarTheme, setAvatarTheme] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("veil_avatar_theme") || "gold";
+  const [avatarTheme, setAvatarTheme] = useState("gold");
+  useEffect(() => {
+    try {
+      setAvatarTheme(localStorage.getItem("veil_avatar_theme") || "gold");
+    } catch {
+      // The default theme remains available when browser storage is blocked.
     }
-    return "gold";
-  });
+  }, []);
 
   const selectAvatarTheme = (themeId: string) => {
     setAvatarTheme(themeId);
@@ -382,17 +408,32 @@ function Profile() {
     setShowPremiumModal(false);
   }, []);
 
+  useEffect(() => {
+    if (!authed) {
+      setWaitlistJoined(false);
+      return;
+    }
+    let active = true;
+    void communityRequest("waitlist")
+      .then((value) => {
+        if (active) setWaitlistJoined(value.joined);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [authed]);
   const handleJoinWaitlist = useCallback(async () => {
-    setWaitlistJoined(true);
-    await new Promise((r) => setTimeout(r, 500));
-    closePremiumModal();
-    setTimeout(
-      () =>
-        setPremiumToast(
-          "✓ Sovereign waitlist registered! We'll notify your node when Premium launches.",
-        ),
-      200,
-    );
+    try {
+      await communityRequest("waitlist", {});
+      setWaitlistJoined(true);
+      closePremiumModal();
+      setPremiumToast("Your Premium interest has been saved to your account.");
+    } catch (error) {
+      setPremiumToast(
+        error instanceof Error ? error.message : "Could not save enrollment.",
+      );
+    }
   }, [closePremiumModal]);
 
   const handleLogout = async () => {
@@ -469,11 +510,23 @@ function Profile() {
   });
 
   // Query User's Own Posts in Real-Time
-  const { data: myPosts = [], isLoading: isLoadingMyPosts } = useQuery({
+  const {
+    data: myPostPages,
+    isLoading: isLoadingMyPosts,
+    hasNextPage: hasMorePosts,
+    fetchNextPage: loadMorePosts,
+    isFetchingNextPage: loadingMorePosts,
+    error: myPostsError,
+  } = useInfiniteQuery({
     queryKey: ["my-posts", user.handle],
-    queryFn: () => fetchFeed(undefined, 1, { handle: user.handle }),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => fetchFeed(undefined, pageParam, { mine: true }),
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length === 10 ? pages.length + 1 : undefined,
     enabled: authed && !!user.handle && user.handle !== "anonymous",
   });
+
+  const myPosts = myPostPages?.pages.flat() || [];
 
   // ─── Real-Time Delete Post Mutation ───────────────────────────────────────
   const deletePostMut = useMutation({
@@ -542,7 +595,8 @@ function Profile() {
       qc.invalidateQueries({ queryKey: ["totp-status"] });
       qc.invalidateQueries({ queryKey: ["security-events"] });
     },
-    onError: (e: any) => setTotpSetupError(e.message || "Invalid authentication code."),
+    onError: (e: any) =>
+      setTotpSetupError(e.message || "Invalid authentication code."),
   });
 
   const disableTotpMut = useMutation({
@@ -593,14 +647,16 @@ function Profile() {
       setLogoutAllModal(false);
       qc.invalidateQueries({ queryKey: ["security-events"] });
     },
-    onError: (e: any) => setLogoutAllError(e.message || "Failed to invalidate sessions."),
+    onError: (e: any) =>
+      setLogoutAllError(e.message || "Failed to invalidate sessions."),
   });
 
   // ─── Delete account mutation ──────────────────────────────────────────────
   const deleteAccMut = useMutation({
     mutationFn: (passphrase: string) => deleteAccount(passphrase),
     onSuccess: () => navigate({ to: "/" }),
-    onError: (e: any) => setDeleteError(e.message || "Failed to purge account."),
+    onError: (e: any) =>
+      setDeleteError(e.message || "Failed to purge account."),
   });
 
   const isTotpEnabled = totpStatus?.totpEnabled || totpSetupSuccess;
@@ -623,7 +679,9 @@ function Profile() {
                 Guest Persona Active
               </p>
               <p className="mt-0.5 text-xs text-blue-800/70 dark:text-blue-200/70 leading-relaxed">
-                You are exploring as an anonymous guest. Sign in or initialize a sovereign account to activate 2FA, biometric passkeys, and direct encrypted messages.
+                You are exploring as an anonymous guest. Sign in or initialize a
+                sovereign account to activate 2FA, biometric passkeys, and
+                direct encrypted messages.
               </p>
             </div>
           </div>
@@ -645,7 +703,8 @@ function Profile() {
               Sovereign Account Scheduled for Deletion
             </p>
             <p className="mt-0.5 text-xs text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
-              Due to inactivity, this node is scheduled to be permanently purged on{" "}
+              Due to inactivity, this node is scheduled to be permanently purged
+              on{" "}
               <strong>
                 {new Intl.DateTimeFormat(undefined, {
                   dateStyle: "long",
@@ -778,11 +837,13 @@ function Profile() {
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {securityScore >= 90 ? (
               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Fortified (Passkey + 2FA Active)
+                <CheckCircle2 className="h-3.5 w-3.5" /> Fortified (Passkey +
+                2FA Active)
               </span>
             ) : (
               <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
-                <AlertCircle className="h-3.5 w-3.5" /> Passkey or 2FA Recommended
+                <AlertCircle className="h-3.5 w-3.5" /> Passkey or 2FA
+                Recommended
               </span>
             )}
           </div>
@@ -835,7 +896,8 @@ function Profile() {
               Persona Resonance & Glyph Theme
             </h2>
             <p className="text-xs text-muted-foreground mb-5">
-              Select your node's cryptographic color signature. This applies to your local cipher environment and ambient glows.
+              Select your node's cryptographic color signature. This applies to
+              your local cipher environment and ambient glows.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -854,9 +916,14 @@ function Profile() {
                   >
                     <div
                       className="h-8 w-8 rounded-full border shadow-inner flex items-center justify-center"
-                      style={{ backgroundColor: theme.color, borderColor: "rgba(255,255,255,0.3)" }}
+                      style={{
+                        backgroundColor: theme.color,
+                        borderColor: "rgba(255,255,255,0.3)",
+                      }}
                     >
-                      {isSelected && <Check className="h-4 w-4 text-black stroke-[3]" />}
+                      {isSelected && (
+                        <Check className="h-4 w-4 text-black stroke-[3]" />
+                      )}
                     </div>
                     <span className="text-[11px] font-semibold text-foreground">
                       {theme.name}
@@ -875,7 +942,8 @@ function Profile() {
                   ECDH Chat Public Key
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Used by contacts to negotiate ephemeral end-to-end secret chat keys.
+                  Used by contacts to negotiate ephemeral end-to-end secret chat
+                  keys.
                 </p>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
@@ -885,7 +953,8 @@ function Profile() {
 
             <div className="rounded-xl border border-border bg-muted/40 dark:bg-black/40 p-3 flex items-center justify-between font-mono text-xs text-amber-600 dark:text-amber-300">
               <span className="truncate mr-3 select-all">
-                {meData?.chatPublicKey || "0478bf1e32ad4c90e... (Auto-Generated Ephemeral Key)"}
+                {meData?.chatPublicKey ||
+                  "0478bf1e32ad4c90e... (Auto-Generated Ephemeral Key)"}
               </span>
               <button
                 onClick={() => {
@@ -910,7 +979,8 @@ function Profile() {
               </h3>
             </div>
             <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              Social Space is engineered to never collect, store, or profile your personal life.
+              Social Space is engineered to never collect, store, or profile
+              your personal life.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
               {[
@@ -945,7 +1015,8 @@ function Profile() {
                 Your Published Transmissions
               </h2>
               <p className="text-xs text-muted-foreground">
-                Signals authored by your sovereign pseudonym. You can review or delete them in real time.
+                Your posts, including anonymous posts created with this version.
+                Review or delete them here.
               </p>
             </div>
             <Link
@@ -969,7 +1040,9 @@ function Profile() {
           ) : myPosts.length === 0 ? (
             <div className="rounded-3xl border border-border bg-muted/40 p-10 text-center flex flex-col items-center">
               <Radio className="h-10 w-10 text-amber-500/50 dark:text-amber-400/50 mb-3 animate-pulse" />
-              <p className="text-sm font-bold text-foreground">No active transmissions</p>
+              <p className="text-sm font-bold text-foreground">
+                No active transmissions
+              </p>
               <p className="text-xs text-muted-foreground mt-1 mb-5 max-w-xs">
                 You haven't authored any transmissions under this pseudonym yet.
               </p>
@@ -992,7 +1065,9 @@ function Profile() {
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[10px] font-mono">
                         {post.topic || "Signal"}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">{post.time}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {post.time}
+                      </span>
                       {post.media && (
                         <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px]">
                           Media Attached
@@ -1002,6 +1077,7 @@ function Profile() {
                     <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
                       {post.body}
                     </p>
+                    <PostPoll post={post} />
                     <div className="flex items-center gap-4 mt-2.5 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Heart className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
@@ -1039,7 +1115,21 @@ function Profile() {
                   </div>
                 </FrostedPanel>
               ))}
+              {hasMorePosts && (
+                <button
+                  disabled={loadingMorePosts}
+                  onClick={() => void loadMorePosts()}
+                  className="w-full rounded-xl border border-border p-3"
+                >
+                  {loadingMorePosts ? "Loading…" : "Load more posts"}
+                </button>
+              )}
             </div>
+          )}
+          {myPostsError && (
+            <p role="alert" className="text-red-500">
+              {myPostsError.message}
+            </p>
           )}
         </motion.div>
       )}
@@ -1065,7 +1155,9 @@ function Profile() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-              Hardware-bound cryptographic credentials. Sign in via Face ID, Touch ID, Windows Hello, or FIDO2 hardware keys without transmitting secrets.
+              Hardware-bound cryptographic credentials. Sign in via Face ID,
+              Touch ID, Windows Hello, or FIDO2 hardware keys without
+              transmitting secrets.
             </p>
 
             {/* Existing passkeys list */}
@@ -1082,7 +1174,8 @@ function Profile() {
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         Enrolled {formatTs(pk.createdAt)}
-                        {pk.lastUsedAt && ` • Active ${formatTs(pk.lastUsedAt)}`}
+                        {pk.lastUsedAt &&
+                          ` • Active ${formatTs(pk.lastUsedAt)}`}
                       </p>
                     </div>
                     <button
@@ -1115,7 +1208,9 @@ function Profile() {
                 disabled={addPasskeyMut.isPending}
                 className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-xs font-bold text-black transition disabled:opacity-40 shrink-0 cursor-pointer"
               >
-                {addPasskeyMut.isPending ? "Prompting Hardware…" : "Enroll Passkey"}
+                {addPasskeyMut.isPending
+                  ? "Prompting Hardware…"
+                  : "Enroll Passkey"}
               </button>
             </div>
             {passkeyError && (
@@ -1153,7 +1248,9 @@ function Profile() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-              Pair any offline authenticator app (Google Authenticator, Bitwarden, Ente Auth, 1Password) for hardware-isolated time-based one-time codes.
+              Pair any offline authenticator app (Google Authenticator,
+              Bitwarden, Ente Auth, 1Password) for hardware-isolated time-based
+              one-time codes.
             </p>
 
             {!isTotpEnabled && !totpQr && (
@@ -1163,7 +1260,9 @@ function Profile() {
                 className="inline-flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-40 cursor-pointer"
               >
                 <QrCode className="h-4 w-4" />
-                {setupTotpMut.isPending ? "Generating Cipher Key…" : "Configure Authenticator App"}
+                {setupTotpMut.isPending
+                  ? "Generating Cipher Key…"
+                  : "Configure Authenticator App"}
               </button>
             )}
 
@@ -1171,7 +1270,8 @@ function Profile() {
             {totpQr && !isTotpEnabled && (
               <div className="space-y-4 border-t border-border pt-4">
                 <p className="text-xs text-foreground">
-                  Scan this QR code in your authenticator app, then enter the 6-digit confirmation code:
+                  Scan this QR code in your authenticator app, then enter the
+                  6-digit confirmation code:
                 </p>
                 <div className="flex justify-center">
                   <img
@@ -1188,14 +1288,18 @@ function Profile() {
                     maxLength={6}
                     value={totpSetupCode}
                     onChange={(e) =>
-                      setTotpSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      setTotpSetupCode(
+                        e.target.value.replace(/\D/g, "").slice(0, 6),
+                      )
                     }
                     placeholder="000000"
                     className="flex-1 px-3 py-2.5 text-center font-mono text-lg tracking-widest rounded-xl border border-border bg-card text-foreground focus:border-amber-400 outline-none"
                   />
                   <button
                     onClick={() => enableTotpMut.mutate(totpSetupCode)}
-                    disabled={enableTotpMut.isPending || totpSetupCode.length !== 6}
+                    disabled={
+                      enableTotpMut.isPending || totpSetupCode.length !== 6
+                    }
                     className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-black transition disabled:opacity-40 cursor-pointer"
                   >
                     {enableTotpMut.isPending ? "Verifying…" : "Activate 2FA"}
@@ -1232,7 +1336,8 @@ function Profile() {
               </h2>
             </div>
             <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-              Rotating your master passphrase immediately invalidates all other active sessions and issues a new cryptographic signing key.
+              Changing your passphrase invalidates existing session tokens and
+              signs you in with a new token.
             </p>
 
             <div className="space-y-3 max-w-md">
@@ -1245,8 +1350,15 @@ function Profile() {
                   placeholder="Current master passphrase"
                   className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
                 />
-                <button onClick={() => setShowCurPass((v) => !v)} className="text-muted-foreground cursor-pointer">
-                  {showCurPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                <button
+                  onClick={() => setShowCurPass((v) => !v)}
+                  className="text-muted-foreground cursor-pointer"
+                >
+                  {showCurPass ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </div>
 
@@ -1259,8 +1371,15 @@ function Profile() {
                   placeholder="New strong master passphrase (≥60 bits entropy)"
                   className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
                 />
-                <button onClick={() => setShowNewPass((v) => !v)} className="text-muted-foreground cursor-pointer">
-                  {showNewPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                <button
+                  onClick={() => setShowNewPass((v) => !v)}
+                  className="text-muted-foreground cursor-pointer"
+                >
+                  {showNewPass ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </div>
 
@@ -1270,7 +1389,9 @@ function Profile() {
                 disabled={changePassMut.isPending || !curPass || !newPass}
                 className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-black transition disabled:opacity-40 cursor-pointer"
               >
-                {changePassMut.isPending ? "Cryptographically Updating…" : "Update Passphrase"}
+                {changePassMut.isPending
+                  ? "Cryptographically Updating…"
+                  : "Update Passphrase"}
               </button>
 
               {passError && (
@@ -1297,7 +1418,8 @@ function Profile() {
               </h2>
             </div>
             <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-              If your passphrase is ever forgotten, these one-time cryptographic recovery codes are your only salvation.
+              If your passphrase is ever forgotten, these one-time cryptographic
+              recovery codes are your only salvation.
             </p>
 
             {regenCodes ? (
@@ -1340,7 +1462,9 @@ function Profile() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              Immediately revoke all authorization tokens across other devices, browsers, or stolen cookies. This current device remains authenticated with a fresh cryptographic token.
+              Immediately revoke all authorization tokens across other devices,
+              browsers, or stolen cookies. This current device remains
+              authenticated with a fresh cryptographic token.
             </p>
 
             <button
@@ -1365,11 +1489,14 @@ function Profile() {
               </h2>
             </div>
             <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
-              Zero-knowledge log of all security events on this node. Replaces invasive email alerts while preserving complete user privacy.
+              Zero-knowledge log of all security events on this node. Replaces
+              invasive email alerts while preserving complete user privacy.
             </p>
 
             {securityEvents.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No audit events logged yet.</p>
+              <p className="text-xs text-muted-foreground">
+                No audit events logged yet.
+              </p>
             ) : (
               <div className="relative border-l border-border pl-6 ml-3 space-y-6">
                 {securityEvents.slice(0, 15).map((ev: any) => (
@@ -1381,7 +1508,9 @@ function Profile() {
 
                     <div className="flex items-start gap-3">
                       <span className="mt-0.5 shrink-0 bg-muted/50 p-1.5 rounded-xl border border-border">
-                        {EVENT_ICONS[ev.type] ?? <Info className="h-4 w-4 text-muted-foreground" />}
+                        {EVENT_ICONS[ev.type] ?? (
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-foreground">
@@ -1423,7 +1552,9 @@ function Profile() {
               </h2>
             </div>
             <p className="text-xs text-foreground/80 mb-5 leading-relaxed">
-              Permanently and irreversibly obliterate your account. All cryptographic keys, broadcasts, media streams, comments, and private whispers will be hard-purged immediately.
+              Permanently delete your account and its database records. Storage
+              objects are queued for cleanup. Copies already downloaded by
+              others cannot be removed.
             </p>
 
             <button
@@ -1436,7 +1567,9 @@ function Profile() {
               className="inline-flex items-center gap-2 rounded-xl bg-red-600/20 border border-red-500/40 px-5 py-3 text-xs font-bold text-red-700 dark:text-red-200 transition hover:bg-red-600/30 disabled:opacity-40 cursor-pointer"
             >
               <Trash2 className="h-4 w-4" />
-              {deleteAccMut.isPending ? "Purging Sovereign Node…" : "Permanently Destroy Account & Data"}
+              {deleteAccMut.isPending
+                ? "Purging Sovereign Node…"
+                : "Permanently Destroy Account & Data"}
             </button>
           </FrostedPanel>
 
@@ -1446,14 +1579,15 @@ function Profile() {
               Full Sovereign Charter
             </h3>
             <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              Every packet on Social Space is routed without surveillance. Here is our architectural guarantee:
+              The application uses pseudonymous accounts. Hosting providers and
+              security controls still process connection metadata.
             </p>
             <div className="grid gap-2.5 sm:grid-cols-2 text-xs">
               {[
                 "No legal names or government credentials",
                 "No phone numbers or email addresses",
                 "No facial geometry or biometric templates stored on server",
-                "No IP addresses or location geolocation tracking",
+                "IP addresses are processed for security and rate limiting",
                 "No advertising identifiers or telemetry analytics",
                 "No secret social graph cross-matching",
                 "No reading dwell-time or gaze tracking",
@@ -1531,7 +1665,8 @@ function Profile() {
                 Sign Out All Remote Sessions?
               </h3>
               <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                All tokens on other devices will be immediately invalidated. You will remain signed in here with a newly rotated token.
+                All tokens on other devices will be immediately invalidated. You
+                will remain signed in here with a newly rotated token.
               </p>
               {logoutAllError && (
                 <p className="text-xs text-red-500 mb-3 flex items-center gap-1.5">
@@ -1618,7 +1753,8 @@ function Profile() {
                     Premium Sovereign Tier
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                    Zero-retention media storage extension, unlimited 4K video broadcasting, and priority cryptographic relays.
+                    Zero-retention media storage extension, unlimited 4K video
+                    broadcasting, and priority cryptographic relays.
                   </p>
                 </div>
 
@@ -1645,7 +1781,9 @@ function Profile() {
                   <span className="font-serif text-3xl font-bold text-amber-500 dark:text-amber-400">
                     ₹149
                   </span>
-                  <span className="text-xs text-muted-foreground ml-1">/ month</span>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    / month
+                  </span>
                 </div>
 
                 <div className="space-y-2.5">
@@ -1655,7 +1793,9 @@ function Profile() {
                     disabled={waitlistJoined}
                     className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 py-3 text-xs font-bold text-black transition shadow-[0_0_20px_rgba(245,158,11,0.3)] disabled:opacity-60"
                   >
-                    {waitlistJoined ? "Node Enrolled on Waitlist" : "Join Sovereign Waitlist"}
+                    {waitlistJoined
+                      ? "Node Enrolled on Waitlist"
+                      : "Join Sovereign Waitlist"}
                   </button>
                   <button
                     onClick={closePremiumModal}

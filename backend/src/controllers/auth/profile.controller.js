@@ -13,6 +13,9 @@ import {
   checkPassphrasePwned,
 } from "../../utils/crypto.js";
 import { logSecurityEvent } from "../../utils/securityLogger.js";
+import { deleteAccountData, drainStorageDeletions } from "../../services/storageCleanup.js";
+import { safeWaitUntil } from "../../utils/lifecycle.js";
+import { isModerator } from "../../routes/community.routes.js";
 
 /**
  * POST /v1/auth/logout-all
@@ -100,8 +103,9 @@ export async function changePassphrase(req, res) {
 export async function deleteAccount(req, res) {
   try {
     await logSecurityEvent(req.user.id, "ACCOUNT_DELETED", req);
-    await prisma.user.delete({ where: { id: req.user.id } });
-    return res.status(200).json({ message: "Account and all associated data permanently deleted." });
+    await prisma.$transaction(tx => deleteAccountData(tx, req.user.id), { timeout: 15000 });
+    safeWaitUntil(drainStorageDeletions());
+    return res.status(200).json({ message: "Account deleted. Stored media cleanup is queued and retried automatically." });
   } catch (error) {
     console.error("deleteAccount error:", error);
     return res.status(500).json({
@@ -171,7 +175,7 @@ export async function getMe(req, res) {
       });
     }
 
-    return res.status(200).json(user);
+    return res.status(200).json({ ...user, isModerator: isModerator(user.handle) });
   } catch (error) {
     console.error("getMe error:", error);
     return res.status(500).json({
@@ -209,7 +213,7 @@ export async function updateChatPublicKey(req, res) {
         format: "der",
         type: "spki"
       });
-      if (keyObj.asymmetricKeyType !== "ec") {
+      if (keyObj.asymmetricKeyType !== "ec" || keyObj.asymmetricKeyDetails?.namedCurve !== "prime256v1") {
         return res.status(400).json({
           error: { message: "Only Elliptic Curve (EC) public keys are allowed.", code: "BAD_REQUEST" }
         });

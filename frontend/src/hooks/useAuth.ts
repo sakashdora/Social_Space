@@ -10,7 +10,11 @@ export interface AuthState {
 export function useAuth(): AuthState {
   const [mounted, setMounted] = useState(false);
   const [authed, setAuthed] = useState(false);
-  const [user, setUser] = useState<{ id: string; handle: string; avatarUrl?: string | null } | null>(null);
+  const [user, setUser] = useState<{
+    id: string;
+    handle: string;
+    avatarUrl?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);

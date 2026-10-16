@@ -1,3 +1,4 @@
+import { useChatRealtimeStatus } from "@/lib/chatRealtimeStatus";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -16,11 +17,13 @@ import {
   fetchChatMessages,
   sendChatMessage,
   updateChatTimer,
-  uploadMedia,
+  uploadChatAttachment,
+  decryptChatMessage,
+  type ChatAttachment as Attachment,
   getCurrentUser,
   getUserPublicKey,
-  threadKeyCache,
 } from "@/lib/api";
+import { ChatAttachment } from "@/components/ChatAttachment";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -36,14 +39,25 @@ export const Route = createFileRoute("/messages/$threadId")({
 
 function Thread() {
   const { threadId } = Route.useParams();
+  const realtimeConnected = useChatRealtimeStatus();
   const queryClient = useQueryClient();
 
   const [draft, setDraft] = useState("");
   const [showTimerMenu, setShowTimerMenu] = useState(false);
-  const [attachedMedia, setAttachedMedia] = useState<string | null>(null);
+  const [attachedMedia, setAttachedMedia] = useState<Attachment | null>(null);
+  const [attachmentError, setAttachmentError] = useState("");
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasOlder, setHasOlder] = useState(true);
+  const attachmentUrls = useRef(new Set<string>());
+  useEffect(
+    () => () => {
+      for (const url of attachmentUrls.current) URL.revokeObjectURL(url);
+    },
+    [],
+  );
   const [uploading, setUploading] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(
-    typeof document !== "undefined" ? !document.hidden : true
+    typeof document !== "undefined" ? !document.hidden : true,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -53,7 +67,8 @@ function Thread() {
   useEffect(() => {
     const handleVisibility = () => setIsPageVisible(!document.hidden);
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   const { data: chats = [] } = useQuery({
@@ -70,113 +85,91 @@ function Thread() {
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["chatMessages", threadId],
-    queryFn: () => fetchChatMessages(threadId),
+    queryFn: async () => {
+      const previous =
+        queryClient.getQueryData<any[]>(["chatMessages", threadId]) || [];
+      const confirmed = previous.filter((message) => !message.sending);
+      const after = confirmed.at(-1)?.id;
+      const incoming = await fetchChatMessages(
+        threadId,
+        after ? { after } : undefined,
+      );
+      const merged = new Map(
+        [...confirmed, ...incoming].map((message) => [message.id, message]),
+      );
+      return [...merged.values()]
+        .filter(
+          (message) =>
+            !message.expiresAt ||
+            new Date(message.expiresAt).getTime() > Date.now(),
+        )
+        .sort(
+          (a, b) =>
+            a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+        );
+    },
     // Poll at 3s when visible, pause when tab is hidden
-    refetchInterval: isPageVisible ? 3000 : false,
+    refetchInterval: isPageVisible ? (realtimeConnected ? 30000 : 3000) : false,
     refetchIntervalInBackground: false,
   });
 
   const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    if (messages.length === 0) {
-      setDecryptedMessages([]);
-      return;
-    }
-
     let active = true;
-
-    async function decryptAll() {
-      const sender = getCurrentUser();
-      if (!sender) return;
-
-      const {
-        getKeyRecord,
-        importPublicKeyBase64,
-        deriveSharedAesKey,
-        decryptText,
-      } = await import("@/lib/crypto");
-
-      const record = await getKeyRecord(sender.id);
-      if (!record) {
-        console.warn("Secure key record missing.");
-        if (active) {
-          setDecryptedMessages(
-            messages.map((m: any) => ({
-              ...m,
-              body: m.sending ? m.body : "Unable to decrypt (Keys out of sync)",
-            })),
-          );
-        }
-        return;
-      }
-
-      let aesKey = threadKeyCache[threadId];
-      if (!aesKey && thread.recipientId) {
+    void Promise.all(
+      messages.map(async (message: any) => {
         try {
-          const recipientKeyData = await getUserPublicKey(thread.recipientId);
-          if (recipientKeyData && recipientKeyData.chatPublicKey) {
-            const recipientPubKey = await importPublicKeyBase64(
-              recipientKeyData.chatPublicKey,
-            );
-            aesKey = await deriveSharedAesKey(
-              record.privateKey,
-              recipientPubKey,
-            );
-            threadKeyCache[threadId] = aesKey;
-          }
-        } catch (err) {
-          console.error("Failed to load recipient key for decryption:", err);
-        }
-      }
-
-      if (!aesKey) {
-        if (active) {
-          setDecryptedMessages(
-            messages.map((m: any) => ({
-              ...m,
-              body: m.sending
-                ? m.body
-                : "Unable to decrypt (Recipient has no keys)",
-            })),
+          return await decryptChatMessage(
+            threadId,
+            message,
+            thread.recipientId,
           );
+        } catch {
+          return {
+            ...message,
+            body: "Unable to decrypt: the key for this message is unavailable on this device.",
+          };
         }
-        return;
-      }
-
-      const decrypted = await Promise.all(
-        messages.map(async (m: any) => {
-          if (m.sending) return m;
-          if (!m.body) return m;
-
-          try {
-            const parsed = JSON.parse(m.body);
-            if (parsed && parsed.ciphertext && parsed.iv) {
-              const decryptedBody = await decryptText(
-                parsed.ciphertext,
-                parsed.iv,
-                aesKey,
-              );
-              return { ...m, body: decryptedBody };
-            }
-          } catch (err) {
-            return { ...m, body: "Unable to decrypt" };
-          }
-          return { ...m, body: "Unable to decrypt" };
-        }),
-      );
-
-      if (active) {
-        setDecryptedMessages(decrypted);
-      }
-    }
-
-    decryptAll();
-
+      }),
+    ).then((decoded) => {
+      if (active) setDecryptedMessages(decoded);
+    });
     return () => {
       active = false;
     };
   }, [messages, thread.recipientId, threadId]);
+
+  const loadOlder = async () => {
+    if (!messages[0]?.id || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const older = await fetchChatMessages(threadId, {
+        before: messages[0].id,
+      });
+      setHasOlder(older.length === 50);
+      queryClient.setQueryData<any[]>(["chatMessages", threadId], (current) => {
+        const merged = new Map(
+          [...older, ...(current || [])].map((message) => [
+            message.id,
+            message,
+          ]),
+        );
+        return [...merged.values()].sort(
+          (a, b) =>
+            a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+        );
+      });
+    } catch (error) {
+      setAttachmentError(
+        error instanceof Error
+          ? error.message
+          : "Could not load earlier messages.",
+      );
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -201,7 +194,7 @@ function Thread() {
       mediaUrl,
     }: {
       body: string;
-      mediaUrl: string | null;
+      mediaUrl: Attachment | null;
     }) => sendChatMessage(threadId, body, thread.recipientId, mediaUrl),
     onMutate: async ({ body, mediaUrl }) => {
       // Cancel outgoing refetches so they don't overwrite our optimistic state
@@ -228,7 +221,7 @@ function Thread() {
       const optimisticMsg = {
         id: `optimistic-${Date.now()}`,
         body: body || "",
-        mediaUrl: mediaUrl || null,
+        attachment: mediaUrl || null,
         mine: true,
         sending: true, // Styling hint for "pending" state
         time: new Date().toLocaleTimeString([], {
@@ -244,6 +237,7 @@ function Thread() {
       return { previousMessages, currentDraft, currentMedia };
     },
     onError: (err, variables, context) => {
+      setAttachmentError(err.message);
       // Rollback to previous message history on failure
       if (context?.previousMessages) {
         queryClient.setQueryData(
@@ -258,6 +252,11 @@ function Thread() {
       if (context?.currentMedia) {
         setAttachedMedia(context.currentMedia);
       }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData<any[]>(["chatMessages", threadId], (current) =>
+        (current || []).filter((message) => !message.sending),
+      );
     },
     onSettled: () => {
       // Re-fetch to align with true DB state
@@ -281,6 +280,7 @@ function Thread() {
 
   const handleSend = () => {
     if (!draft.trim() && !attachedMedia) return;
+    setAttachmentError("");
     sendMessageMutation.mutate({ body: draft, mediaUrl: attachedMedia });
   };
 
@@ -289,10 +289,12 @@ function Thread() {
     if (!file) return;
     setUploading(true);
     try {
-      const uploaded = await uploadMedia(file);
-      setAttachedMedia(uploaded.url ?? `/api/media/stream/${uploaded.mediaId}`);
+      setAttachmentError("");
+      const uploaded = await uploadChatAttachment(file, threadId);
+      if (uploaded.previewUrl) attachmentUrls.current.add(uploaded.previewUrl);
+      setAttachedMedia(uploaded);
     } catch (err: any) {
-      console.error("Attachment failed:", err);
+      setAttachmentError(err.message || "Attachment failed.");
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -407,9 +409,7 @@ function Thread() {
       {/* ── MESSAGES — scrollable middle region ───────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {/* Encrypted notice */}
-        <div
-          className="mx-auto mb-3 w-fit max-w-[85%] rounded-full px-4 py-1 text-center text-[11px] font-mono text-amber-600 dark:text-amber-300 bg-amber-500/10 border border-amber-500/25"
-        >
+        <div className="mx-auto mb-3 w-fit max-w-[85%] rounded-full px-4 py-1 text-center text-[11px] font-mono text-amber-600 dark:text-amber-300 bg-amber-500/10 border border-amber-500/25">
           Encrypted · auto-deleted after {thread.disappearing || "7d"}
         </div>
 
@@ -421,19 +421,29 @@ function Thread() {
                 key={i}
                 className={cn("flex", i % 2 ? "justify-start" : "justify-end")}
               >
-                <div
-                  className="h-10 w-40 rounded-2xl animate-pulse bg-muted/60 border border-border"
-                />
+                <div className="h-10 w-40 rounded-2xl animate-pulse bg-muted/60 border border-border" />
               </div>
             ))}
           </div>
         )}
 
+        {hasOlder && messages.length >= 50 && (
+          <button
+            type="button"
+            disabled={loadingOlder}
+            onClick={loadOlder}
+            className="mx-auto block rounded-lg border border-border px-3 py-2 text-xs"
+          >
+            {loadingOlder ? "Loading…" : "Load earlier messages"}
+          </button>
+        )}
         {/* Empty state */}
         {!isLoading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 gap-2 text-muted-foreground">
             <span className="text-3xl">✨</span>
-            <p className="text-xs">Zero signals recorded yet. Start transmitting!</p>
+            <p className="text-xs">
+              Zero signals recorded yet. Start transmitting!
+            </p>
           </div>
         )}
 
@@ -467,32 +477,12 @@ function Thread() {
                     m.sending && "opacity-70 cursor-not-allowed select-none",
                   )}
                 >
-                  {m.mediaUrl && (
-                    <div className="mb-2 overflow-hidden rounded-xl max-w-[260px]">
-                      {m.mediaUrl.startsWith("data:video/") ? (
-                        <video
-                          src={m.mediaUrl}
-                          controls
-                          className="w-full max-h-44 rounded-xl object-contain bg-black"
-                          onLoadedData={scrollToBottom}
-                        />
-                      ) : (
-                        <img
-                          src={m.mediaUrl}
-                          alt="Chat media"
-                          className="w-full max-h-44 rounded-xl object-contain bg-black/20"
-                          onLoad={scrollToBottom}
-                        />
-                      )}
-                    </div>
-                  )}
-                  {m.body && (
-                    <MarkdownRenderer content={m.body} />
-                  )}
+                  {m.attachment && <ChatAttachment attachment={m.attachment} />}
+                  {m.body && <MarkdownRenderer content={m.body} />}
                   <span
                     className={cn(
                       "mt-1 flex items-center justify-end gap-1 text-[10px] select-none",
-                      m.mine ? "text-black/60" : "text-muted-foreground"
+                      m.mine ? "text-black/60" : "text-muted-foreground",
                     )}
                   >
                     {m.sending ? (
@@ -517,26 +507,21 @@ function Thread() {
       <div
         className="shrink-0 px-3 sm:px-4 py-3 bg-card/95 border-t border-border backdrop-blur-xl"
         style={{
-          paddingBottom: "max(14px, calc(10px + env(safe-area-inset-bottom, 0px)))",
+          paddingBottom:
+            "max(14px, calc(10px + env(safe-area-inset-bottom, 0px)))",
         }}
       >
+        {attachmentError && (
+          <p role="alert" className="mb-2 text-sm text-red-500">
+            {attachmentError}
+          </p>
+        )}
         {/* Attached media preview */}
         {attachedMedia && (
-          <div
-            className="relative mb-2 inline-block rounded-xl p-1.5 bg-muted/40 border border-border"
-          >
-            {attachedMedia.startsWith("data:video/") ? (
-              <video
-                src={attachedMedia}
-                className="h-14 w-14 rounded-lg object-cover"
-              />
-            ) : (
-              <img
-                src={attachedMedia}
-                alt=""
-                className="h-14 w-14 rounded-lg object-cover"
-              />
-            )}
+          <div className="relative mb-2 inline-block rounded-xl p-1.5 bg-muted/40 border border-border">
+            <div className="max-w-40">
+              <ChatAttachment attachment={attachedMedia} />
+            </div>
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => setAttachedMedia(null)}
@@ -552,7 +537,7 @@ function Thread() {
           {/* Hidden file input */}
           <input
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,audio/webm,audio/mp4,audio/ogg"
             ref={fileInputRef}
             onChange={handleFileAttach}
             className="hidden"

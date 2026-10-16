@@ -35,16 +35,7 @@ export async function getRegisterOptions(req, res) {
       });
     }
 
-    let rpID = env.WEBAUTHN_RP_ID;
-    const requestOrigin = req.get("origin") || req.get("host");
-    if (requestOrigin) {
-      try {
-        const hostname = requestOrigin.includes("://") ? new URL(requestOrigin).hostname : requestOrigin.split(":")[0];
-        if (hostname.endsWith("vercel.app") || hostname === "localhost") {
-          rpID = hostname;
-        }
-      } catch {}
-    }
+    const rpID = env.WEBAUTHN_RP_ID;
 
     const options = await generateRegistrationOptions({
       rpName: env.WEBAUTHN_RP_NAME,
@@ -85,7 +76,7 @@ export async function verifyRegistration(req, res) {
   try {
     const { credential, nickname } = req.body;
 
-    const stored = await store.get(`passkey:reg:${req.user.id}`);
+    const stored = await store.take(`passkey:reg:${req.user.id}`);
     if (!stored) {
       return res.status(400).json({
         error: {
@@ -95,21 +86,9 @@ export async function verifyRegistration(req, res) {
       });
     }
 
-    const requestOrigin = req.get("origin")?.replace(/\/+$/, "");
-    const expectedOrigins = [env.WEBAUTHN_ORIGIN];
-    if (requestOrigin && !expectedOrigins.includes(requestOrigin)) {
-      expectedOrigins.push(requestOrigin);
-    }
-
-    let expectedRPID = env.WEBAUTHN_RP_ID;
-    if (requestOrigin) {
-      try {
-        const parsed = new URL(requestOrigin);
-        if (parsed.hostname.endsWith("vercel.app") || parsed.hostname === "localhost") {
-          expectedRPID = parsed.hostname;
-        }
-      } catch {}
-    }
+    // Trust configured origins only, never the requesting Origin header.
+    const expectedOrigins = env.WEBAUTHN_ORIGIN.split(",").map(origin => origin.trim().replace(/\/+$/, ""));
+    const expectedRPID = env.WEBAUTHN_RP_ID;
 
     let verification;
     try {

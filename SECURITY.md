@@ -1,82 +1,33 @@
-# Security Review & Audit — VEIL Social Space
+# Security boundaries
 
-This document outlines the security architecture, controls, configurations, and threat mitigations implemented across the VEIL Social Space application.
+This document describes the source implementation, not a security certification or vulnerability score. See [REMEDIATION.md](REMEDIATION.md) for verification evidence.
 
----
+## Accounts and authorization
 
-## 1. Security Overview
-VEIL is designed as a secure, anonymous AI social platform. Security architecture spans client-side encryption, API gateway header protections, database role management, rate limiters, and server-side input sanitization.
+Passphrases use Argon2id. JWTs are checked against account bans and token versions. Sensitive actions require the current passphrase. Passkey verification uses configured origins and relying-party IDs; challenges are single-use and shared across instances. Shared challenges, including pending TOTP secrets, are encrypted at rest with the server encryption key. Recovery-code redemption claims the code atomically. Rate-limit storage failures reject protected requests.
 
-- **Final Security Score**: **96/100**
-- **Vulnerabilities Found**: 0 High, 0 Medium, 0 Low.
+Production secrets belong only in the server environment. Database tables use RLS with no browser Data API policies. The Express API uses a privileged database connection and must enforce every ownership and audience rule itself.
 
----
+## Posts and uploads
 
-## 2. Authentication & Authorization Review
+Anonymous posts hide their owner from API responses; the database still retains ownership for deletion and permissions. This is pseudonymity from other users, not anonymity from the operator.
 
-### Authentication
-- **Passkeys (WebAuthn)**: Supported as a primary secure passwordless login standard via `@simplewebauthn/server` and `@simplewebauthn/browser`.
-- **MFA (TOTP)**: Fully supported for secondary factor authentication via `otplib`.
-- **JWT (JSON Web Tokens)**: Used for session management. Tokens are signed using `JWT_SECRET` (96 hex characters) with standard HS256 signatures, ensuring authenticity.
+New media must have an owned, server-issued upload reservation and pass confirmation before publication. File size and decoded content are checked. Images are re-encoded; clips are remuxed to remove file metadata. These operations do not remove faces, voices, locations visible in frames, or all identifying content. Face detection can miss people; preview and review images yourself.
 
-### Authorization & Access Control
-- **RequireAuth Middleware**: Restricts access to sensitive routes (creating posts, chat threads, messages, media uploading/deletions).
-- **Ownership Verification**: Implemented in comments, posts, and media deletions. A user can only delete or edit resources where their `userId` matches the resource owner's `userId`.
+Media is stored in a private bucket. Feed responses issue short-lived media capabilities so image/video elements can load restricted posts. A copied capability remains usable for up to 15 minutes; signed storage downloads last up to 60 seconds, bounded by post/media expiry. Deleting or expiring a post prevents new capabilities from being redeemed. Already-issued storage URLs and downloaded copies cannot be recalled instantly.
 
----
+## Direct messages
 
-## 3. Threat Mitigation & Input Validation
+New text and attachment keys are encrypted in the browser using ECDH P-256, HKDF, and AES-GCM. Attachment bytes are separately encrypted before upload. Message envelopes bind the thread and public-key versions as authenticated data. Local key rotation archives earlier keys on that device.
 
-### SQL Injection
-- Parametric database queries are enforced globally through the use of **Prisma ORM**. Direct raw SQL inputs are not utilized for dynamic request parsing, preventing SQL injection vulnerabilities.
+This is not a Signal-style audited protocol: there is no double ratchet, independent peer-key verification, or guaranteed forward secrecy. The server supplies public keys and sees participants, timing, sizes, and ciphertext. Browser compromise can misuse local keys. Keys are not backed up or synchronized; clearing browser storage or changing devices can make history unreadable. Older messages without embedded key versions may not survive a peer's historical key reset.
 
-### Cross-Site Scripting (XSS)
-- Before posts or comments are saved to the database, user inputs are parsed and processed through `sanitize-html`. Unsafe HTML tags and Javascript schemas are stripped.
+Chat retention is enforced on reads. Physical deletion is asynchronous. New chat attachments follow message expiry; legacy raw attachments are not retroactively encrypted by this repair.
 
-### Cross-Origin Resource Sharing (CORS)
-- Locked down explicitly in production. Only the verified frontend URL is allowed in the `Access-Control-Allow-Origin` header. Standard credential mapping (`Access-Control-Allow-Credentials: true`) is enforced.
+## Cleanup and moderation
 
-### Rate Limiting
-- Configured using `express-rate-limit` with custom, sliding window store logic. 
-- **Brute Force Defense**: Lockout rules track login attempts under a per-account database key (`LoginAttempt` model) instead of using the client IP. This guarantees immunity to IP rotation attacks (such as botnet brute-forcing).
+Storage deletion jobs survive account deletion and retry failures. Processing/staging objects wait until their upload authorization expires before final cleanup. Vercel's daily job controls physical cleanup timing; runtime checks hide expired content sooner.
 
----
+Reports and appeals are visible to their submitter and configured moderators. Queue status changes record reviews; they do not automatically suspend accounts or remove posts. Automated moderation can be wrong and falls back to basic text rules without providers. Do not claim automated detection of all prohibited content or legal reporting.
 
-## 4. Environment & Secrets Management
-
-- **Secrets Handling**: Zero credentials, tokens, or private connection strings are hardcoded in the codebase. All variables are dynamically read from process environments.
-- **Boot-time Validation**: `backend/src/config/env.js` strictly validates that all essential production variables (JWT secrets, DB connection URLs, Supabase API keys) are populated and of the correct format at startup. The application throws a fatal error and aborts boot if placeholders or short keys are detected.
-- **Azure Container App Integration**: Secrets are injected as encrypted Container App Secrets and referenced as environment variables, keeping them out of source control.
-
----
-
-## 5. Storage & Database Security
-
-- **Database Connection Security**: Database connections utilize SSL/TLS configurations. Pooler ports (`6543`) are mapped to optimize database connection allocations under load.
-- **Supabase Storage**:
-  - The `veil-media` bucket is configured with RLS policies, allowing only valid users to upload.
-  - Signed URLs (`createSignedUrl`) with a 1-hour expiration are generated by the server for media retrieval, ensuring that files are not exposed publicly to unauthenticated traffic.
-  - Media files are automatically processed via a face anonymization service (`runFaceAnonymization`) before final storage.
-
----
-
-## 6. OWASP Top 10 Security Checklist
-
-| OWASP Top 10 Risk Category | VEIL Implementation Status | Mitigation Applied |
-|-----------------------------|----------------------------|--------------------|
-| **A01:2021-Broken Access Control** | ✅ SECURE | Token ownership checks on all mutating API routes. |
-| **A02:2021-Cryptographic Failures** | ✅ SECURE | Strong cryptography, AES-256 for local encryption, HS256 for JWTs. |
-| **A03:2021-Injection** | ✅ SECURE | Prisma ORM parameterization prevents SQLi. |
-| **A04:2021-Insecure Design** | ✅ SECURE | Secure threat model limiting exposure of private identities. |
-| **A05:2021-Security Misconfiguration** | ✅ SECURE | Production CORS locking, secure cookies, and no verbose debug endpoints. |
-| **A06:2021-Vulnerable Components** | ✅ SECURE | Dependency check completed; packages up to date. |
-| **A07:2021-Identification & Auth** | ✅ SECURE | Passkey support, TOTP MFA, and per-account rate limit lockout. |
-| **A08:2021-Software & Data Integrity** | ✅ SECURE | Dynamic validation of file formats and signatures during upload. |
-| **A09:2021-Security Logging & Monitoring**| ✅ SECURE | Actions and failures logged cleanly to Azure Log Analytics. |
-| **A10:2021-Server-Side Request Forgery** | ✅ SECURE | No endpoints accepting unvalidated destination URLs. |
-
----
-
-## 7. Security Recommendations
-1. **Move to Managed Identity**: Use an Azure system-assigned managed identity to authenticate container instances to Azure Key Vault, bypassing the need for registry and database passwords to be manually stored.
-2. **CSP (Content Security Policy)**: Extend Helmet configs to include fine-grained CSP rules restricting scripts and stylesheets exclusively to self and trusted API domains.
+Hosting and security services process connection metadata. Security-event fingerprints and rate-limit keys are not proof of untraceability. No "zero telemetry" or "zero vulnerabilities" guarantee is made.

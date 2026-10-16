@@ -1,10 +1,17 @@
-import React, { useState } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+const SyntaxHighlighter = lazy(() =>
+  import("react-syntax-highlighter").then((module) => ({
+    default: module.Prism,
+  })),
+);
+import {
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "@/lib/theme";
 import { Check, Copy, WrapText } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,7 +55,9 @@ function CodeBlock({ language, value, theme }: CodeBlockProps) {
             title={wrapLines ? "Disable wrap" : "Enable wrap"}
           >
             <WrapText className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{wrapLines ? "Unwrap" : "Wrap"}</span>
+            <span className="hidden sm:inline">
+              {wrapLines ? "Unwrap" : "Wrap"}
+            </span>
           </button>
           <button
             onClick={handleCopy}
@@ -71,25 +80,33 @@ function CodeBlock({ language, value, theme }: CodeBlockProps) {
 
       {/* Syntax highlighted code */}
       <div className="overflow-x-auto p-4 scrollbar-thin">
-        <SyntaxHighlighter
-          language={language || "text"}
-          style={theme === "light" ? oneLight : oneDark}
-          customStyle={{
-            margin: 0,
-            padding: 0,
-            background: "transparent",
-            fontSize: "0.875rem",
-          }}
-          codeTagProps={{
-            style: {
-              fontFamily: "var(--font-mono)",
-              whiteSpace: wrapLines ? "pre-wrap" : "pre",
-              wordBreak: wrapLines ? "break-all" : "normal",
-            },
-          }}
+        <Suspense
+          fallback={
+            <pre className="whitespace-pre-wrap">
+              <code>{value}</code>
+            </pre>
+          }
         >
-          {value}
-        </SyntaxHighlighter>
+          <SyntaxHighlighter
+            language={language || "text"}
+            style={theme === "light" ? oneLight : oneDark}
+            customStyle={{
+              margin: 0,
+              padding: 0,
+              background: "transparent",
+              fontSize: "0.875rem",
+            }}
+            codeTagProps={{
+              style: {
+                fontFamily: "var(--font-mono)",
+                whiteSpace: wrapLines ? "pre-wrap" : "pre",
+                wordBreak: wrapLines ? "break-all" : "normal",
+              },
+            }}
+          >
+            {value}
+          </SyntaxHighlighter>
+        </Suspense>
       </div>
     </div>
   );
@@ -106,7 +123,10 @@ const customSanitizeSchema = {
   },
 };
 
-export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
+export function MarkdownRenderer({
+  content,
+  className,
+}: MarkdownRendererProps) {
   const { theme } = useTheme();
 
   const components = {
@@ -119,7 +139,10 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
       </div>
     ),
     thead: ({ node, children, ...props }: any) => (
-      <thead className="bg-white/5 border-b border-white/10 text-xs font-semibold uppercase tracking-wider sticky top-0" {...props}>
+      <thead
+        className="bg-white/5 border-b border-white/10 text-xs font-semibold uppercase tracking-wider sticky top-0"
+        {...props}
+      >
         {children}
       </thead>
     ),
@@ -129,7 +152,10 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
       </th>
     ),
     td: ({ node, children, ...props }: any) => (
-      <td className="px-4 py-3 border-b border-white/5 text-foreground/80" {...props}>
+      <td
+        className="px-4 py-3 border-b border-white/5 text-foreground/80"
+        {...props}
+      >
         {children}
       </td>
     ),
@@ -141,12 +167,18 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
     // Styled lists
     ul: ({ node, children, ...props }: any) => (
-      <ul className="my-3 list-disc pl-6 space-y-1.5 leading-relaxed text-foreground/90" {...props}>
+      <ul
+        className="my-3 list-disc pl-6 space-y-1.5 leading-relaxed text-foreground/90"
+        {...props}
+      >
         {children}
       </ul>
     ),
     ol: ({ node, children, ...props }: any) => (
-      <ol className="my-3 list-decimal pl-6 space-y-1.5 leading-relaxed text-foreground/90" {...props}>
+      <ol
+        className="my-3 list-decimal pl-6 space-y-1.5 leading-relaxed text-foreground/90"
+        {...props}
+      >
         {children}
       </ol>
     ),
@@ -164,46 +196,74 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
           </li>
         );
       }
-      return <li className="py-0.5 text-foreground/90" {...props}>{children}</li>;
+      return (
+        <li className="py-0.5 text-foreground/90" {...props}>
+          {children}
+        </li>
+      );
     },
 
     // Headings
     h1: ({ node, children, ...props }: any) => (
-      <h1 className="mt-6 mb-4 font-serif text-2xl font-bold tracking-tight border-b border-white/5 pb-2 text-foreground" {...props}>
+      <h1
+        className="mt-6 mb-4 font-serif text-2xl font-bold tracking-tight border-b border-white/5 pb-2 text-foreground"
+        {...props}
+      >
         {children}
       </h1>
     ),
     h2: ({ node, children, ...props }: any) => (
-      <h2 className="mt-5 mb-3 font-serif text-xl font-bold tracking-tight text-foreground" {...props}>
+      <h2
+        className="mt-5 mb-3 font-serif text-xl font-bold tracking-tight text-foreground"
+        {...props}
+      >
         {children}
       </h2>
     ),
     h3: ({ node, children, ...props }: any) => (
-      <h3 className="mt-4 mb-2 font-sans text-base font-bold text-foreground" {...props}>
+      <h3
+        className="mt-4 mb-2 font-sans text-base font-bold text-foreground"
+        {...props}
+      >
         {children}
       </h3>
     ),
     h4: ({ node, children, ...props }: any) => (
-      <h4 className="mt-3 mb-1.5 font-sans text-sm font-bold text-foreground" {...props}>
+      <h4
+        className="mt-3 mb-1.5 font-sans text-sm font-bold text-foreground"
+        {...props}
+      >
         {children}
       </h4>
     ),
 
     // Blockquotes
     blockquote: ({ node, children, ...props }: any) => (
-      <blockquote className="my-4 border-l-4 border-amber-500 bg-white/5 px-4 py-3 text-foreground/90 italic rounded-r-lg" {...props}>
+      <blockquote
+        className="my-4 border-l-4 border-amber-500 bg-white/5 px-4 py-3 text-foreground/90 italic rounded-r-lg"
+        {...props}
+      >
         {children}
       </blockquote>
     ),
 
     // Code rendering (inline vs block)
-    code: ({ node, inline, className: codeClassName, children, ...props }: any) => {
+    code: ({
+      node,
+      inline,
+      className: codeClassName,
+      children,
+      ...props
+    }: any) => {
       const match = /language-(\w+)/.exec(codeClassName || "");
       // Detect block code based on whether a newline character is present
       const isInline = !match && !String(children).includes("\n");
       if (isInline) {
         return (
-          <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-amber-500 font-semibold" {...props}>
+          <code
+            className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-amber-500 font-semibold"
+            {...props}
+          >
             {children}
           </code>
         );
@@ -224,7 +284,9 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         <a
           href={href}
           className="text-amber-500 hover:text-amber-400 hover:underline font-semibold transition-colors"
-          {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          {...(isExternal
+            ? { target: "_blank", rel: "noopener noreferrer" }
+            : {})}
           {...props}
         >
           {children}
@@ -239,14 +301,22 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
     // Paragraph margins
     p: ({ node, children, ...props }: any) => (
-      <p className="my-2.5 leading-relaxed break-words text-foreground/90" {...props}>
+      <p
+        className="my-2.5 leading-relaxed break-words text-foreground/90"
+        {...props}
+      >
         {children}
       </p>
     ),
   };
 
   return (
-    <div className={cn("prose dark:prose-invert max-w-none text-[15px] leading-relaxed text-foreground", className)}>
+    <div
+      className={cn(
+        "prose dark:prose-invert max-w-none text-[15px] leading-relaxed text-foreground",
+        className,
+      )}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, customSanitizeSchema]]}

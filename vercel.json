@@ -1,18 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "installCommand": "npm install --legacy-peer-deps",
+  "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": null,
-  "build": {
-    "env": {
-      "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS": "1"
-    }
-  },
   "functions": {
     "api/index.js": {
-      "includeFiles": "{backend/**,node_modules/ffmpeg-static/**,node_modules/ffprobe-static/**}",
+      "includeFiles": "{node_modules/ffmpeg-static/ffmpeg,node_modules/ffprobe-static/bin/linux/x64/ffprobe,backend/node_modules/ffmpeg-static/ffmpeg,backend/node_modules/ffprobe-static/bin/linux/x64/ffprobe}",
       "maxDuration": 60,
       "memory": 1024
     }

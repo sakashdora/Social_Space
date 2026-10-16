@@ -78,14 +78,17 @@ export async function redeemRecoveryCode(req, res) {
 
     const hadTotp = user.totpEnabled;
     const updated = await prisma.$transaction(async (tx) => {
-      await tx.recoveryCode.update({
-        where: { id: matched.id },
+      const claimed = await tx.recoveryCode.updateMany({
+        where: { id: matched.id, usedAt: null },
         data: { usedAt: new Date() },
       });
+      if (claimed.count !== 1) throw Object.assign(new Error("Invalid recovery code."), { status: 400 });
       return tx.user.update({
         where: { id: user.id },
         data: {
           recoveryHash: newHash,
+          lastActiveAt: new Date(),
+          pendingDeletionAt: null,
           tokenVersion: { increment: 1 },
           totpSecret: null,
           totpEnabled: false,
@@ -105,6 +108,7 @@ export async function redeemRecoveryCode(req, res) {
       user: { id: updated.id, handle: updated.handle, avatarUrl: updated.avatarUrl },
     });
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ error: { message: "Invalid recovery code.", code: "INVALID_RECOVERY_CODE" } });
     console.error("redeemRecoveryCode error:", error);
     return res.status(500).json({
       error: {

@@ -1,90 +1,26 @@
 import prisma from "../config/prisma.js";
+import { findVisiblePost } from "../services/postPolicy.js";
 
-/**
- * Toggle a reaction on a post or comment.
- * POST /v1/reactions
- */
 export async function toggleReaction(req, res) {
   try {
     const { postId, commentId, reactionType } = req.body;
-    const userId = req.user.id;
-
-    if (!reactionType) {
-      return res.status(400).json({
-        error: {
-          message: "Reaction type is required.",
-          code: "BAD_REQUEST",
-        },
-      });
-    }
-
-    if (!postId && !commentId) {
-      return res.status(400).json({
-        error: {
-          message: "Either postId or commentId must be provided.",
-          code: "BAD_REQUEST",
-        },
-      });
-    }
-
-    // Verify target exists
-    if (postId) {
-      const post = await prisma.post.findUnique({ where: { id: postId } });
-      if (!post || post.isDeleted) {
-        return res.status(404).json({
-          error: {
-            message: "Post not found.",
-            code: "NOT_FOUND",
-          },
-        });
-      }
-    } else {
-      const comment = await prisma.comment.findUnique({ where: { id: commentId } });
-      if (!comment || comment.isDeleted) {
-        return res.status(404).json({
-          error: {
-            message: "Comment not found.",
-            code: "NOT_FOUND",
-          },
-        });
-      }
-    }
-
-    // Check if reaction already exists
-    const existing = await prisma.reaction.findFirst({
-      where: {
-        userId,
-        postId: postId || null,
-        commentId: commentId || null,
-        reactionType
-      }
+    if ((!postId === !commentId) || !reactionType) return res.status(400).json({ error: "Choose exactly one reaction target." });
+    const comment = commentId ? await prisma.comment.findFirst({ where: { id: commentId, isDeleted: false } }) : null;
+    const post = await findVisiblePost(postId || comment?.postId || "", req.user.id);
+    if (!post || (commentId && !comment)) return res.status(404).json({ error: "Reaction target not found." });
+    if (!post.allowReactions) return res.status(403).json({ error: "Reactions are disabled for this post." });
+    const key = req.user.id + ":" + (postId || commentId) + ":" + reactionType;
+    const reacted = await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+      const where = { userId: req.user.id, postId: postId || null, commentId: commentId || null, reactionType };
+      const existing = await tx.reaction.findFirst({ where });
+      if (existing) { await tx.reaction.delete({ where: { id: existing.id } }); return false; }
+      await tx.reaction.create({ data: where });
+      return true;
     });
-
-    if (existing) {
-      // Remove it (toggle off)
-      await prisma.reaction.delete({
-        where: { id: existing.id }
-      });
-      return res.status(200).json({ reacted: false, message: "Reaction removed." });
-    } else {
-      // Add it (toggle on)
-      const reaction = await prisma.reaction.create({
-        data: {
-          userId,
-          postId: postId || null,
-          commentId: commentId || null,
-          reactionType
-        }
-      });
-      return res.status(201).json({ reacted: true, reaction });
-    }
+    return res.status(200).json({ reacted });
   } catch (error) {
-    console.error("Toggle reaction error:", error);
-    return res.status(500).json({
-      error: {
-        message: "Failed to toggle reaction.",
-        code: "INTERNAL_SERVER_ERROR",
-      },
-    });
+    console.error("Reaction failed:", error.message);
+    return res.status(500).json({ error: "Could not update reaction." });
   }
 }

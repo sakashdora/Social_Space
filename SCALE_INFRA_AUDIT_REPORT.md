@@ -1,13 +1,15 @@
-# VEIL Social_Space — Scale & Delivery Infrastructure Audit Report
+> Historical report: this document predates the October 2026 repairs. Its scores and readiness claims are not current. See [REMEDIATION.md](REMEDIATION.md) and [SECURITY.md](SECURITY.md) for verified status and limitations.
+
+# VEIL Social_Space ï¿½ Scale & Delivery Infrastructure Audit Report
 
 **Audit Date:** 2026-09-10
-**Scope:** Full repository scan — `backend/`, `frontend/`, root configs (`vercel.json`, `docker-compose.yml`), env templates, Prisma schema, all JS/TS source files.
+**Scope:** Full repository scan ï¿½ `backend/`, `frontend/`, root configs (`vercel.json`, `docker-compose.yml`), env templates, Prisma schema, all JS/TS source files.
 
 ---
 
 ## 1. Executive Summary
 
-VEIL is a small-scale production system that has implemented **one partial scaling layer** (connection pooling via PgBouncer, scoped to its Supabase configuration) and **one narrowly-scoped caching layer** (Upstash Redis, used exclusively for auth challenge/TOTP/WebAuthn short-lived tokens — not for any application data). Every other scale and delivery component is absent: there is no CDN in front of media bytes, no caching of feed queries or user profiles, no chunked or resumable upload logic, no real-time message transport (chat is driven entirely by HTTP polling at 2.5-second intervals), no message queue or async job worker (AI moderation runs synchronously in the request/response cycle via `safeWaitUntil`), no thumbnail-first / progressive loading strategy beyond a server-generated JPEG poster for videos, and no read-replica configuration. The architecture will function adequately at dozens of concurrent users. At 10,000+ concurrent users it will encounter database saturation, poll-hammering of the API, upload timeouts on large files, and media latency hot-spots simultaneously.
+VEIL is a small-scale production system that has implemented **one partial scaling layer** (connection pooling via PgBouncer, scoped to its Supabase configuration) and **one narrowly-scoped caching layer** (Upstash Redis, used exclusively for auth challenge/TOTP/WebAuthn short-lived tokens ï¿½ not for any application data). Every other scale and delivery component is absent: there is no CDN in front of media bytes, no caching of feed queries or user profiles, no chunked or resumable upload logic, no real-time message transport (chat is driven entirely by HTTP polling at 2.5-second intervals), no message queue or async job worker (AI moderation runs synchronously in the request/response cycle via `safeWaitUntil`), no thumbnail-first / progressive loading strategy beyond a server-generated JPEG poster for videos, and no read-replica configuration. The architecture will function adequately at dozens of concurrent users. At 10,000+ concurrent users it will encounter database saturation, poll-hammering of the API, upload timeouts on large files, and media latency hot-spots simultaneously.
 
 ---
 
@@ -15,13 +17,13 @@ VEIL is a small-scale production system that has implemented **one partial scali
 
 | # | Component | Status | Evidence (file:line) | Notes |
 |---|---|---|---|---|
-| 1 | CDN for media delivery | **Absent** | `media.routes.js:103` — `Cache-Control: no-store, private`; `VERCEL_DEPLOYMENT.md:15` (static JS/CSS only) | Media bytes are signed Supabase URLs; no CDN layer. Static JS/CSS served by Vercel Edge CDN only. |
-| 2 | Caching layer (Redis/Memcached) | **Partial** | `challengeStore.js:21-35` — Upstash Redis wired in; `posts.controller.js:213`, `chats.controller.js:104` — bare Prisma queries | Redis present but used only for auth challenge tokens; no feed, profile, or session caching. |
-| 3 | Chunked / resumable media upload | **Absent** | `api.ts:569-573` — single `fetch PUT` to signed URL; `media.routes.js:167-169` — `createSignedUploadUrl` returning a single URL | No chunking, no tus, no multipart. One PUT per file up to 50 MB. |
-| 4 | Real-time message delivery | **Absent** | `messages.$threadId.tsx:64` — `refetchInterval: 2500`; `messages.tsx:125` — `refetchInterval: 4000`; `social.tsx:337` — `refetchInterval: 5000` | Pure HTTP polling. No WebSocket, SSE, MQTT, or socket.io found anywhere in the repo. |
-| 5 | Message queue / async job processing | **Absent** | `posts.controller.js:176-180` — `safeWaitUntil(analyzeAndModeratePost(...))` in-process; `cron.service.js:158-163` — `setInterval` loop | No BullMQ, RabbitMQ, Kafka, or Azure Service Bus. Moderation and cleanup run in-process. |
-| 6 | Thumbnail-first / progressive loading | **Partial** | `mediaProcessor.js:93-121` — ffmpeg extracts `_thumb.jpg`; `media.routes.js:70-80` — `?thumb=true` parameter; `social.tsx:800` — `poster={thumbUrl}` | Video poster thumbnails generated and served. No blur-hash, LQIP, or progressive JPEG for images. |
-| 7 | Database read scaling | **Partial** | `.env.example:5` — `?pgbouncer=true&connection_limit=2`; `pgPool.js:27` — `max: 2`; `schema.prisma:5-9` — single `url` + `directUrl` only | PgBouncer transaction-mode pooling active via Supabase. No read-replica URL. No Prisma read-replica extension. Connection limit set to 2. |
+| 1 | CDN for media delivery | **Absent** | `media.routes.js:103` ï¿½ `Cache-Control: no-store, private`; `VERCEL_DEPLOYMENT.md:15` (static JS/CSS only) | Media bytes are signed Supabase URLs; no CDN layer. Static JS/CSS served by Vercel Edge CDN only. |
+| 2 | Caching layer (Redis/Memcached) | **Partial** | `challengeStore.js:21-35` ï¿½ Upstash Redis wired in; `posts.controller.js:213`, `chats.controller.js:104` ï¿½ bare Prisma queries | Redis present but used only for auth challenge tokens; no feed, profile, or session caching. |
+| 3 | Chunked / resumable media upload | **Absent** | `api.ts:569-573` ï¿½ single `fetch PUT` to signed URL; `media.routes.js:167-169` ï¿½ `createSignedUploadUrl` returning a single URL | No chunking, no tus, no multipart. One PUT per file up to 50 MB. |
+| 4 | Real-time message delivery | **Absent** | `messages.$threadId.tsx:64` ï¿½ `refetchInterval: 2500`; `messages.tsx:125` ï¿½ `refetchInterval: 4000`; `social.tsx:337` ï¿½ `refetchInterval: 5000` | Pure HTTP polling. No WebSocket, SSE, MQTT, or socket.io found anywhere in the repo. |
+| 5 | Message queue / async job processing | **Absent** | `posts.controller.js:176-180` ï¿½ `safeWaitUntil(analyzeAndModeratePost(...))` in-process; `cron.service.js:158-163` ï¿½ `setInterval` loop | No BullMQ, RabbitMQ, Kafka, or Azure Service Bus. Moderation and cleanup run in-process. |
+| 6 | Thumbnail-first / progressive loading | **Partial** | `mediaProcessor.js:93-121` ï¿½ ffmpeg extracts `_thumb.jpg`; `media.routes.js:70-80` ï¿½ `?thumb=true` parameter; `social.tsx:800` ï¿½ `poster={thumbUrl}` | Video poster thumbnails generated and served. No blur-hash, LQIP, or progressive JPEG for images. |
+| 7 | Database read scaling | **Partial** | `.env.example:5` ï¿½ `?pgbouncer=true&connection_limit=2`; `pgPool.js:27` ï¿½ `max: 2`; `schema.prisma:5-9` ï¿½ single `url` + `directUrl` only | PgBouncer transaction-mode pooling active via Supabase. No read-replica URL. No Prisma read-replica extension. Connection limit set to 2. |
 
 ---
 
@@ -109,9 +111,9 @@ const messages = await prisma.message.findMany({
 
 **Verdict: Absent**
 
-The upload flow is a three-step sequence but each step is a single atomic HTTP request — no chunking, tus protocol, or multipart splitting:
+The upload flow is a three-step sequence but each step is a single atomic HTTP request ï¿½ no chunking, tus protocol, or multipart splitting:
 
-**Step 1 — Backend generates a presigned PUT URL:**
+**Step 1 ï¿½ Backend generates a presigned PUT URL:**
 ```js
 // backend/src/routes/media.routes.js : 167-169
 const { data: uploadData, error: uploadError } = await supabase.storage
@@ -119,31 +121,31 @@ const { data: uploadData, error: uploadError } = await supabase.storage
   .createSignedUploadUrl(storagePath);   // Standard Supabase upload URL (not resumable)
 ```
 
-**Step 2 — Frontend sends the entire file in one fetch PUT:**
+**Step 2 ï¿½ Frontend sends the entire file in one fetch PUT:**
 ```ts
 // frontend/src/lib/api.ts : 568-576
 if (initData.signedUrl) {
   const uploadRes = await fetch(initData.signedUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type },
-    body: file,                        // Entire File object — no chunking
+    body: file,                        // Entire File object ï¿½ no chunking
   });
 }
 ```
 
-**Step 3 — Server confirmation (ffprobe + ffmpeg thumbnail):**
+**Step 3 ï¿½ Server confirmation (ffprobe + ffmpeg thumbnail):**
 ```ts
 // frontend/src/lib/api.ts : 581-592
 const confirmRes = await fetch(`${API_BASE}/api/media/confirm`, { ... });
 ```
 
-No `tus` client library, no `@supabase/storage-js` resumable upload API call (`resumableUploadUrl`), no `S3.createMultipartUpload`, and no client-side file splitting were found. The `onProgress` callback in `uploadMedia` reflects three coarse status strings (`"uploading"`, `"processing"`, `"ready"`) tied to full-step completion — not byte-level chunk progress.
+No `tus` client library, no `@supabase/storage-js` resumable upload API call (`resumableUploadUrl`), no `S3.createMultipartUpload`, and no client-side file splitting were found. The `onProgress` callback in `uploadMedia` reflects three coarse status strings (`"uploading"`, `"processing"`, `"ready"`) tied to full-step completion ï¿½ not byte-level chunk progress.
 
 ---
 
 ### 3.4 Real-Time Message Delivery Transport
 
-**Verdict: Absent — mechanism is HTTP polling**
+**Verdict: Absent ï¿½ mechanism is HTTP polling**
 
 A repo-wide regex search across all `.js`/`.ts`/`.tsx` files for `websocket`, `socket.io`, `ws`, `WebSocket`, `SSE`, `EventSource`, `server-sent`, `long-poll` returned **zero results**.
 
@@ -199,7 +201,7 @@ safeWaitUntil(
 );
 ```
 
-`safeWaitUntil` (from `@vercel/functions`) keeps the serverless function alive until the Gemini/Groq API call completes. This is not a queue — it is an in-process async call that holds the function warm. On Docker/Azure Container Apps, it is a bare fire-and-forget promise in the Node.js process with no retry, backpressure, or dead-letter handling.
+`safeWaitUntil` (from `@vercel/functions`) keeps the serverless function alive until the Gemini/Groq API call completes. This is not a queue ï¿½ it is an in-process async call that holds the function warm. On Docker/Azure Container Apps, it is a bare fire-and-forget promise in the Node.js process with no retry, backpressure, or dead-letter handling.
 
 Data retention cleanup runs as a `setInterval` loop inside the main process:
 
@@ -239,9 +241,9 @@ poster={"thumbUrl" in mediaObj ? mediaObj.thumbUrl : undefined}
 ```
 
 **What is absent:**
-- No blur-hash, LQIP, or any placeholder for **images** — images load blank until the signed URL resolves
+- No blur-hash, LQIP, or any placeholder for **images** ï¿½ images load blank until the signed URL resolves
 - No progressive JPEG encoding step in the upload pipeline
-- The thumbnail stream endpoint itself performs a database query (post lookup + moderation check) and a Supabase Storage signed URL generation on every request — no cached poster URL is stored or pre-resolved
+- The thumbnail stream endpoint itself performs a database query (post lookup + moderation check) and a Supabase Storage signed URL generation on every request ï¿½ no cached poster URL is stored or pre-resolved
 
 ---
 
@@ -249,7 +251,7 @@ poster={"thumbUrl" in mediaObj ? mediaObj.thumbUrl : undefined}
 
 **Verdict: Partial**
 
-**Connection Pooling — Present (via Supabase PgBouncer):**
+**Connection Pooling ï¿½ Present (via Supabase PgBouncer):**
 
 `DATABASE_URL` is configured in PgBouncer transaction mode through Supabase's pooler:
 
@@ -273,7 +275,7 @@ export const pgPool = globalForPg.pgPool || new pg.Pool({
 
 Comments in `pgPool.js` explicitly budget for a 2-replica deployment (4 Prisma + 4 rate-limiter = 8 of 15 Supabase free-tier pooler connections).
 
-**Read Replicas — Absent:**
+**Read Replicas ï¿½ Absent:**
 
 `schema.prisma` defines only a single `url` (pooled runtime) and `directUrl` (migrations only). No Prisma read-replica extension, no `READ_REPLICA_URL` env var, and no per-query routing hint exist anywhere in the codebase:
 
@@ -286,7 +288,7 @@ datasource db {
 }
 ```
 
-**Query-Level Caching — Absent:** As documented in section 3.2, no query result is stored in Redis or any other cache layer.
+**Query-Level Caching ï¿½ Absent:** As documented in section 3.2, no query result is stored in Redis or any other cache layer.
 
 ---
 
@@ -298,9 +300,9 @@ Ordered by severity at scale (10,000+ concurrent users), highest to lowest:
 |------|-----------|---------------|
 | ?? **1** | **No real-time message transport** (polling at 2.5s) | At 10k active chat users, `GET /v1/chats/:threadId` generates ~4,000 req/s to Postgres continuously with zero message activity. This alone will saturate the connection pool (hard ceiling: 2 Prisma connections per instance) and crash the database under read lock contention. |
 | ?? **2** | **No caching on feed/profile queries** | Every page load issues multiple multi-join Prisma queries (user + media + sharedPost + reaction count). With zero cache, database CPU scales linearly with concurrent users. The feed and chat list are the most-hit endpoints. |
-| ?? **3** | **No CDN for media** | Every video/image load triggers a serverless function invocation (access check + signed URL generation) before a 302 to Supabase origin. At scale this saturates Vercel's concurrency budget and adds 200–800ms cold-path latency per media load. |
-| ?? **4** | **No chunked/resumable upload** | A 50 MB video upload over a degraded mobile connection fails with no recovery. The `/api/media/confirm` step re-downloads the full video server-side for ffprobe/ffmpeg — doubling bandwidth cost. On Vercel (60s max function duration), large video confirmation will time out. |
-| ?? **5** | **No message queue / async jobs** | On Vercel, `safeWaitUntil` holds function warm for the full Gemini API call (1–5s per post). At 500 posts/min this creates back-pressure on serverless concurrency. Retention cleanup has no durability guarantee across deploys. |
+| ?? **3** | **No CDN for media** | Every video/image load triggers a serverless function invocation (access check + signed URL generation) before a 302 to Supabase origin. At scale this saturates Vercel's concurrency budget and adds 200ï¿½800ms cold-path latency per media load. |
+| ?? **4** | **No chunked/resumable upload** | A 50 MB video upload over a degraded mobile connection fails with no recovery. The `/api/media/confirm` step re-downloads the full video server-side for ffprobe/ffmpeg ï¿½ doubling bandwidth cost. On Vercel (60s max function duration), large video confirmation will time out. |
+| ?? **5** | **No message queue / async jobs** | On Vercel, `safeWaitUntil` holds function warm for the full Gemini API call (1ï¿½5s per post). At 500 posts/min this creates back-pressure on serverless concurrency. Retention cleanup has no durability guarantee across deploys. |
 | ?? **6** | **No read replicas** | All reads hit the single primary through PgBouncer. `connection_limit=2` is the per-instance hard ceiling. Combined with poll-driven chat (Item 1) and uncached feed queries (Item 2), the primary becomes the single failure point for the entire application. |
 | ?? **7** | **Partial thumbnail loading (images lack placeholder)** | Images load blank until the full signed URL resolves. Lower severity because images are typically smaller than videos and load faster, but this produces cumulative layout shift at scale and degrades perceived performance on slow connections. Compounded by the absence of CDN (Item 3). |
 

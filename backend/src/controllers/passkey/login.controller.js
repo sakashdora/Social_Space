@@ -24,16 +24,7 @@ const CHALLENGE_TTL_SECONDS = 5 * 60;
 export async function getLoginOptions(req, res) {
   try {
     const sessionToken = crypto.randomBytes(16).toString("hex");
-    let rpID = env.WEBAUTHN_RP_ID;
-    const requestOrigin = req.get("origin") || req.get("host");
-    if (requestOrigin) {
-      try {
-        const hostname = requestOrigin.includes("://") ? new URL(requestOrigin).hostname : requestOrigin.split(":")[0];
-        if (hostname.endsWith("vercel.app") || hostname === "localhost") {
-          rpID = hostname;
-        }
-      } catch {}
-    }
+    const rpID = env.WEBAUTHN_RP_ID;
 
     const options = await generateAuthenticationOptions({
       rpID,
@@ -62,7 +53,7 @@ export async function verifyLogin(req, res) {
   try {
     const { credential, sessionToken } = req.body;
 
-    const stored = await store.get(`passkey:auth:${sessionToken}`);
+    const stored = await store.take(`passkey:auth:${sessionToken}`);
     if (!stored) {
       return res.status(400).json({
         error: {
@@ -96,21 +87,9 @@ export async function verifyLogin(req, res) {
       });
     }
 
-    const requestOrigin = req.get("origin")?.replace(/\/+$/, "");
-    const expectedOrigins = [env.WEBAUTHN_ORIGIN];
-    if (requestOrigin && !expectedOrigins.includes(requestOrigin)) {
-      expectedOrigins.push(requestOrigin);
-    }
-
-    let expectedRPID = env.WEBAUTHN_RP_ID;
-    if (requestOrigin) {
-      try {
-        const parsed = new URL(requestOrigin);
-        if (parsed.hostname.endsWith("vercel.app") || parsed.hostname === "localhost") {
-          expectedRPID = parsed.hostname;
-        }
-      } catch {}
-    }
+    // Trust configured origins only, never the requesting Origin header.
+    const expectedOrigins = env.WEBAUTHN_ORIGIN.split(",").map(origin => origin.trim().replace(/\/+$/, ""));
+    const expectedRPID = env.WEBAUTHN_RP_ID;
 
     let verification;
     try {
@@ -147,7 +126,7 @@ export async function verifyLogin(req, res) {
     const { newCounter } = verification.authenticationInfo;
 
     // Check for cloned credential: authenticator counter must strictly increase
-    if (newCounter <= Number(passkeyRecord.counter)) {
+    if ((newCounter > 0 || Number(passkeyRecord.counter) > 0) && newCounter <= Number(passkeyRecord.counter)) {
       await prisma.passkey.update({
         where: { id: passkeyRecord.id },
         data: { isRevoked: true },
@@ -173,7 +152,7 @@ export async function verifyLogin(req, res) {
       data: { counter: newCounter, lastUsedAt: new Date() },
     });
 
-    await store.del(`passkey:auth:${sessionToken}`);
+    await prisma.user.update({ where: { id: passkeyRecord.user.id }, data: { lastActiveAt: new Date(), pendingDeletionAt: null } });
     await logSecurityEvent(passkeyRecord.userId, "PASSKEY_LOGIN_SUCCESS", req, { passkeyId: passkeyRecord.id });
 
     const token = generateToken(passkeyRecord.user.id, passkeyRecord.user.tokenVersion);

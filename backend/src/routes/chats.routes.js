@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import { realtimeSession } from "../services/realtime.service.js";
+import { pgRateLimit } from "../config/rateLimiters.js";
 import {
   getChats,
   getChatMessages,
@@ -18,11 +20,12 @@ const router = Router();
 
 // Secure all endpoints with authentication
 router.use(requireAuth);
+router.get("/realtime", realtimeSession);
 
 router.get("/", getChats);
-router.post("/", validateBody(startChatSchema), startChat);
+router.post("/", pgRateLimit("social"), validateBody(startChatSchema), startChat);
 router.get("/:threadId", getChatMessages);
-router.post("/:threadId/messages", validateBody(sendChatMessageSchema), sendChatMessage);
+router.post("/:threadId/messages", pgRateLimit("social"), validateBody(sendChatMessageSchema), sendChatMessage);
 router.patch("/:threadId/timer", validateBody(updateChatTimerSchema), updateChatTimer);
 
 export default router;

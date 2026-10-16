@@ -76,16 +76,28 @@ function LandingPage() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">
+            <a
+              href="#features"
+              className="hover:text-foreground transition-colors"
+            >
               Features
             </a>
-            <a href="#pillars" className="hover:text-foreground transition-colors">
+            <a
+              href="#pillars"
+              className="hover:text-foreground transition-colors"
+            >
               Security
             </a>
-            <Link to="/news" className="hover:text-foreground transition-colors">
+            <Link
+              to="/news"
+              className="hover:text-foreground transition-colors"
+            >
               News
             </Link>
-            <Link to="/social" className="hover:text-foreground transition-colors">
+            <Link
+              to="/social"
+              className="hover:text-foreground transition-colors"
+            >
               Live Feed
             </Link>
           </nav>
@@ -139,15 +151,17 @@ function LandingPage() {
               <h1 className="text-3xl sm:text-5xl lg:text-[3.8rem] font-extrabold tracking-tight text-foreground leading-[1.1]">
                 Connect freely.
                 <br />
-                <span className="text-blue-600 dark:text-[#3b82f6]">No email. No phone.</span>
+                <span className="text-blue-600 dark:text-[#3b82f6]">
+                  No email. No phone.
+                </span>
                 <br />
                 No tracking.
               </h1>
 
               <p className="mt-4 sm:mt-6 text-muted-foreground text-sm sm:text-lg leading-relaxed max-w-xl">
-                Social Space is designed for honest connection. Pick a handle in seconds,
-                share ideas without algorithmic surveillance, and own your identity with
-                pure on-device cryptography.
+                Social Space is designed for honest connection. Pick a handle in
+                seconds, share ideas without algorithmic surveillance, and own
+                your identity with pure on-device cryptography.
               </p>
 
               <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-3.5 sm:gap-4">
@@ -225,15 +239,18 @@ function LandingPage() {
                 {/* Body Content */}
                 <div className="py-5 space-y-4">
                   <p className="text-sm sm:text-base text-foreground leading-relaxed">
-                    "I wrote this post on a device that has never touched my legal identity.
-                    No ad trackers watching my keystrokes, no corporate profiling. Just pure
-                    ideas shared with real minds."
+                    "I wrote this post on a device that has never touched my
+                    legal identity. No ad trackers watching my keystrokes, no
+                    corporate profiling. Just pure ideas shared with real
+                    minds."
                   </p>
 
                   <div className="rounded-2xl border border-border bg-muted/40 p-4 flex items-center gap-3">
                     <Shield className="h-5 w-5 text-emerald-500 shrink-0" />
                     <div className="text-xs text-muted-foreground">
-                      <span className="text-foreground font-medium">On-Device Privacy Confirmed:</span>{" "}
+                      <span className="text-foreground font-medium">
+                        On-Device Privacy Confirmed:
+                      </span>{" "}
                       Zero tracking cookies, client-side cryptographic hashing.
                     </div>
                   </div>
@@ -271,7 +288,10 @@ function LandingPage() {
       </section>
 
       {/* ─── Four Portals Section ──────────────────────────────────────── */}
-      <section id="features" className="relative z-10 py-24 px-6 sm:px-12 border-t border-border bg-muted/20 backdrop-blur-md">
+      <section
+        id="features"
+        className="relative z-10 py-24 px-6 sm:px-12 border-t border-border bg-muted/20 backdrop-blur-md"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-semibold tracking-[0.2em] text-amber-600 dark:text-amber-400 uppercase">
@@ -281,8 +301,8 @@ function LandingPage() {
               Four Portals. One Sovereign Network.
             </h2>
             <p className="text-muted-foreground text-base mt-4 leading-relaxed">
-              Every feature of Social Space is crafted to provide rich, modern utility
-              without compromising user privacy.
+              Every feature of Social Space is crafted to provide rich, modern
+              utility without compromising user privacy.
             </p>
           </div>
 
@@ -300,8 +320,8 @@ function LandingPage() {
                   Social Stream
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-2.5 leading-relaxed">
-                  Chronological feeds filtered by topics: Life, Mental Health, Career,
-                  Ideas, and Confessions. Zero rage-bait algorithms.
+                  Chronological feeds filtered by topics: Life, Mental Health,
+                  Career, Ideas, and Confessions. Zero rage-bait algorithms.
                 </p>
               </div>
               <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
@@ -346,8 +366,8 @@ function LandingPage() {
                   Media Portal
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-2.5 leading-relaxed">
-                  Fluid, high-performance video player. Enjoy community clips and
-                  stories without behavioral tracking or intrusive ads.
+                  Fluid, high-performance video player. Enjoy community clips
+                  and stories without behavioral tracking or intrusive ads.
                 </p>
               </div>
               <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
@@ -369,8 +389,8 @@ function LandingPage() {
                   Encrypted Chats
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-2.5 leading-relaxed">
-                  WebCrypto ECDH end-to-end encrypted direct messaging. Ephemeral
-                  countdown timers ensure chats vanish automatically.
+                  WebCrypto ECDH end-to-end encrypted direct messaging.
+                  Ephemeral countdown timers ensure chats vanish automatically.
                 </p>
               </div>
               <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
@@ -394,9 +414,10 @@ function LandingPage() {
                 Built to protect your real identity at all costs.
               </h2>
               <p className="text-muted-foreground text-base sm:text-lg mt-5 leading-relaxed">
-                Traditional social platforms treat user data as their commodity. Social Space
-                is engineered with non-custodial cryptography so we cannot sell or surrender
-                what we never collected in the first place.
+                Traditional social platforms treat user data as their commodity.
+                Social Space is engineered with non-custodial cryptography so we
+                cannot sell or surrender what we never collected in the first
+                place.
               </p>
 
               <div className="mt-8 space-y-4">
@@ -407,8 +428,8 @@ function LandingPage() {
                       Argon2id & Shannon Entropy
                     </h4>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Your passphrase is password-derived locally with memory-hard hashing.
-                      We store zero plaintext passwords.
+                      Your passphrase is password-derived locally with
+                      memory-hard hashing. We store zero plaintext passwords.
                     </p>
                   </div>
                 </div>
@@ -420,8 +441,8 @@ function LandingPage() {
                       FIDO2 / WebAuthn Passkeys
                     </h4>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Sign in instantly with Face ID, Touch ID, or Windows Hello.
-                      Phishing-resistant, hardware-level security.
+                      Sign in instantly with Face ID, Touch ID, or Windows
+                      Hello. Phishing-resistant, hardware-level security.
                     </p>
                   </div>
                 </div>
@@ -433,8 +454,8 @@ function LandingPage() {
                       On-Device Media Anonymization
                     </h4>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Upload photos with automated on-device face pixelation before
-                      transmission to prevent biometric facial tracking.
+                      Upload photos with automated on-device face pixelation
+                      before transmission to prevent biometric facial tracking.
                     </p>
                   </div>
                 </div>
@@ -486,7 +507,9 @@ function LandingPage() {
           <div className="flex items-center gap-3">
             <SocialSpaceEmblem className="h-7 w-7" />
             <div className="flex flex-col">
-              <span className="font-bold text-foreground text-base">Social Space</span>
+              <span className="font-bold text-foreground text-base">
+                Social Space
+              </span>
               <span className="text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
                 CONNECT · SHARE · BE YOURSELF
               </span>

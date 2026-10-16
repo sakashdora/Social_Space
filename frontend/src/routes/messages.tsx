@@ -14,8 +14,10 @@ import {
   getMe,
   updateChatPublicKey,
   getCurrentUser,
-  threadKeyCache,
+  clearThreadKeyCache,
+  decryptChatMessage,
 } from "@/lib/api";
+import { useChatRealtime } from "@/hooks/useChatRealtime";
 import { useAuth } from "@/hooks/useAuth";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,7 +29,7 @@ export const Route = createFileRoute("/messages")({
       {
         name: "description",
         content:
-          "End-to-end encrypted 1:1 messaging. Sealed sender. Per-thread disappearing timers.",
+          "End-to-end encrypted 1:1 messaging. Encrypted text and attachments. Per-thread disappearing timers.",
       },
       { property: "og:title", content: "Messages — Veil" },
     ],
@@ -45,6 +47,7 @@ function MessagesLayout() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showKeyResetDialog, setShowKeyResetDialog] = useState(false);
   const { user, isAuthenticated: authed } = useAuth();
+  const realtime = useChatRealtime(authed);
 
   const { data: me } = useQuery({
     queryKey: ["me"],
@@ -80,7 +83,12 @@ function MessagesLayout() {
             console.warn(
               "Key loss detected: Local key is missing, but registered on server.",
             );
-            setShowKeyResetDialog(true);
+            const previous = await getKeyRecord(
+              activeUser.id,
+              activeUser.chatPublicKey,
+            );
+            if (previous) await saveKeyRecord(activeUser.id, previous);
+            else setShowKeyResetDialog(true);
           }
         } else {
           if (!activeUser.chatPublicKey) {
@@ -114,12 +122,16 @@ function MessagesLayout() {
         publicKeyBase64: pubKeyB64,
       });
       await updateChatPublicKey(pubKeyB64);
+      clearThreadKeyCache();
       setShowKeyResetDialog(false);
       queryClient.invalidateQueries({ queryKey: ["me"] });
       queryClient.invalidateQueries({ queryKey: ["chatMessages"] });
     } catch (err: any) {
       console.error("Failed to reset keys:", err);
-      setErrorMsg("Failed to reset chat keys.");
+      setErrorMsg(
+        "Could not confirm the key update. Retry after checking your connection.",
+      );
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
     }
   };
 
@@ -127,7 +139,8 @@ function MessagesLayout() {
     queryKey: ["chats"],
     queryFn: fetchChats,
     enabled: authed,
-    refetchInterval: authed ? 4000 : false,
+    refetchInterval: authed ? (realtime ? 30000 : 5000) : false,
+    refetchIntervalInBackground: false,
   });
 
   const createChatMutation = useMutation({
@@ -183,7 +196,9 @@ function MessagesLayout() {
           className="shrink-0 px-4 py-3 border-b border-border"
         >
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/40 border border-border focus-within:border-amber-500/40 focus-within:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all">
-            <span className="text-xs text-amber-600 dark:text-amber-400 select-none">@</span>
+            <span className="text-xs text-amber-600 dark:text-amber-400 select-none">
+              @
+            </span>
             <input
               type="text"
               placeholder="Chat with @handle..."
@@ -230,7 +245,8 @@ function MessagesLayout() {
           ) : !authed ? (
             <div className="flex h-48 flex-col items-center justify-center text-center px-4 space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Sign in or create a handle to access end-to-end encrypted direct messaging.
+                Sign in or create a handle to access end-to-end encrypted direct
+                messaging.
               </p>
               <Link
                 to="/onboarding"
@@ -299,6 +315,7 @@ function MessagesLayout() {
                         </div>
                         <ThreadPreview
                           preview={t.preview}
+                          mine={t.previewMine}
                           threadId={t.id}
                           recipientId={t.recipientId}
                         />
@@ -375,84 +392,34 @@ function ThreadPreview({
   preview,
   threadId,
   recipientId,
+  mine = false,
 }: {
+  mine?: boolean;
   preview: string;
   threadId: string;
   recipientId: string;
 }) {
-  const [decryptedText, setDecryptedText] = useState("Encrypted Message");
-
+  const [decryptedText, setDecryptedText] = useState("Encrypted message");
   React.useEffect(() => {
-    if (!preview) {
-      setDecryptedText("No messages yet");
-      return;
-    }
-    if (preview === "No messages yet") {
-      setDecryptedText("No messages yet");
-      return;
-    }
-
     let active = true;
-
-    async function decryptPreview() {
-      try {
-        const parsed = JSON.parse(preview);
-        if (!parsed || !parsed.ciphertext || !parsed.iv) {
-          setDecryptedText(preview);
-          return;
-        }
-
-        const sender = getCurrentUser();
-        if (!sender) return;
-
-        const {
-          getKeyRecord,
-          importPublicKeyBase64,
-          deriveSharedAesKey,
-          decryptText,
-        } = await import("@/lib/crypto");
-        const record = await getKeyRecord(sender.id);
-        if (!record) {
-          if (active) setDecryptedText("Encrypted Message");
-          return;
-        }
-
-        let aesKey = threadKeyCache[threadId];
-        if (!aesKey) {
-          const { getUserPublicKey } = await import("@/lib/api");
-          const recipientKeyData = await getUserPublicKey(recipientId);
-          if (recipientKeyData && recipientKeyData.chatPublicKey) {
-            const recipientPubKey = await importPublicKeyBase64(
-              recipientKeyData.chatPublicKey,
-            );
-            aesKey = await deriveSharedAesKey(
-              record.privateKey,
-              recipientPubKey,
-            );
-            threadKeyCache[threadId] = aesKey;
-          }
-        }
-
-        if (aesKey && active) {
-          const decrypted = await decryptText(
-            parsed.ciphertext,
-            parsed.iv,
-            aesKey,
-          );
-          setDecryptedText(decrypted);
-        }
-      } catch (err) {
-        if (active) setDecryptedText("Encrypted Message");
-      }
+    if (!preview || preview === "No messages yet") {
+      setDecryptedText("No messages yet");
+      return;
     }
-
-    decryptPreview();
-
+    void decryptChatMessage(threadId, { body: preview, mine }, recipientId)
+      .then((message) => {
+        if (active) setDecryptedText(message.body || "Encrypted attachment");
+      })
+      .catch(() => {
+        if (active)
+          setDecryptedText(
+            "Encrypted message — key unavailable on this device",
+          );
+      });
     return () => {
       active = false;
     };
-  }, [preview, threadId, recipientId]);
-
+  }, [preview, threadId, recipientId, mine]);
   return (
     <p className="mt-0.5 truncate text-xs text-muted-foreground/80">
       {decryptedText}

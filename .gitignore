@@ -1,7 +1,6 @@
 # Dependencies
 node_modules/
 **/node_modules/
-/package-lock.json
 
 # Environment variables
 .env
@@ -9,6 +8,7 @@ node_modules/
 !.env.example
 **/.*env
 **/.*env.*
+!**/.env.example
 
 # Python Virtual Environments
 venv/

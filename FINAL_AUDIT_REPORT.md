@@ -1,3 +1,5 @@
+> Historical report: this document predates the October 2026 repairs. Its scores and readiness claims are not current. See [REMEDIATION.md](REMEDIATION.md) and [SECURITY.md](SECURITY.md) for verified status and limitations.
+
 # Final Production Audit Report — VEIL Social Space
 
 This document presents a comprehensive technical audit, file cleanup, dependency, and deployment review of the VEIL Anonymous AI Social Space codebase prior to its final release.

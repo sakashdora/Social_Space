@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { runRetentionCleanup } from "../services/cron.service.js";
+import { timingSafeEqual } from "node:crypto";
 
 const router = Router();
 
@@ -11,15 +12,12 @@ const router = Router();
  * Vercel automatically sends `x-vercel-cron: 1` header on scheduled invocations.
  */
 async function handleRetentionCron(req, res) {
-  const isVercelCron = req.headers["x-vercel-cron"] === "1" || req.headers["x-vercel-cron"] === "true";
   const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers.authorization;
-
-  // Verify request authenticity if CRON_SECRET is configured
-  if (cronSecret && !isVercelCron) {
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return res.status(401).json({ error: "Unauthorized cron trigger" });
-    }
+  if (!cronSecret) return res.status(503).json({ error: "Retention authentication is not configured." });
+  const actual = Buffer.from(req.headers.authorization || "");
+  const expected = Buffer.from(`Bearer ${cronSecret}`);
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+    return res.status(401).json({ error: "Unauthorized cron trigger" });
   }
 
   try {

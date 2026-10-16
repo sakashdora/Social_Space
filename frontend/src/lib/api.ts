@@ -1,13 +1,24 @@
-const API_BASE = import.meta.env.VITE_API_URL || "";
+export const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+export const resolveMediaUrl = (url?: string | null) =>
+  url?.startsWith("/") ? `${API_BASE}${url}` : url || null;
 
 export interface SentimentAnalysis {
   sentiment: string;
   score: number;
 }
 
-export type MediaKind = "image" | "video" | "unknown";
+export type MediaKind = "image" | "video" | "audio" | "unknown";
 
 export interface ApiPost {
+  canDelete?: boolean;
+  audience?: string;
+  expiresAt?: string | null;
+  allowReplies?: boolean;
+  allowReactions?: boolean;
+  allowReposts?: boolean;
+  anonymousReplies?: boolean;
+  pollOptions?: { text: string; votes: number }[];
+  votedOption?: number | null;
   id: string;
   userId: string | null;
   content: string;
@@ -29,7 +40,7 @@ export interface ApiPost {
     avatarUrl: string | null;
   } | null;
   media?: {
-    type: "IMAGE" | "VIDEO";
+    type: "IMAGE" | "VIDEO" | "AUDIO";
     thumbnailPath: string | null;
   } | null;
   reactionCount?: number;
@@ -57,7 +68,8 @@ export function detectMediaType(url?: string | null): MediaKind {
   if (!url) return "unknown";
   if (url.startsWith("data:video/")) return "video";
   if (url.startsWith("data:image/")) return "image";
-  if (url.includes("/api/media/stream") && url.includes("thumb=true")) return "image";
+  if (url.includes("/api/media/stream") && url.includes("thumb=true"))
+    return "image";
 
   const path = url.split("?")[0].split("#")[0].toLowerCase();
   const ext = path.split(".").pop() || "";
@@ -99,6 +111,7 @@ export interface ApiUser {
   pendingDeletionAt: string | null;
   chatPublicKey: string | null;
   chatPublicKeyAlgo: string | null;
+  isModerator?: boolean;
 }
 
 function stringToColor(str: string): string {
@@ -139,22 +152,41 @@ export function mapApiPostToUiPost(p: ApiPost & { userHasReacted?: boolean }) {
   const handle = p.user ? `@${p.user.handle}` : "@anonymous";
   const color = p.user ? stringToColor(p.user.handle) : "#555555"; // Dark gray for fully anonymous
 
-  const streamUrl = p.mediaStreamUrl || (p.mediaUrl?.startsWith("/api/media/stream") ? p.mediaUrl : null);
+  const streamUrl = resolveMediaUrl(
+    p.mediaStreamUrl ||
+      (p.mediaUrl?.startsWith("/api/media/stream") ? p.mediaUrl : null),
+  );
   const isVideoMedia = p.media?.type === "VIDEO" || p.category === "Video";
 
   return {
     id: p.id,
     author,
+    canDelete: p.canDelete ?? false,
+    audience: p.audience,
+    expiresAt: p.expiresAt,
+    allowReplies: p.allowReplies ?? true,
+    allowReactions: p.allowReactions ?? true,
+    allowReposts: p.allowReposts ?? true,
+    anonymousReplies: p.anonymousReplies ?? false,
+    pollOptions: p.pollOptions ?? [],
+    votedOption: p.votedOption ?? null,
     color,
     handle,
     topic: p.category,
     time: formatRelativeTime(p.createdAt),
     body: p.content,
-    media: (streamUrl || p.mediaUrl) ? "portrait" : null,
+    media: streamUrl || p.mediaUrl ? "portrait" : null,
     mediaUrl: streamUrl || p.mediaUrl || null,
     mediaStreamUrl: streamUrl || null,
-    thumbStreamUrl: p.thumbStreamUrl || (streamUrl ? `${streamUrl}?thumb=true` : null),
-    mediaType: isVideoMedia ? "video" : (p.media?.type === "IMAGE" ? "image" : detectMediaType(p.mediaUrl)),
+    thumbStreamUrl: resolveMediaUrl(p.thumbStreamUrl),
+    mediaType:
+      p.media?.type === "AUDIO"
+        ? "audio"
+        : isVideoMedia
+          ? "video"
+          : p.media?.type === "IMAGE"
+            ? "image"
+            : detectMediaType(p.mediaUrl),
     sentimentAnalysis: p.sentimentAnalysis
       ? typeof p.sentimentAnalysis === "string"
         ? JSON.parse(p.sentimentAnalysis)
@@ -165,21 +197,24 @@ export function mapApiPostToUiPost(p: ApiPost & { userHasReacted?: boolean }) {
     replies: p.commentCount || 0,
     userHasReacted: p.userHasReacted ?? false,
     sharedPostId: p.sharedPostId || null,
-    sharedPost: p.sharedPost ? {
-      id: p.sharedPost.id,
-      author: p.sharedPost.user ? p.sharedPost.user.handle : "anonymous",
-      handle: p.sharedPost.user ? `@${p.sharedPost.user.handle}` : "@anonymous",
-      topic: p.sharedPost.category,
-      time: formatRelativeTime(p.sharedPost.createdAt),
-      body: p.sharedPost.content,
-      mediaUrl: p.sharedPost.mediaStreamUrl || null,
-    } : null,
+    sharedPost: p.sharedPost
+      ? {
+          id: p.sharedPost.id,
+          author: p.sharedPost.user ? p.sharedPost.user.handle : "anonymous",
+          handle: p.sharedPost.user
+            ? `@${p.sharedPost.user.handle}`
+            : "@anonymous",
+          topic: p.sharedPost.category,
+          time: formatRelativeTime(p.sharedPost.createdAt),
+          body: p.sharedPost.content,
+          mediaUrl: resolveMediaUrl(p.sharedPost.mediaStreamUrl),
+        }
+      : null,
   };
 }
 
-
 // Helper to get auth header
-function getHeaders(
+export function getHeaders(
   extraHeaders: Record<string, string> = {},
 ): Record<string, string> {
   const headers: Record<string, string> = {
@@ -197,10 +232,10 @@ function getHeaders(
 }
 
 // Check response status
-async function handleResponse(response: Response) {
+export async function handleResponse(response: Response) {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    let msg =
+    const msg =
       errorData.message ||
       (typeof errorData.error === "string"
         ? errorData.error
@@ -219,6 +254,7 @@ export function notifyAuthChange() {
 
 export function setAuthSession(token: string, user?: any) {
   if (typeof window === "undefined") return;
+  clearThreadKeyCache();
   localStorage.setItem("veil_auth_token", token);
   if (user) {
     localStorage.setItem("veil_user", JSON.stringify(user));
@@ -263,6 +299,7 @@ export async function loginUser(handle: string, passphrase: string) {
  */
 export function logoutUser() {
   if (typeof window === "undefined") return;
+  clearThreadKeyCache();
   localStorage.removeItem("veil_auth_token");
   localStorage.removeItem("veil_user");
   notifyAuthChange();
@@ -274,7 +311,11 @@ export function logoutUser() {
 export function getCurrentUser() {
   if (typeof window === "undefined") return null;
   const user = localStorage.getItem("veil_user");
-  return user ? JSON.parse(user) : null;
+  try {
+    return user ? JSON.parse(user) : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -291,7 +332,12 @@ export function isAuthenticated() {
 export async function fetchFeed(
   category?: string,
   page?: number,
-  filters?: { handle?: string; userId?: string; hasMedia?: boolean },
+  filters?: {
+    handle?: string;
+    userId?: string;
+    hasMedia?: boolean;
+    mine?: boolean;
+  },
 ) {
   let url = `${API_BASE}/v1/posts`;
   const params = new URLSearchParams();
@@ -310,6 +356,7 @@ export async function fetchFeed(
   if (filters?.hasMedia) {
     params.append("hasMedia", "true");
   }
+  if (filters?.mine) params.append("mine", "true");
   const queryString = params.toString();
   if (queryString) {
     url += `?${queryString}`;
@@ -330,9 +377,14 @@ export async function fetchPostDetails(postId: string) {
     headers: getHeaders(),
   });
   const post = await handleResponse(res);
+  const comments = await handleResponse(
+    await fetch(`${API_BASE}/v1/posts/${postId}/comments`, {
+      headers: getHeaders(),
+    }),
+  );
   return {
     ...mapApiPostToUiPost(post),
-    comments: post.comments || [],
+    comments,
   };
 }
 
@@ -353,8 +405,21 @@ export async function createPost(
       }
     | null,
   sharedPostId?: string | null,
+  options: {
+    audience?: string;
+    lifetime?: string;
+    selectedHandles?: string[];
+    engagement?: Record<string, boolean>;
+    pollOptions?: string[];
+    isAiModifiedMedia?: boolean;
+  } = {},
 ) {
-  let bodyPayload: Record<string, any> = { content, category, mode };
+  let bodyPayload: Record<string, any> = {
+    content,
+    category,
+    mode,
+    ...options,
+  };
   if (sharedPostId) {
     bodyPayload.sharedPostId = sharedPostId;
   }
@@ -381,11 +446,13 @@ export async function createPost(
  */
 export async function repostPost(postId: string, comment?: string) {
   return createPost(
-    comment && comment.trim().length > 0 ? comment.trim() : "Transmitted via Repost",
+    comment && comment.trim().length > 0
+      ? comment.trim()
+      : "Transmitted via Repost",
     "General",
     "pseudo",
     null,
-    postId
+    postId,
   );
 }
 
@@ -489,7 +556,9 @@ export async function getSuggestions(text: string) {
  * Client-side estimated duration check (UX-only, fast rejection before upload).
  * Never sent to backend as authoritative value.
  */
-export async function getVideoDurationInBrowser(file: File): Promise<number | null> {
+export async function getVideoDurationInBrowser(
+  file: File,
+): Promise<number | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
     video.preload = "metadata";
@@ -516,7 +585,9 @@ export async function getVideoDurationInBrowser(file: File): Promise<number | nu
  * Captures a local canvas frame (~0.5s) for instant client UI feedback in composer.
  * This preview is NEVER uploaded to the server.
  */
-export async function captureLocalVideoFrame(file: File): Promise<string | null> {
+export async function captureLocalVideoFrame(
+  file: File,
+): Promise<string | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
     video.preload = "metadata";
@@ -561,9 +632,9 @@ export async function captureLocalVideoFrame(file: File): Promise<string | null>
 
 export interface UploadMediaResult {
   mediaId: string;
-  storagePath: string;
-  thumbStoragePath: string | null;
-  type: "video" | "image";
+  storagePath?: string;
+  thumbStoragePath?: string | null;
+  type: MediaKind;
   url?: string;
 }
 
@@ -574,10 +645,13 @@ export interface UploadMediaResult {
 export async function uploadMedia(
   file: File,
   onProgress?: (status: "uploading" | "processing" | "ready") => void,
+  options: { purpose?: "post" | "chat"; threadId?: string } = {},
 ): Promise<UploadMediaResult> {
   // Fast client UX check
   if (file.size > 52428800) {
-    throw new Error("File exceeds 50MB limit. Please select a smaller media file.");
+    throw new Error(
+      "File exceeds 50MB limit. Please select a smaller media file.",
+    );
   }
 
   onProgress?.("uploading");
@@ -587,6 +661,7 @@ export async function uploadMedia(
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({
+      ...options,
       filename: file.name,
       mimeType: file.type,
       sizeBytes: file.size,
@@ -595,6 +670,7 @@ export async function uploadMedia(
   const initData = await handleResponse(initRes);
 
   // Step 2: Direct storage upload to Supabase
+  if (!initData.signedUrl) throw new Error("Storage upload is unavailable.");
   if (initData.signedUrl) {
     const uploadRes = await fetch(initData.signedUrl, {
       method: "PUT",
@@ -602,7 +678,9 @@ export async function uploadMedia(
       body: file,
     });
     if (!uploadRes.ok) {
-      throw new Error(`Direct storage upload failed with status ${uploadRes.status}`);
+      throw new Error(
+        `Direct storage upload failed with status ${uploadRes.status}`,
+      );
     }
   }
 
@@ -614,18 +692,19 @@ export async function uploadMedia(
     headers: getHeaders(),
     body: JSON.stringify({
       mediaId: initData.mediaId,
-      storagePath: initData.storagePath,
-      mimeType: file.type,
-      sizeBytes: file.size,
     }),
   });
   const confirmData = await handleResponse(confirmRes);
   onProgress?.("ready");
 
-  const serverType: "video" | "image" =
-    confirmData?.type === "VIDEO" || file.type.startsWith("video/")
-      ? "video"
-      : "image";
+  const serverType: MediaKind =
+    confirmData?.type === "AUDIO"
+      ? "audio"
+      : confirmData?.type === "FILE"
+        ? "unknown"
+        : confirmData?.type === "VIDEO" || file.type.startsWith("video/")
+          ? "video"
+          : "image";
 
   return {
     mediaId: confirmData.mediaId || initData.mediaId,
@@ -645,75 +724,208 @@ export async function fetchChats() {
   return handleResponse(res);
 }
 
-export async function fetchChatMessages(threadId: string) {
-  const res = await fetch(`${API_BASE}/v1/chats/${threadId}`, {
-    headers: getHeaders(),
-  });
-  return handleResponse(res);
+export interface ChatAttachment {
+  mediaId: string;
+  key: string;
+  iv: string;
+  mimeType: string;
+  name: string;
+  previewUrl?: string;
+}
+
+export async function fetchChatMessages(
+  threadId: string,
+  cursor?: { before?: string; after?: string },
+) {
+  const params = new URLSearchParams(
+    cursor as Record<string, string> | undefined,
+  );
+  return handleResponse(
+    await fetch(`${API_BASE}/v1/chats/${threadId}?${params}`, {
+      headers: getHeaders(),
+    }),
+  );
 }
 
 export async function createChat(targetHandle: string) {
-  const res = await fetch(`${API_BASE}/v1/chats`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ targetHandle }),
-  });
-  return handleResponse(res);
+  return handleResponse(
+    await fetch(`${API_BASE}/v1/chats`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ targetHandle }),
+    }),
+  );
 }
 
 export const threadKeyCache: Record<string, CryptoKey> = {};
-
 export function clearThreadKeyCache() {
-  for (const k in threadKeyCache) {
-    delete threadKeyCache[k];
-  }
+  for (const key of Object.keys(threadKeyCache)) delete threadKeyCache[key];
+}
+
+export async function uploadChatAttachment(
+  file: File,
+  threadId: string,
+): Promise<ChatAttachment> {
+  if (
+    !/^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm)|audio\/(webm|ogg|mp4))$/.test(
+      file.type,
+    )
+  )
+    throw new Error("Choose a supported image, video or audio file.");
+  if (file.size > 50 * 1024 * 1024 - 16)
+    throw new Error("Attachment exceeds 50 MB.");
+  const { encryptAttachment } = await import("./crypto");
+  const encrypted = await encryptAttachment(await file.arrayBuffer());
+  const uploaded = await uploadMedia(
+    new File([encrypted.bytes], "attachment.bin", {
+      type: "application/octet-stream",
+    }),
+    undefined,
+    { purpose: "chat", threadId },
+  );
+  return {
+    mediaId: uploaded.mediaId,
+    key: encrypted.key,
+    iv: encrypted.iv,
+    mimeType: file.type,
+    name: file.name,
+    previewUrl: URL.createObjectURL(file),
+  };
 }
 
 export async function sendChatMessage(
   threadId: string,
   body: string,
   recipientId: string,
-  mediaUrl: string | null = null,
+  attachment: ChatAttachment | null = null,
 ) {
-  let aesKey = threadKeyCache[threadId];
-  if (!aesKey) {
-    const sender = getCurrentUser();
-    if (!sender) throw new Error("User not authenticated.");
-
-    const { getKeyRecord, importPublicKeyBase64, deriveSharedAesKey } =
-      await import("./crypto");
-    const record = await getKeyRecord(sender.id);
-    if (!record) {
-      throw new Error(
-        "Secure chat keys missing locally. Reset your keys in the messaging side panel.",
-      );
-    }
-
-    const recipientKeyData = await getUserPublicKey(recipientId);
-    if (!recipientKeyData || !recipientKeyData.chatPublicKey) {
-      throw new Error("Recipient has not set up secure chat keys yet.");
-    }
-
-    const recipientPubKey = await importPublicKeyBase64(
-      recipientKeyData.chatPublicKey,
+  if (body.length > 5000)
+    throw new Error("Messages are limited to 5,000 characters.");
+  const sender = getCurrentUser();
+  if (!sender) throw new Error("Sign in to send a message.");
+  const {
+    getKeyRecord,
+    importPublicKeyBase64,
+    deriveSharedAesKey,
+    encryptText,
+  } = await import("./crypto");
+  const record = await getKeyRecord(sender.id);
+  if (!record)
+    throw new Error(
+      "Chat keys are missing on this device. Open Messages to set them up.",
     );
-    aesKey = await deriveSharedAesKey(record.privateKey, recipientPubKey);
-    threadKeyCache[threadId] = aesKey;
-  }
+  const recipient = await getUserPublicKey(recipientId);
+  if (!recipient?.chatPublicKey)
+    throw new Error("The recipient has not set up chat keys yet.");
+  const senderKey = record.publicKeyBase64,
+    recipientKey = recipient.chatPublicKey;
+  const cacheKey = [sender.id, threadId, senderKey, recipientKey].join(":");
+  const aesKey = (threadKeyCache[cacheKey] ||= await deriveSharedAesKey(
+    record.privateKey,
+    await importPublicKeyBase64(recipientKey),
+  ));
+  const attachmentData = attachment
+    ? {
+        mediaId: attachment.mediaId,
+        key: attachment.key,
+        iv: attachment.iv,
+        mimeType: attachment.mimeType,
+        name: attachment.name,
+      }
+    : null;
+  const encrypted = await encryptText(
+    JSON.stringify({ text: body, attachment: attachmentData }),
+    aesKey,
+    [threadId, senderKey, recipientKey].join("|"),
+  );
+  const envelope = { v: 2, ...encrypted, senderKey, recipientKey };
+  return handleResponse(
+    await fetch(`${API_BASE}/v1/chats/${threadId}/messages`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        body: JSON.stringify(envelope),
+        mediaId: attachment?.mediaId || null,
+      }),
+    }),
+  );
+}
 
-  const { encryptText } = await import("./crypto");
-  const encrypted = await encryptText(body, aesKey);
-  const ciphertextPayload = JSON.stringify({
-    ciphertext: encrypted.ciphertext,
-    iv: encrypted.iv,
-  });
+export async function decryptChatMessage(
+  threadId: string,
+  message: any,
+  recipientId: string,
+) {
+  if (message.sending) return message;
+  const user = getCurrentUser();
+  if (!user) throw new Error("Sign in to read messages.");
+  const {
+    getKeyRecord,
+    importPublicKeyBase64,
+    deriveSharedAesKey,
+    decryptText,
+  } = await import("./crypto");
+  const envelope = JSON.parse(message.body);
+  const ownPublicKey =
+    envelope.v === 2
+      ? message.mine
+        ? envelope.senderKey
+        : envelope.recipientKey
+      : undefined;
+  const peerPublicKey =
+    envelope.v === 2
+      ? message.mine
+        ? envelope.recipientKey
+        : envelope.senderKey
+      : (await getUserPublicKey(recipientId)).chatPublicKey;
+  const record = await getKeyRecord(user.id, ownPublicKey);
+  if (!record || !peerPublicKey)
+    throw new Error("The key for this message is unavailable on this device.");
+  const cacheKey = [
+    user.id,
+    threadId,
+    record.publicKeyBase64,
+    peerPublicKey,
+  ].join(":");
+  const key = (threadKeyCache[cacheKey] ||= await deriveSharedAesKey(
+    record.privateKey,
+    await importPublicKeyBase64(peerPublicKey),
+  ));
+  const plaintext = await decryptText(
+    envelope.ciphertext,
+    envelope.iv,
+    key,
+    envelope.v === 2
+      ? [threadId, envelope.senderKey, envelope.recipientKey].join("|")
+      : undefined,
+  );
+  if (envelope.v !== 2) return { ...message, body: plaintext };
+  const content = JSON.parse(plaintext);
+  return {
+    ...message,
+    body: content.text || "",
+    attachment:
+      content.attachment?.mediaId === message.mediaId
+        ? content.attachment
+        : null,
+  };
+}
 
-  const res = await fetch(`${API_BASE}/v1/chats/${threadId}/messages`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ body: ciphertextPayload, mediaUrl }),
-  });
-  return handleResponse(res);
+export async function downloadChatAttachment(attachment: ChatAttachment) {
+  const ticket = await handleResponse(
+    await fetch(`${API_BASE}/api/media/attachments/${attachment.mediaId}`, {
+      headers: getHeaders(),
+    }),
+  );
+  const response = await fetch(ticket.url);
+  if (!response.ok) throw new Error("Attachment is unavailable.");
+  const { decryptAttachment } = await import("./crypto");
+  const bytes = await decryptAttachment(
+    await response.arrayBuffer(),
+    attachment.key,
+    attachment.iv,
+  );
+  return URL.createObjectURL(new Blob([bytes], { type: attachment.mimeType }));
 }
 
 export async function updateChatTimer(threadId: string, seconds: number) {
@@ -789,6 +1001,7 @@ export async function regenerateRecoveryCodes(currentPassphrase: string) {
 }
 
 export async function deleteAccount(currentPassphrase: string) {
+  const userId = getCurrentUser()?.id;
   const res = await fetch(`${API_BASE}/v1/auth/account`, {
     method: "DELETE",
     headers: getHeaders(),
@@ -796,6 +1009,11 @@ export async function deleteAccount(currentPassphrase: string) {
   });
   const data = await handleResponse(res);
   logoutUser();
+  if (userId) {
+    const { deletePrivateKey } = await import("./crypto");
+    await deletePrivateKey(userId).catch(() => undefined);
+    localStorage.removeItem(`veil_bookmarks_${userId}`);
+  }
   return data;
 }
 
@@ -897,6 +1115,7 @@ export async function removePasskey(id: string, currentPassphrase: string) {
 /** Current user profile (includes pendingDeletionAt) */
 export async function getMe(): Promise<{
   id: string;
+  isModerator: boolean;
   handle: string;
   createdAt: string;
   pendingDeletionAt: string | null;
@@ -961,6 +1180,7 @@ export interface TrendingTopic {
 }
 
 export interface WhoToFollowUser {
+  following: boolean;
   name: string;
   handle: string;
   color: string;
@@ -978,4 +1198,35 @@ export async function fetchWhoToFollow(): Promise<WhoToFollowUser[]> {
     headers: getHeaders(),
   });
   return handleResponse(res);
+}
+
+export async function communityRequest(
+  path: string,
+  data?: unknown,
+  method = "POST",
+) {
+  return handleResponse(
+    await fetch(`${API_BASE}/v1/community/${path}`, {
+      method: data === undefined ? "GET" : method,
+      headers: getHeaders(),
+      ...(data === undefined ? {} : { body: JSON.stringify(data) }),
+    }),
+  );
+}
+export async function followUser(handle: string, following: boolean) {
+  return handleResponse(
+    await fetch(
+      `${API_BASE}/v1/users/${encodeURIComponent(handle.replace(/^@/, ""))}/follow`,
+      { method: following ? "PUT" : "DELETE", headers: getHeaders() },
+    ),
+  );
+}
+export async function voteOnPoll(postId: string, optionIndex: number) {
+  return handleResponse(
+    await fetch(`${API_BASE}/v1/posts/${postId}/vote`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ optionIndex }),
+    }),
+  );
 }

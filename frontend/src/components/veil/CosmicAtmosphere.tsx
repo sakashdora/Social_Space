@@ -43,16 +43,36 @@ export function CosmicAtmosphere() {
           {/* Horizon Rim Light Gradient */}
           <linearGradient id="horizonGlow" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#d97706" stopOpacity="0.1" />
-            <stop offset="35%" stopColor="#f59e0b" stopOpacity={isLight ? "0.6" : "0.4"} />
-            <stop offset="50%" stopColor="#fef08a" stopOpacity={isLight ? "0.95" : "0.8"} />
-            <stop offset="65%" stopColor="#f59e0b" stopOpacity={isLight ? "0.7" : "0.5"} />
+            <stop
+              offset="35%"
+              stopColor="#f59e0b"
+              stopOpacity={isLight ? "0.6" : "0.4"}
+            />
+            <stop
+              offset="50%"
+              stopColor="#fef08a"
+              stopOpacity={isLight ? "0.95" : "0.8"}
+            />
+            <stop
+              offset="65%"
+              stopColor="#f59e0b"
+              stopOpacity={isLight ? "0.7" : "0.5"}
+            />
             <stop offset="100%" stopColor="#b45309" stopOpacity="0.15" />
           </linearGradient>
 
           {/* Golden Orbit Ring Stroke Gradient */}
           <linearGradient id="orbitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f59e0b" stopOpacity={isLight ? "0.7" : "0.6"} />
-            <stop offset="50%" stopColor="#d97706" stopOpacity={isLight ? "0.35" : "0.25"} />
+            <stop
+              offset="0%"
+              stopColor="#f59e0b"
+              stopOpacity={isLight ? "0.7" : "0.6"}
+            />
+            <stop
+              offset="50%"
+              stopColor="#d97706"
+              stopOpacity={isLight ? "0.35" : "0.25"}
+            />
             <stop offset="100%" stopColor="#78350f" stopOpacity="0.05" />
           </linearGradient>
 
@@ -185,14 +205,62 @@ export function CosmicAtmosphere() {
         />
 
         {/* Fine Star Dust */}
-        <circle cx="120" cy="140" r="1" fill={isLight ? "#d97706" : "#ffffff"} opacity={isLight ? 0.5 : 0.6} />
-        <circle cx="280" cy="80" r="1.2" fill="#fde68a" opacity={isLight ? 0.8 : 0.7} />
-        <circle cx="410" cy="190" r="0.8" fill={isLight ? "#d97706" : "#ffffff"} opacity={isLight ? 0.4 : 0.4} />
-        <circle cx="680" cy="110" r="1" fill="#fde68a" opacity={isLight ? 0.7 : 0.5} />
-        <circle cx="890" cy="70" r="1.4" fill={isLight ? "#d97706" : "#ffffff"} opacity={isLight ? 0.6 : 0.8} />
-        <circle cx="1040" cy="160" r="0.8" fill="#fef08a" opacity={isLight ? 0.8 : 0.6} />
-        <circle cx="1250" cy="90" r="1.1" fill={isLight ? "#d97706" : "#ffffff"} opacity={isLight ? 0.5 : 0.5} />
-        <circle cx="1380" cy="240" r="0.9" fill="#fde68a" opacity={isLight ? 0.8 : 0.7} />
+        <circle
+          cx="120"
+          cy="140"
+          r="1"
+          fill={isLight ? "#d97706" : "#ffffff"}
+          opacity={isLight ? 0.5 : 0.6}
+        />
+        <circle
+          cx="280"
+          cy="80"
+          r="1.2"
+          fill="#fde68a"
+          opacity={isLight ? 0.8 : 0.7}
+        />
+        <circle
+          cx="410"
+          cy="190"
+          r="0.8"
+          fill={isLight ? "#d97706" : "#ffffff"}
+          opacity={isLight ? 0.4 : 0.4}
+        />
+        <circle
+          cx="680"
+          cy="110"
+          r="1"
+          fill="#fde68a"
+          opacity={isLight ? 0.7 : 0.5}
+        />
+        <circle
+          cx="890"
+          cy="70"
+          r="1.4"
+          fill={isLight ? "#d97706" : "#ffffff"}
+          opacity={isLight ? 0.6 : 0.8}
+        />
+        <circle
+          cx="1040"
+          cy="160"
+          r="0.8"
+          fill="#fef08a"
+          opacity={isLight ? 0.8 : 0.6}
+        />
+        <circle
+          cx="1250"
+          cy="90"
+          r="1.1"
+          fill={isLight ? "#d97706" : "#ffffff"}
+          opacity={isLight ? 0.5 : 0.5}
+        />
+        <circle
+          cx="1380"
+          cy="240"
+          r="0.9"
+          fill="#fde68a"
+          opacity={isLight ? 0.8 : 0.7}
+        />
       </svg>
     </div>
   );

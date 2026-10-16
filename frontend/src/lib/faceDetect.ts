@@ -41,27 +41,37 @@ export type FaceBox = {
   h: number;
 };
 
+export async function detectFaces(image: HTMLImageElement): Promise<FaceBox[]> {
+  const detector = await loadDetector();
+  if (!detector)
+    throw new Error(
+      "Face detection is unavailable. No face protection was applied.",
+    );
+  const result = detector.detect(image);
+  return (result.detections || []).flatMap((detection) => {
+    const box = detection.boundingBox;
+    if (!box) return [];
+    const pad = 0.12,
+      iw = image.naturalWidth || image.width,
+      ih = image.naturalHeight || image.height;
+    const x = Math.max(0, (box.originX - box.width * pad) / iw);
+    const y = Math.max(0, (box.originY - box.height * pad) / ih);
+    return [
+      {
+        x,
+        y,
+        w: Math.min(1 - x, (box.width * (1 + 2 * pad)) / iw),
+        h: Math.min(1 - y, (box.height * (1 + 2 * pad)) / ih),
+      },
+    ];
+  });
+}
 export async function detectFace(
   image: HTMLImageElement,
 ): Promise<FaceBox | null> {
-  const detector = await loadDetector();
-  if (!detector) return null;
   try {
-    const result = detector.detect(image);
-    const first = result.detections?.[0]?.boundingBox;
-    if (!first) return null;
-    const { originX, originY, width, height } = first;
-    const iw = image.naturalWidth || image.width;
-    const ih = image.naturalHeight || image.height;
-    // Pad the box slightly so the scan feels natural.
-    const pad = 0.08;
-    const x = Math.max(0, (originX - width * pad) / iw);
-    const y = Math.max(0, (originY - height * pad) / ih);
-    const w = Math.min(1 - x, (width * (1 + pad * 2)) / iw);
-    const h = Math.min(1 - y, (height * (1 + pad * 2)) / ih);
-    return { x, y, w, h };
-  } catch (err) {
-    console.warn("Face detection failed:", err);
+    return (await detectFaces(image))[0] || null;
+  } catch {
     return null;
   }
 }

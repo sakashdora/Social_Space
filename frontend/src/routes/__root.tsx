@@ -163,7 +163,8 @@ function RootComponent() {
 
   // Landing page uses full-bleed layout without the app chrome.
   const chrome = pathname !== "/" && pathname !== "/onboarding";
-  const isChatThread = pathname.startsWith("/messages/") && pathname !== "/messages";
+  const isChatThread =
+    pathname.startsWith("/messages/") && pathname !== "/messages";
 
   return (
     <QueryClientProvider client={queryClient}>
