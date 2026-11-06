@@ -15,7 +15,7 @@ Cloudflare's free tier. Sign-in is by passkey or handle + passphrase. No email a
 
 ## Local development
 
-Requires Node.js 22.12 or newer.
+Requires Node.js 22.13 or newer (the test runner uses the built-in `node:sqlite` module).
 
 ```bash
 npm ci

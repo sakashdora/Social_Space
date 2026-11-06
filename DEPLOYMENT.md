@@ -4,7 +4,7 @@ This guide deploys Social Space on Cloudflare: the frontend on **Pages**, the AP
 
 ## 0. Before you start
 
-- Install Node.js 22.12 or newer and run `npm ci`.
+- Install Node.js 22.13 or newer and run `npm ci`.
 - Log in with the Cloudflare CLI: `npx wrangler login` (opens a browser; nothing is stored in this repository).
 - Free-plan CPU limit: Workers on the Free plan allow **10 ms of CPU per request**. Passphrase hashing (PBKDF2 with 600,000 iterations) takes longer than that, so sign-in and registration may fail with a CPU-limit error on the Free plan. See [Plan and CPU limits](#plan-and-cpu-limits) before going live.
 
