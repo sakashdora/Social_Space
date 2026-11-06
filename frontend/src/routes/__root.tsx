@@ -41,7 +41,13 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({
+  error,
+  reset,
+}: {
+  error: unknown;
+  reset: () => void;
+}) {
   console.error(error);
   const router = useRouter();
 
@@ -97,7 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         {
           name: "description",
           content:
-            "A premium social space to share news, articles, photos, and videos. Sign up frictionlessly without an email or phone number.",
+            "A premium social space to share thoughts, photos, and videos. Sign up without an email or phone number.",
         },
         { name: "author", content: "Social Space" },
         {
@@ -107,7 +113,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         {
           property: "og:description",
           content:
-            "Share your stories, read the latest news, and engage with the community.",
+            "Share your stories, watch community clips, and talk with people privately.",
         },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
@@ -129,24 +135,7 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-          (function() {
-            try {
-              var stored = localStorage.getItem('veil-theme');
-              var theme = stored;
-              if (!theme) {
-                theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-              }
-              document.documentElement.classList.remove('dark', 'light');
-              document.documentElement.classList.add(theme);
-              document.documentElement.style.colorScheme = theme;
-            } catch (e) {}
-          })();
-        `,
-          }}
-        />
+        <script src="/theme-init.js" />
       </head>
       <body className="veil-grain bg-ink text-foreground antialiased">
         {children}
@@ -161,8 +150,9 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, isAuthenticated: authed } = useAuth();
 
-  // Landing page uses full-bleed layout without the app chrome.
-  const chrome = pathname !== "/" && pathname !== "/onboarding";
+  // Landing, sign-in and sign-up pages use a full-bleed layout without app chrome.
+  const FULL_BLEED = ["/", "/onboarding", "/login"];
+  const chrome = !FULL_BLEED.includes(pathname);
   const isChatThread =
     pathname.startsWith("/messages/") && pathname !== "/messages";
 

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import {
   setupTotp,
   enableTotp,

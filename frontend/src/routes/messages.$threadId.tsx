@@ -1,4 +1,3 @@
-import { useChatRealtimeStatus } from "@/lib/chatRealtimeStatus";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -39,7 +38,6 @@ export const Route = createFileRoute("/messages/$threadId")({
 
 function Thread() {
   const { threadId } = Route.useParams();
-  const realtimeConnected = useChatRealtimeStatus();
   const queryClient = useQueryClient();
 
   const [draft, setDraft] = useState("");
@@ -109,7 +107,7 @@ function Thread() {
         );
     },
     // Poll at 3s when visible, pause when tab is hidden
-    refetchInterval: isPageVisible ? (realtimeConnected ? 30000 : 3000) : false,
+    refetchInterval: isPageVisible ? 3000 : false,
     refetchIntervalInBackground: false,
   });
 

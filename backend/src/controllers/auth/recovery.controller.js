@@ -54,7 +54,7 @@ export async function redeemRecoveryCode(req, res) {
 
     const matched = user ? findMatchingRecoveryCode(recoveryCode, user.recoveryCodes) : null;
 
-    // Await the new hash (guarantees Argon2 CPU cost is always paid)
+    // Await the new hash before responding so timing does not reveal whether the handle exists
     const newHash = await newHashPromise;
 
     // Always respond with the same generic error — don't reveal whether handle exists
@@ -77,23 +77,22 @@ export async function redeemRecoveryCode(req, res) {
     }
 
     const hadTotp = user.totpEnabled;
-    const updated = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.recoveryCode.updateMany({
-        where: { id: matched.id, usedAt: null },
-        data: { usedAt: new Date() },
-      });
-      if (claimed.count !== 1) throw Object.assign(new Error("Invalid recovery code."), { status: 400 });
-      return tx.user.update({
-        where: { id: user.id },
-        data: {
-          recoveryHash: newHash,
-          lastActiveAt: new Date(),
-          pendingDeletionAt: null,
-          tokenVersion: { increment: 1 },
-          totpSecret: null,
-          totpEnabled: false,
-        },
-      });
+    // Claim the code first: the conditional update succeeds for exactly one caller.
+    const claimed = await prisma.recoveryCode.updateMany({
+      where: { id: matched.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (claimed.count !== 1) throw Object.assign(new Error("Invalid recovery code."), { status: 400 });
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        recoveryHash: newHash,
+        lastActiveAt: new Date(),
+        pendingDeletionAt: null,
+        tokenVersion: { increment: 1 },
+        totpSecret: null,
+        totpEnabled: false,
+      },
     });
 
     await logSecurityEvent(user.id, "RECOVERY_CODE_REDEEMED", req, { codeId: matched.id });
@@ -127,14 +126,13 @@ export async function regenerateRecoveryCodes(req, res) {
   try {
     const { rawCodes, hashedCodes } = generateRecoveryCodes(8);
 
-    await prisma.$transaction(async (tx) => {
-      // Delete all existing codes for this user
-      await tx.recoveryCode.deleteMany({ where: { userId: req.user.id } });
-      // Create new ones
-      await tx.recoveryCode.createMany({
+    // Replace the whole set in one atomic D1 batch.
+    await prisma.$transaction([
+      prisma.recoveryCode.deleteMany({ where: { userId: req.user.id } }),
+      prisma.recoveryCode.createMany({
         data: hashedCodes.map((codeHash) => ({ userId: req.user.id, codeHash })),
-      });
-    });
+      }),
+    ]);
 
     await logSecurityEvent(req.user.id, "RECOVERY_CODES_REGENERATED", req);
 

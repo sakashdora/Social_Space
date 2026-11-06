@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { getRegisterOptions, verifyRegistration } from "../controllers/passkey/register.controller.js";
 import { getLoginOptions, verifyLogin } from "../controllers/passkey/login.controller.js";
 import { listPasskeys, removePasskey } from "../controllers/passkey/management.controller.js";

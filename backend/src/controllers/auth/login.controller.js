@@ -8,8 +8,8 @@
 import crypto from "crypto";
 import prisma from "../../config/prisma.js";
 import { generateToken } from "../../utils/jwt.js";
-import { verifyPassphrase, decrypt } from "../../utils/crypto.js";
-import { verify } from "otplib";
+import { verifyPassphrase, hashPassphrase, needsRehash, decrypt } from "../../utils/crypto.js";
+import { verifyTotp } from "../../utils/totp.js";
 import { recordFailedAttempt, clearFailedAttempts } from "../../middleware/rateLimiter.js";
 import { store } from "../../config/challengeStore.js";
 import { logSecurityEvent } from "../../utils/securityLogger.js";
@@ -43,9 +43,7 @@ export async function login(req, res) {
     });
 
     // Dummy hash to prevent timing attacks when user doesn't exist
-    const dummyHash = "$argon2id$v=19$m=65536,t=3,p=1$dummysaltdummysalt$dummyhashvalue00000000000000000000000000000";
-    const hashToVerify = user ? user.recoveryHash : dummyHash;
-    const isMatch = await verifyPassphrase(passphrase, hashToVerify);
+    const isMatch = await verifyPassphrase(passphrase, user ? user.recoveryHash : null);
 
     if (!user || !isMatch) {
       // Always record failure against handle
@@ -68,6 +66,11 @@ export async function login(req, res) {
     }
 
     await clearFailedAttempts(cleanHandle, req.ip);
+
+    // Accounts created before the scheme change are upgraded on their next successful sign-in.
+    if (needsRehash(user.recoveryHash)) {
+      await prisma.user.update({ where: { id: user.id }, data: { recoveryHash: await hashPassphrase(passphrase) } });
+    }
 
     // If TOTP is enabled, issue a short-lived challenge token instead of the full JWT
     if (user.totpEnabled) {
@@ -148,8 +151,7 @@ export async function loginVerifyTotp(req, res) {
     const secret = decrypt(user.totpSecret);
     // otplib verify() returns a boolean in some versions and {valid: boolean} in others.
     // Normalize to always extract a boolean to avoid a silent bypass when result.valid is undefined.
-    const rawResult = await verify({ secret, token: totpCode });
-    const valid = typeof rawResult === "boolean" ? rawResult : (rawResult?.valid ?? false);
+    const valid = verifyTotp(secret, totpCode);
 
     if (!valid) {
       await recordFailedAttempt(user.handle, req.ip);

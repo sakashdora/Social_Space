@@ -1,60 +1,37 @@
 {
-  "name": "veil-shine-backend",
-  "version": "1.0.0",
-  "description": "Backend for Veil Shine anonymous AI social platform",
-  "main": "app.js",
+  "name": "veil-social-api",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Social Space API for Cloudflare Workers (D1 database, R2 media).",
   "type": "module",
+  "main": "src/worker.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
-    "start": "node app.js",
-    "dev": "node --watch app.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "generate": "prisma generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:diff": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script",
+    "seed": "node prisma/seed.js",
     "build": "prisma generate",
     "test": "node ../scripts/run-tests.mjs",
-    "seed": "node prisma/seed.js"
+    "typecheck": "node --check src/worker.js"
   },
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
-  "keywords": [
-    "nodejs",
-    "express",
-    "mongodb",
-    "ai",
-    "social-platform"
-  ],
-  "author": "Manus AI",
-  "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^5.22.0",
-    "@simplewebauthn/server": "^13.3.2",
-    "@supabase/supabase-js": "^2.110.1",
-    "@upstash/redis": "^1.38.0",
-    "@vercel/functions": "^3.9.5",
-    "argon2": "^0.44.0",
-    "axios": "^1.7.2",
+    "@noble/hashes": "^1.8.0",
+    "@prisma/adapter-d1": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "@simplewebauthn/server": "^14.0.3",
     "bip39": "^3.1.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^8.5.2",
-    "ffmpeg-static": "^5.3.0",
-    "ffprobe-static": "^3.1.0",
-    "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.10.0",
-    "multer": "^2.2.0",
-    "openai": "^6.45.0",
-    "otplib": "^13.4.1",
-    "pg": "^8.22.0",
-    "prisma": "^5.22.0",
-    "qrcode": "^1.5.4",
-    "rate-limiter-flexible": "^11.2.0",
-    "rss-parser": "^3.13.0",
-    "sanitize-html": "^2.17.5",
-    "sharp": "^0.35.5",
+    "sanitize-html": "^2.18.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "jest": "^30.5.2",
-    "supertest": "^7.2.2"
+    "@prisma/adapter-libsql": "^7.10.1",
+    "prisma": "^7.10.1",
+    "wrangler": "^4.158.0"
   }
 }

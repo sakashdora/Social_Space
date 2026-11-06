@@ -1,42 +1,51 @@
-# VEIL Social
+# Social Space
 
-A React 19 / TanStack Start social application with an Express API, Prisma/PostgreSQL, private Supabase Storage, and optional Supabase Realtime notifications. The deployment target is Vercel + Supabase.
+An anonymous social network: a React / TanStack Start frontend, served from **Cloudflare Pages**, and a
+**Cloudflare Worker** API that stores data in **D1** (SQLite) and media in **R2**. Everything runs on
+Cloudflare's free tier. Sign-in is by passkey or handle + passphrase. No email address or phone number is ever requested.
 
-## Start locally
+## Architecture
 
-Use Node.js 22.12 or newer. Install from the repository root with `npm ci`; the root `package-lock.json` is the workspace lockfile.
+| Part | Runtime | Storage |
+| --- | --- | --- |
+| `frontend/` (React 19, TanStack Router, Tailwind v4) | Cloudflare Pages (static, prerendered) | none |
+| `backend/` (Worker, Prisma 7 + D1 adapter, zod) | Cloudflare Workers | D1 database `social-space` |
+| Media uploads and delivery | Worker (verifies files) | R2 bucket `veil-media` |
+| Retention job | Workers Cron Trigger (daily 02:00 UTC) | — |
 
-1. Copy `backend/.env.example` to `backend/.env` and configure a development PostgreSQL database and independent random secrets.
-2. Copy `frontend/.env.example` to `frontend/.env`. Leave `VITE_API_URL` empty for the local Vite proxy or same-origin Vercel deployment.
-3. Apply migrations to your **development** database: `npm exec --workspace backend -- prisma migrate deploy`.
-4. In separate terminals run `npm run dev:backend` and `npm run dev:frontend`. Open http://localhost:5173.
+## Local development
 
-PostgreSQL is required; this application does not use SQLite. Media requires a private Supabase bucket. AI providers and Redis are optional; absent Redis, authentication challenges use PostgreSQL. AI writing tools return an unavailable error without a working provider.
+Requires Node.js 22.12 or newer.
+
+```bash
+npm ci
+npm run generate                       # Prisma client for the Worker
+cp backend/.dev.vars.example backend/.dev.vars   # then replace each value with a random secret
+npm --prefix backend run db:migrate:local         # creates the local D1 database
+npm run dev:api                        # http://127.0.0.1:8787
+```
+
+In a second terminal, set `VITE_API_URL=http://127.0.0.1:8787` in `frontend/.env` (see `frontend/.env.example`) and run `npm run dev:web`.
 
 ## Verify
 
-```sh
-npm run typecheck
-npm run lint
-npm test
-npm run build
+```bash
+npm run check          # secret scan, typecheck, lint, tests, builds
+npm run check:secrets -- --dist   # after a build: scans the browser bundle too
 ```
 
-Tests use an isolated local PostgreSQL instance, or `TEST_DATABASE_URL` pointing to a local database whose name starts with `veil_test`. They never use the development/production database URL. Test databases are disposable; the suite truncates their tables. Portable test clusters are left under ignored `tmp/` for diagnostics and are stopped after the run. External storage is mocked in API tests; video-processing tests run FFmpeg/FFprobe on generated local fixtures. Encryption tests exercise Web Crypto and IndexedDB.
+Tests run the real request pipeline against a throwaway SQLite database and an in-memory R2 stand-in.
+They read no production credentials.
 
-The build generates Prisma Client, prerenders the frontend, and copies static assets to `dist/`. It does **not** apply database migrations.
+## Deploy
 
-## Implemented behavior
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the step-by-step Cloudflare setup, secrets, and the GitHub Actions workflow.
 
-- Anonymous/pseudonymous posts with enforced audiences, expiry, engagement permissions, and polls.
-- Private storage uploads with server-issued reservations, ownership checks, quotas, actual image/video inspection, metadata processing, and retryable cleanup.
-- Browser-encrypted direct messages and attachments, paginated history, disappearing timers, and optional realtime invalidation notifications with polling fallback.
-- Passphrases, passkeys, TOTP, one-use recovery codes, shared rate limits, and account deletion.
-- Saved follows, reports, appeals, waitlist enrollment, and a moderator review-status queue.
-- Optional AI writing/moderation providers and news RSS.
+## Security
 
-See [deployment setup](DEPLOYMENT.md), [security boundaries](SECURITY.md), and [repair status](REMEDIATION.md). [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) records the original audit at commit `7d1dcec`; older audit scores are not current assurance.
+- Secrets live only in Cloudflare (`wrangler secret put`) or in local, git-ignored `.dev.vars`. They are never in the frontend bundle or in git. `npm run check:secrets` enforces this in CI.
+- The browser receives a Content-Security-Policy that allows scripts only by hash and blocks inline injection (generated at build time as `_headers`).
+- Passphrases are stored as salted PBKDF2-SHA256 hashes (600,000 iterations). Recovery codes and TOTP secrets are protected as described in [SECURITY.md](SECURITY.md).
+- Uploads are verified from their magic bytes, sized against the reservation, and metadata-stripped (JPEG, PNG, WebP). See [SECURITY.md](SECURITY.md) for the media limits.
 
-## Free service choice
-
-For this project, Supabase Realtime + Storage is the simplest integrated starting point alongside Vercel. The free plan has finite storage, bandwidth, and realtime quotas; it is suitable for a small prototype, not unlimited video hosting. [Deployment notes](DEPLOYMENT.md#free-plan-capacity) compare the current limits and explain when Cloudflare R2 may be useful.
+Further reading: [SECURITY.md](SECURITY.md), [DEPLOYMENT.md](DEPLOYMENT.md). The historical audit documents (`AUDIT_REPORT.md`, `PROJECT_ANALYSIS.md`, `REMEDIATION.md`, and the others) describe the earlier Vercel and Supabase deployment and are kept for reference only.

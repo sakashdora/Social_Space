@@ -7,10 +7,10 @@
  * called in the compose flow where the user may not yet have an active session.
  *
  * SECURITY: The AI endpoints consume the Grok API key (paid quota). Protected by
- * pgRateLimit("ai") -- 20 requests per IP per minute via Postgres-backed counters.
+ * pgRateLimit("ai") -- 20 requests per IP per minute via D1-backed counters.
  * Multi-replica safe: all Azure Container Apps replicas share the same counter state.
  */
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { generate, correct, suggest } from "../controllers/ai.controller.js";
 import { validateBody } from "../middleware/validation.middleware.js";
 import { generateSchema, textSchema } from "../schemas/ai.schema.js";

@@ -1,63 +1,113 @@
 /**
- * crypto.js — VEIL cryptographic primitives
+ * crypto.js — VEIL cryptographic primitives (Cloudflare Workers runtime)
  *
  * Exports:
- *   hashPassphrase, verifyPassphrase            — Argon2id (passphrase storage)
- *   isPassphraseStrongEnough                    — Shannon entropy + pattern checks (~60 bit min)
- *   checkPassphrasePwned                        — HIBP k-anonymity range API (first 5 SHA-1 hex chars only)
- *   encrypt, decrypt                            — AES-256-GCM (TOTP secret at-rest encryption)
- *   hashRecoveryCode, verifyRecoveryCode        — HMAC-SHA256 (recovery code hashing)
- *   deviceFingerprint                           — anonymised SHA-256 of IP + UA + Accept-Language
+ *   hashPassphrase, verifyPassphrase, needsRehash — passphrase storage (PBKDF2-HMAC-SHA256)
+ *   isPassphraseStrongEnough                      — length + Shannon entropy + pattern checks
+ *   checkPassphrasePwned                          — HIBP k-anonymity range API (5-char SHA-1 prefix only)
+ *   encrypt, decrypt                              — AES-256-GCM at rest (TOTP secrets, challenges)
+ *   hashRecoveryCode, verifyRecoveryCode          — HMAC-SHA256 (recovery code hashing)
+ *   deviceFingerprint                             — anonymised SHA-256 of IP + UA + Accept-Language
  *
- * INTENTIONAL EXCLUSIONS (by design — VEIL is email/SMS-free):
- *   - No email OTP
- *   - No SMS OTP
- *   - No TOTP is generated here — otplib handles that in totp.controller.js
+ * Passphrase hashing
+ *   New hashes use PBKDF2-HMAC-SHA256 with 600,000 iterations (OWASP guidance) through
+ *   WebCrypto, which is native in Workers. Runtime WASM compilation is refused there,
+ *   so Argon2 builds that need it cannot run. Accounts created before the move carry
+ *   Argon2id hashes: they still verify (pure JavaScript, legacy only) and are upgraded
+ *   to PBKDF2 on their next successful sign-in.
  */
 
-import argon2 from "argon2";
-import crypto from "crypto";
-import axios from "axios";
+import crypto from "node:crypto";
+import { argon2id as legacyArgon2id } from "@noble/hashes/argon2";
 import { env } from "../config/env.js";
 
-// ─── Argon2id parameters ─────────────────────────────────────────────────────
-// PRODUCTION: Consider memoryCost: 2**17 (128 MiB) if server RAM allows
-const ARGON2_OPTIONS = {
-  type: argon2.argon2id,
-  memoryCost: 2 ** 16, // 64 MiB
-  timeCost: 3,
-  parallelism: 1,
-};
+const PBKDF2_SCHEME = "pbkdf2-sha256";
+const PBKDF2_ITERATIONS = 600000;
+const KEY_BYTES = 32;
+const SALT_BYTES = 16;
+// Fixed salt used only to spend the same work for unknown accounts (timing equalisation).
+const DUMMY_SALT = Buffer.alloc(SALT_BYTES, 0x5a);
 
-/**
- * Hash a passphrase with Argon2id.
- * @param {string} raw
- * @returns {Promise<string>} Argon2id encoded hash string
- */
-export async function hashPassphrase(raw) {
-  return argon2.hash(raw, ARGON2_OPTIONS);
+async function derivePbkdf2(raw, salt, iterations) {
+  const key = await globalThis.crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(raw),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await globalThis.crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
+    key,
+    KEY_BYTES * 8,
+  );
+  return new Uint8Array(bits);
 }
 
 /**
- * Verify a passphrase against an Argon2id hash.
+ * Hash a passphrase for storage.
  * @param {string} raw
- * @param {string} hash
+ * @returns {Promise<string>} "pbkdf2-sha256$<iterations>$<salt>$<hash>"
+ */
+export async function hashPassphrase(raw) {
+  const salt = crypto.randomBytes(SALT_BYTES);
+  const hash = await derivePbkdf2(raw, salt, PBKDF2_ITERATIONS);
+  return `${PBKDF2_SCHEME}$${PBKDF2_ITERATIONS}$${salt.toString("base64url")}$${Buffer.from(hash).toString("base64url")}`;
+}
+
+/** Legacy Argon2id verification for accounts created before the Workers migration. */
+function verifyLegacyArgon2(raw, stored) {
+  const parts = stored.split("$");
+  // ["", "argon2id", "v=19", "m=65536,t=3,p=1", salt, hash]
+  const params = Object.fromEntries((parts[3] || "").split(",").map((kv) => kv.split("=")));
+  const m = Number(params.m);
+  const t = Number(params.t);
+  const p = Number(params.p);
+  if (!Number.isInteger(m) || !Number.isInteger(t) || !Number.isInteger(p) || !parts[4] || !parts[5]) return false;
+  const expected = Buffer.from(parts[5], "base64");
+  const salt = Buffer.from(parts[4], "base64");
+  const actual = Buffer.from(legacyArgon2id(raw, salt, { t, m, p, dkLen: expected.length }));
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+/**
+ * Verifies a passphrase. Never throws. `stored` may be null for unknown accounts;
+ * the same amount of work is then spent before returning false.
+ * @param {string} raw
+ * @param {string | null} stored
  * @returns {Promise<boolean>}
  */
-export async function verifyPassphrase(raw, hash) {
+export async function verifyPassphrase(raw, stored) {
+  if (typeof raw !== "string" || raw.length === 0) return false;
   try {
-    return await argon2.verify(hash, raw, ARGON2_OPTIONS);
+    if (typeof stored === "string" && stored.startsWith("$argon2id$")) {
+      return verifyLegacyArgon2(raw, stored);
+    }
+    if (typeof stored !== "string" || !stored.startsWith(`${PBKDF2_SCHEME}$`)) {
+      await derivePbkdf2(raw, DUMMY_SALT, PBKDF2_ITERATIONS);
+      return false;
+    }
+    const [, iterationText, saltText, hashText] = stored.split("$");
+    const iterations = Number(iterationText);
+    if (!Number.isInteger(iterations) || iterations < 1 || iterations > 2_000_000 || !saltText || !hashText) return false;
+    const expected = Buffer.from(hashText, "base64url");
+    const actual = Buffer.from(await derivePbkdf2(raw, Buffer.from(saltText, "base64url"), iterations));
+    return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
   } catch {
     return false;
   }
 }
 
-// ─── Passphrase Strength ─────────────────────────────────────────────────────
+/** True when a stored hash should be replaced with the current scheme after a successful sign-in. */
+export function needsRehash(stored) {
+  return typeof stored !== "string" || !stored.startsWith(`${PBKDF2_SCHEME}$${PBKDF2_ITERATIONS}$`);
+}
+
+// ─── Passphrase strength ─────────────────────────────────────────────────────
 
 /**
- * Calculate Shannon entropy in bits for a given string.
+ * Shannon entropy in bits for a string (per-character model).
  * @param {string} str
- * @returns {number} bits of entropy
  */
 function shannonEntropy(str) {
   const freq = {};
@@ -70,9 +120,7 @@ function shannonEntropy(str) {
 }
 
 /**
- * Check whether a passphrase meets the minimum strength requirement.
- * Minimum: ~60 bits of entropy (rejects anything weaker).
- *
+ * Minimum: 12 characters and ~60 bits of per-character entropy.
  * @param {string} raw
  * @returns {{ ok: boolean, reason?: string }}
  */
@@ -80,11 +128,12 @@ export function isPassphraseStrongEnough(raw) {
   if (!raw || typeof raw !== "string") {
     return { ok: false, reason: "Passphrase is required." };
   }
-
   if (raw.length < 12) {
     return { ok: false, reason: "Passphrase must be at least 12 characters." };
   }
-
+  if (raw.length > 512) {
+    return { ok: false, reason: "Passphrase must be at most 512 characters." };
+  }
   const entropy = shannonEntropy(raw);
   if (entropy < 60) {
     return {
@@ -92,40 +141,35 @@ export function isPassphraseStrongEnough(raw) {
       reason: `Passphrase is too weak (${Math.round(entropy)} bits of entropy; minimum 60). Use more varied characters or a longer phrase.`,
     };
   }
-
-  // Reject obvious low-entropy patterns even if character count is high
   if (/^(.)\1+$/.test(raw)) {
     return { ok: false, reason: "Passphrase cannot be a single repeated character." };
   }
   if (/^(012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg)/i.test(raw)) {
     return { ok: false, reason: "Passphrase contains sequential patterns that are too predictable." };
   }
-
   return { ok: true };
 }
 
-// ─── HaveIBeenPwned k-anonymity range check ───────────────────────────────────
+// ─── HaveIBeenPwned k-anonymity range check ──────────────────────────────────
 
 /**
- * Check if a passphrase appears in the HaveIBeenPwned breach database.
- * Only the FIRST 5 HEX CHARACTERS of the SHA-1 hash are sent to the API.
- * The full SHA-1 is never sent to a third party.
- *
- * @param {string} raw plaintext passphrase
+ * Only the first five hex characters of the SHA-1 digest leave the server.
+ * Fails open when the service is unreachable so registration is not blocked.
+ * @param {string} raw
  * @returns {Promise<{ pwned: boolean, count?: number }>}
  */
 export async function checkPassphrasePwned(raw) {
+  if (env.HIBP_ENABLED === "false") return { pwned: false };
   try {
     const sha1 = crypto.createHash("sha1").update(raw).digest("hex").toUpperCase();
     const prefix = sha1.slice(0, 5);
     const suffix = sha1.slice(5);
-
-    const response = await axios.get(`https://api.pwnedpasswords.com/range/${prefix}`, {
-      timeout: 4000,
-      headers: { "Add-Padding": "true" }, // Padding prevents traffic analysis
+    const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+      headers: { "Add-Padding": "true" },
+      signal: AbortSignal.timeout(4000),
     });
-
-    const lines = response.data.split("\n");
+    if (!response.ok) return { pwned: false };
+    const lines = (await response.text()).split("\n");
     for (const line of lines) {
       const [hashSuffix, countStr] = line.trim().split(":");
       if (hashSuffix === suffix) {
@@ -134,75 +178,70 @@ export async function checkPassphrasePwned(raw) {
     }
     return { pwned: false };
   } catch {
-    // If HIBP is unreachable, fail open (don't block registration)
     return { pwned: false };
   }
 }
 
-// ─── AES-256-GCM Encryption (for TOTP secret at-rest) ────────────────────────
+// ─── AES-256-GCM (at-rest encryption) ────────────────────────────────────────
 
-const ENCRYPTION_KEY_HEX = env.ENCRYPTION_KEY;
-if (!ENCRYPTION_KEY_HEX && env.NODE_ENV === "production") {
-  throw new Error("ENCRYPTION_KEY env var is required in production.");
+let cachedKeyHex = null;
+let cachedKey = null;
+
+function encryptionKey() {
+  if (cachedKeyHex !== env.ENCRYPTION_KEY || !cachedKey) {
+    if (!/^[0-9a-fA-F]{64}$/.test(env.ENCRYPTION_KEY || "")) {
+      throw new Error("ENCRYPTION_KEY must be 64 hexadecimal characters.");
+    }
+    cachedKeyHex = env.ENCRYPTION_KEY;
+    cachedKey = Buffer.from(cachedKeyHex, "hex");
+  }
+  return cachedKey;
 }
-const ENC_KEY = Buffer.from(ENCRYPTION_KEY_HEX, "hex");
 
 /**
- * Encrypt plaintext with AES-256-GCM.
- * Returns a base64 string: IV (12 bytes) + authTag (16 bytes) + ciphertext.
- *
+ * Encrypts with AES-256-GCM. Output: base64(IV[12] || tag[16] || ciphertext).
  * @param {string} plaintext
- * @returns {string} base64-encoded encrypted blob
  */
 export function encrypt(plaintext) {
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", ENC_KEY, iv);
+  const cipher = crypto.createCipheriv("aes-256-gcm", encryptionKey(), iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const authTag = cipher.getAuthTag();
   return Buffer.concat([iv, authTag, encrypted]).toString("base64");
 }
 
 /**
- * Decrypt an AES-256-GCM blob produced by encrypt().
- *
- * @param {string} blob base64-encoded encrypted blob
- * @returns {string} plaintext
+ * Decrypts a blob produced by encrypt(). Throws if the tag does not verify.
+ * @param {string} blob
  */
 export function decrypt(blob) {
   const data = Buffer.from(blob, "base64");
   const iv = data.subarray(0, 12);
   const authTag = data.subarray(12, 28);
   const ciphertext = data.subarray(28);
-  const decipher = crypto.createDecipheriv("aes-256-gcm", ENC_KEY, iv);
+  const decipher = crypto.createDecipheriv("aes-256-gcm", encryptionKey(), iv);
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
 }
 
-// ─── Recovery Code HMAC-SHA256 ────────────────────────────────────────────────
-
-const RECOVERY_SECRET = env.RECOVERY_CODE_SECRET;
+// ─── Recovery code HMAC-SHA256 ───────────────────────────────────────────────
 
 /**
- * HMAC-SHA256 hash of a raw recovery code segment.
- * Fast and safe for scanning 8 codes at redemption time.
- * Raw codes are NEVER stored anywhere after this function returns.
- *
+ * Keyed hash of a normalised recovery code. Raw codes are never stored.
  * @param {string} rawCode
- * @returns {string} hex-encoded HMAC-SHA256
+ * @returns {string} hex digest
  */
 export function hashRecoveryCode(rawCode) {
   return crypto
-    .createHmac("sha256", RECOVERY_SECRET)
+    .createHmac("sha256", env.RECOVERY_CODE_SECRET)
     .update(rawCode.toLowerCase().trim())
     .digest("hex");
 }
 
 /**
- * Constant-time comparison of a raw code against a stored HMAC hash.
- *
+ * Constant-time comparison of a raw code against a stored digest.
  * @param {string} rawCode
- * @param {string} storedHash hex-encoded HMAC-SHA256
- * @returns {boolean}
+ * @param {string} storedHash
  */
 export function verifyRecoveryCode(rawCode, storedHash) {
   try {
@@ -215,19 +254,16 @@ export function verifyRecoveryCode(rawCode, storedHash) {
   }
 }
 
-// ─── Device Fingerprint (anonymised) ─────────────────────────────────────────
+// ─── Device fingerprint (anonymised) ─────────────────────────────────────────
 
 /**
- * Produces a SHA-256 hash of IP + User-Agent + Accept-Language.
- * This is a one-way digest — cannot be reversed to identify the user.
- * Used only for display in the security event timeline.
- *
- * @param {import('express').Request} req
- * @returns {string} hex SHA-256
+ * One-way digest of IP + User-Agent + Accept-Language, shown only in the
+ * user's own security timeline.
+ * @param {{ ip?: string, headers?: Record<string, string> }} req
  */
 export function deviceFingerprint(req) {
-  const ip = req.ip || req.connection?.remoteAddress || "unknown";
-  const ua = req.headers["user-agent"] || "";
-  const lang = req.headers["accept-language"] || "";
+  const ip = req.ip || "unknown";
+  const ua = req.headers?.["user-agent"] || "";
+  const lang = req.headers?.["accept-language"] || "";
   return crypto.createHash("sha256").update(`${ip}|${ua}|${lang}`).digest("hex");
 }

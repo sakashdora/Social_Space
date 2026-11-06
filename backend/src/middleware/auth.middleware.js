@@ -90,7 +90,7 @@ export async function optionalAuth(req, res, next) {
 /**
  * Step-up authentication middleware for sensitive actions.
  * Requires the request body to include `currentPassphrase`.
- * Verifies it against the stored Argon2id hash before allowing the action.
+ * Verifies it against the stored passphrase hash before allowing the action.
  *
  * Usage: router.post("/passphrase/change", requireAuth, sensitiveActionLimiter, requireStepUp, handler)
  */

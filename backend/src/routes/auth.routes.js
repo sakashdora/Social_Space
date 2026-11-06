@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { register } from "../controllers/auth/register.controller.js";
 import { login, loginVerifyTotp } from "../controllers/auth/login.controller.js";
 import { redeemRecoveryCode, regenerateRecoveryCodes } from "../controllers/auth/recovery.controller.js";

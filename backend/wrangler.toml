@@ -1,0 +1,45 @@
+# Cloudflare Worker configuration for the Social Space API.
+#
+# Resources (all on Cloudflare's free tier):
+#   D1 database  "DB"     → relational data (create with: npx wrangler d1 create social-space)
+#   R2 bucket    "MEDIA"  → uploaded media   (create with: npx wrangler r2 bucket create veil-media)
+#
+# Secrets are NEVER written in this file. Set them with `wrangler secret put <NAME>`
+# (see backend/.dev.vars.example for the full list and generation commands).
+
+name = "veil-social-api"
+main = "src/worker.js"
+compatibility_date = "2025-09-15"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[observability]
+enabled = true
+
+# Daily retention job (account cleanup, expired media, storage queue drain).
+[triggers]
+crons = ["0 2 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "social-space"
+# Replace with the id printed by `wrangler d1 create social-space`.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "veil-media"
+
+# Public, non-secret settings. Use the exact origin of the deployed frontend.
+[vars]
+NODE_ENV = "production"
+FRONTEND_ORIGIN = "https://social-space.pages.dev"
+WEBAUTHN_RP_NAME = "Social Space"
+WEBAUTHN_RP_ID = "social-space.pages.dev"
+WEBAUTHN_ORIGIN = "https://social-space.pages.dev"
+TOTP_ISSUER = "Social Space"
+MODERATOR_HANDLES = ""
+MEDIA_BUCKET_NAME = "veil-media"
+AI_API_URL = "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions"
+AI_MODEL = "gemini-2.5-flash"

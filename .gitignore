@@ -60,3 +60,9 @@ swa_deploy*.log
 tmp/
 **/tmp/
 
+
+# Cloudflare Workers local state and generated Prisma client
+backend/.dev.vars
+.wrangler/
+backend/.wrangler/
+backend/src/generated/

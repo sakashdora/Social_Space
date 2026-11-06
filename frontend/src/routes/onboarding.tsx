@@ -21,21 +21,12 @@ import {
   Sun,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  registerUser,
-  loginUser,
-  loginVerifyTotp,
-  getPasskeyLoginOptions,
-  verifyPasskeyLogin,
-} from "@/lib/api";
+import { registerUser } from "@/lib/api";
 import { useTheme } from "@/lib/theme";
 import { SocialSpaceEmblem } from "@/components/veil/SocialSpaceEmblem";
 import { CosmicAtmosphere } from "@/components/veil/CosmicAtmosphere";
 import { cn } from "@/lib/utils";
-import {
-  startRegistration,
-  startAuthentication,
-} from "@simplewebauthn/browser";
+import { startRegistration } from "@simplewebauthn/browser";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -89,51 +80,6 @@ function entropyLabel(bits: number): {
   if (bits < 60) return { label: "Moderate", color: "#eab308", pct: 60 };
   if (bits < 80) return { label: "Strong", color: "#22c55e", pct: 85 };
   return { label: "Very strong", color: "#10b981", pct: 100 };
-}
-
-// ─── TOTP Input Component ────────────────────────────────────────────────────
-function TotpInput({
-  onSubmit,
-  isLoading,
-  error,
-}: {
-  onSubmit: (code: string) => void;
-  isLoading: boolean;
-  error: string;
-}) {
-  const [code, setCode] = useState("");
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/40 px-4 py-3 focus-within:border-amber-400/60 focus-within:ring-2 focus-within:ring-amber-400/20 transition-all">
-        <KeyRound className="h-4 w-4 text-muted-foreground" />
-        <input
-          autoFocus
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={6}
-          value={code}
-          onChange={(e) =>
-            setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-          }
-          placeholder="000000"
-          className="flex-1 bg-transparent text-lg tracking-widest text-foreground outline-none placeholder:text-muted-foreground font-mono"
-        />
-      </div>
-      {error && (
-        <p className="flex items-center gap-1.5 text-xs text-red-400">
-          <AlertTriangle className="h-3.5 w-3.5" /> {error}
-        </p>
-      )}
-      <button
-        onClick={() => onSubmit(code)}
-        disabled={isLoading || code.length !== 6}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 px-5 py-3 text-sm font-semibold text-black transition-all disabled:opacity-40 shadow-[0_0_20px_rgba(245,158,11,0.35)] cursor-pointer"
-      >
-        {isLoading ? "Verifying…" : "Verify Code"}
-      </button>
-    </div>
-  );
 }
 
 // ─── Recovery Code Display Grid ──────────────────────────────────────────────
@@ -190,10 +136,6 @@ function Onboarding() {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [passphrase, setPassphrase] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
-  const [isLogin, setIsLogin] = useState(false);
-  const [loginHandle, setLoginHandle] = useState("");
-  const [loginPassphrase, setLoginPassphrase] = useState("");
-  const [showLoginPass, setShowLoginPass] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("");
@@ -204,17 +146,6 @@ function Onboarding() {
 
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [codesAcknowledged, setCodesAcknowledged] = useState(false);
-
-  // MFA step
-  const [mfaChallengeToken, setMfaChallengeToken] = useState("");
-  const [showMfaStep, setShowMfaStep] = useState(false);
-  const [mfaError, setMfaError] = useState("");
-
-  // Recovery code login flow
-  const [loginFailed, setLoginFailed] = useState(false);
-  const [showRecoveryLogin, setShowRecoveryLogin] = useState(false);
-  const [recoveryCode, setRecoveryCode] = useState("");
-  const [recoveryNewPass, setRecoveryNewPass] = useState("");
 
   const entropy = shannonEntropy(passphrase);
   const {
@@ -228,79 +159,6 @@ function Onboarding() {
     { num: 2, label: "Age assurance" },
     { num: 3, label: "Set passphrase" },
   ];
-
-  // ─── Passkey Login ─────────────────────────────────────────────────────────
-  const handlePasskeyLogin = async () => {
-    setIsLoading(true);
-    setLoadingStatus("Verifying passkey ceremony...");
-    setError("");
-    try {
-      const response = await getPasskeyLoginOptions();
-      const { sessionToken, ...options } = response;
-      const assertion = await startAuthentication({ optionsJSON: options });
-      await verifyPasskeyLogin(assertion, sessionToken);
-      navigate({ to: "/social" });
-    } catch (err: any) {
-      setError(err.message || "Passkey login failed.");
-    } finally {
-      setIsLoading(false);
-      setLoadingStatus("");
-    }
-  };
-
-  // ─── Passphrase Login ──────────────────────────────────────────────────────
-  const handlePassphraseLogin = async () => {
-    setIsLoading(true);
-    setLoadingStatus("Verifying passphrase credentials...");
-    setError("");
-    try {
-      const result = await loginUser(loginHandle, loginPassphrase);
-      if (result.mfaRequired) {
-        setMfaChallengeToken(result.challengeToken);
-        setShowMfaStep(true);
-        return;
-      }
-      navigate({ to: "/social" });
-    } catch (err: any) {
-      setLoginFailed(true);
-      setError(err.message || "Login failed.");
-    } finally {
-      setIsLoading(false);
-      setLoadingStatus("");
-    }
-  };
-
-  const handleMfaVerify = async (code: string) => {
-    setIsLoading(true);
-    setLoadingStatus("Verifying TOTP code...");
-    setMfaError("");
-    try {
-      await loginVerifyTotp(mfaChallengeToken, code);
-      navigate({ to: "/social" });
-    } catch (err: any) {
-      setMfaError(err.message || "Invalid code.");
-    } finally {
-      setIsLoading(false);
-      setLoadingStatus("");
-    }
-  };
-
-  // ─── Recovery Code Redemption ──────────────────────────────────────────────
-  const handleRecoveryLogin = async () => {
-    const { redeemRecoveryCode } = await import("@/lib/api");
-    setIsLoading(true);
-    setLoadingStatus("Redeeming recovery phrase...");
-    setError("");
-    try {
-      await redeemRecoveryCode(loginHandle, recoveryCode, recoveryNewPass);
-      navigate({ to: "/social" });
-    } catch (err: any) {
-      setError(err.message || "Recovery failed.");
-    } finally {
-      setIsLoading(false);
-      setLoadingStatus("");
-    }
-  };
 
   // ─── Registration Submit ───────────────────────────────────────────────────
   const handleRegister = async () => {
@@ -330,23 +188,12 @@ function Onboarding() {
 
   const handleBack = () => {
     setError("");
-    if (isLogin) {
-      if (showMfaStep || showRecoveryLogin) {
-        setShowMfaStep(false);
-        setShowRecoveryLogin(false);
-      } else {
-        setIsLogin(false);
-      }
+    if (step > 0) {
+      setStep((s) => s - 1);
+    } else if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
     } else {
-      if (step > 0) {
-        setStep((s) => s - 1);
-      } else {
-        if (typeof window !== "undefined" && window.history.length > 1) {
-          window.history.back();
-        } else {
-          navigate({ to: "/" });
-        }
-      }
+      navigate({ to: "/" });
     }
   };
 
@@ -406,7 +253,7 @@ function Onboarding() {
           </Link>
 
           {/* Stepper Navigation (visible during 3-step registration) */}
-          {!isLogin && step < 3 && (
+          {step < 3 && (
             <div className="flex items-center gap-3 sm:gap-4 text-xs">
               {STEPS_NAV.map((s, idx) => {
                 const isActive = step === idx;
@@ -498,7 +345,7 @@ function Onboarding() {
             {/* ════════════════════════════════════════════════════════════
                 STEP 0: CHOOSE A HANDLE (EXACT REFERENCE DESIGN)
                ════════════════════════════════════════════════════════════ */}
-            {!isLogin && step === 0 && (
+            {step === 0 && (
               <motion.div
                 key="step-0-handle"
                 initial={{ opacity: 0, y: 15 }}
@@ -603,12 +450,12 @@ function Onboarding() {
                           )
                         }
                         placeholder="quiet-linen"
-                        className="flex-1 bg-transparent text-foreground font-medium placeholder:text-muted-foreground text-base sm:text-lg outline-none"
+                        className="min-w-0 flex-1 bg-transparent text-foreground font-medium placeholder:text-muted-foreground text-base sm:text-lg outline-none"
                       />
                       <button
                         type="button"
                         onClick={pickRandomSuggestion}
-                        className="rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 px-3.5 py-1.5 text-xs font-medium inline-flex items-center gap-1.5 transition-all shrink-0 cursor-pointer hover:shadow-[0_0_12px_rgba(245,158,11,0.3)]"
+                        className="shrink-0 whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 px-3.5 py-1.5 text-xs font-medium inline-flex items-center gap-1.5 transition-all shrink-0 cursor-pointer hover:shadow-[0_0_12px_rgba(245,158,11,0.3)]"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         <span>Suggest</span>
@@ -641,13 +488,12 @@ function Onboarding() {
                     <div className="mt-8 pt-4 border-t border-border flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">
                         Already have an account?{" "}
-                        <button
-                          type="button"
-                          onClick={() => setIsLogin(true)}
+                        <Link
+                          to="/login"
                           className="text-amber-600 dark:text-amber-400 font-medium hover:underline inline-flex items-center gap-1 cursor-pointer"
                         >
                           Log in <ArrowRight className="h-3 w-3 inline" />
-                        </button>
+                        </Link>
                       </span>
                     </div>
                   </div>
@@ -658,7 +504,7 @@ function Onboarding() {
             {/* ════════════════════════════════════════════════════════════
                 STEP 1: AGE ASSURANCE
                ════════════════════════════════════════════════════════════ */}
-            {!isLogin && step === 1 && (
+            {step === 1 && (
               <motion.div
                 key="step-1-age"
                 initial={{ opacity: 0, y: 15 }}
@@ -776,7 +622,7 @@ function Onboarding() {
             {/* ════════════════════════════════════════════════════════════
                 STEP 2: SET PASSPHRASE
                ════════════════════════════════════════════════════════════ */}
-            {!isLogin && step === 2 && (
+            {step === 2 && (
               <motion.div
                 key="step-2-passphrase"
                 initial={{ opacity: 0, y: 15 }}
@@ -802,19 +648,19 @@ function Onboarding() {
                   </h1>
 
                   <p className="mt-5 text-muted-foreground text-base sm:text-lg leading-relaxed max-w-lg">
-                    Your passphrase is your master key. Hashed locally with
-                    Argon2id, it protects your identity without backdoors or
-                    recovery emails.
+                    Your passphrase is your master key. It is stored only as a
+                    salted, one-way hash, so it protects your identity without
+                    backdoors or recovery emails.
                   </p>
 
                   <div className="mt-10 grid grid-cols-3 gap-6 pt-6 border-t border-border">
                     <div className="space-y-1">
                       <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 stroke-[1.8]" />
                       <h4 className="font-semibold text-foreground text-sm mt-2">
-                        Argon2id
+                        PBKDF2-SHA256
                       </h4>
                       <p className="text-xs text-muted-foreground leading-snug">
-                        Memory-hard hashing.
+                        600,000 iterations with a unique salt.
                       </p>
                     </div>
 
@@ -866,7 +712,7 @@ function Onboarding() {
                         value={passphrase}
                         onChange={(e) => setPassphrase(e.target.value)}
                         placeholder="long strong memorable phrase"
-                        className="flex-1 bg-transparent text-foreground font-medium placeholder:text-muted-foreground text-base sm:text-lg outline-none"
+                        className="min-w-0 flex-1 bg-transparent text-foreground font-medium placeholder:text-muted-foreground text-base sm:text-lg outline-none"
                       />
                       <button
                         type="button"
@@ -920,7 +766,7 @@ function Onboarding() {
             {/* ════════════════════════════════════════════════════════════
                 STEP 3: RECOVERY CODES
                ════════════════════════════════════════════════════════════ */}
-            {!isLogin && step === 3 && (
+            {step === 3 && (
               <motion.div
                 key="step-3-recovery"
                 initial={{ opacity: 0, y: 15 }}
@@ -1006,7 +852,7 @@ function Onboarding() {
             {/* ════════════════════════════════════════════════════════════
                 STEP 4: PASSKEY SETUP (OPTIONAL)
                ════════════════════════════════════════════════════════════ */}
-            {!isLogin && step === 4 && (
+            {step === 4 && (
               <motion.div
                 key="step-4-passkey"
                 initial={{ opacity: 0, y: 15 }}
@@ -1079,244 +925,6 @@ function Onboarding() {
             {/* ════════════════════════════════════════════════════════════
                 LOGIN VIEW
                ════════════════════════════════════════════════════════════ */}
-            {isLogin && !showMfaStep && !showRecoveryLogin && (
-              <motion.div
-                key="login-view"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.35 }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center"
-              >
-                {/* Left Column */}
-                <div className="lg:col-span-6 flex flex-col justify-center">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-medium text-blue-500 dark:text-blue-400 w-fit mb-6 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                    <Users className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
-                    <span>Welcome Back</span>
-                  </div>
-
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
-                    Enter Social Space.
-                    <br />
-                    <span className="text-blue-600 dark:text-blue-400">
-                      Your sovereign
-                    </span>{" "}
-                    identity.
-                  </h1>
-
-                  <p className="mt-5 text-muted-foreground text-base sm:text-lg leading-relaxed max-w-lg">
-                    Sign in with your biometric passkey or your private handle &
-                    passphrase.
-                  </p>
-                </div>
-
-                {/* Right Card */}
-                <div className="lg:col-span-6 flex justify-center lg:justify-end">
-                  <div className="w-full max-w-xl rounded-[28px] border border-border bg-card/90 backdrop-blur-2xl p-7 sm:p-10 shadow-[0_0_50px_-10px_rgba(245,158,11,0.15)] relative space-y-5">
-                    <span className="text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] text-amber-600 dark:text-amber-400 uppercase">
-                      SIGN IN
-                    </span>
-
-                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                      Access your space
-                    </h2>
-
-                    {/* Passkey 1-Click Button */}
-                    <button
-                      id="passkey-login-btn"
-                      onClick={handlePasskeyLogin}
-                      disabled={isLoading}
-                      className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-3 text-sm font-medium text-amber-600 dark:text-amber-300 transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                    >
-                      <Fingerprint className="h-5 w-5" />
-                      Sign in with biometric passkey
-                    </button>
-
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="h-px flex-1 bg-border" />
-                      or use passphrase
-                      <span className="h-px flex-1 bg-border" />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                        Handle
-                      </label>
-                      <div className="mt-1.5 flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2.5 focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                        <span className="text-muted-foreground font-mono">
-                          @
-                        </span>
-                        <input
-                          autoFocus
-                          id="login-handle"
-                          value={loginHandle}
-                          onChange={(e) =>
-                            setLoginHandle(
-                              e.target.value
-                                .replace(/[^a-z0-9-]/gi, "")
-                                .toLowerCase(),
-                            )
-                          }
-                          placeholder="quiet-linen"
-                          className="flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground font-medium"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                        Passphrase
-                      </label>
-                      <div className="mt-1.5 flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2.5 focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                        <KeyRound className="h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="login-passphrase"
-                          type={showLoginPass ? "text" : "password"}
-                          value={loginPassphrase}
-                          onChange={(e) => setLoginPassphrase(e.target.value)}
-                          placeholder="your passphrase"
-                          className="flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground font-medium"
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handlePassphraseLogin()
-                          }
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowLoginPass((v) => !v)}
-                          className="text-muted-foreground hover:text-foreground transition"
-                        >
-                          {showLoginPass ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex items-center justify-between text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setIsLogin(false)}
-                        className="text-muted-foreground hover:text-foreground transition underline underline-offset-4 cursor-pointer"
-                      >
-                        Create new account
-                      </button>
-
-                      {loginFailed && (
-                        <button
-                          type="button"
-                          onClick={() => setShowRecoveryLogin(true)}
-                          className="text-amber-600 dark:text-amber-400 hover:text-amber-500 transition underline underline-offset-4 cursor-pointer"
-                        >
-                          Use recovery code
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ════════════════════════════════════════════════════════════
-                LOGIN MFA STEP
-               ════════════════════════════════════════════════════════════ */}
-            {isLogin && showMfaStep && (
-              <motion.div
-                key="login-mfa"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.35 }}
-                className="max-w-xl mx-auto w-full"
-              >
-                <div className="rounded-[28px] border border-border bg-card/90 backdrop-blur-2xl p-8 sm:p-10 shadow-[0_0_50px_-10px_rgba(245,158,11,0.15)]">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                    Two-factor confirmation
-                  </h2>
-                  <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    Enter the 6-digit code from your authenticator app.
-                  </p>
-                  <div className="mt-6">
-                    <TotpInput
-                      onSubmit={handleMfaVerify}
-                      isLoading={isLoading}
-                      error={mfaError}
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ════════════════════════════════════════════════════════════
-                LOGIN RECOVERY REDEMPTION
-               ════════════════════════════════════════════════════════════ */}
-            {isLogin && showRecoveryLogin && (
-              <motion.div
-                key="login-recovery"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.35 }}
-                className="max-w-xl mx-auto w-full"
-              >
-                <div className="rounded-[28px] border border-border bg-card/90 backdrop-blur-2xl p-8 sm:p-10 shadow-[0_0_50px_-10px_rgba(245,158,11,0.15)] space-y-5">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                    Recover your account
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    Enter one of your 8 recovery codes and set a new passphrase.
-                  </p>
-
-                  <div>
-                    <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      Recovery code
-                    </label>
-                    <div className="mt-1.5 flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2.5">
-                      <input
-                        value={recoveryCode}
-                        onChange={(e) =>
-                          setRecoveryCode(e.target.value.toLowerCase())
-                        }
-                        placeholder="word-word-word-word"
-                        className="flex-1 bg-transparent text-foreground font-mono text-sm outline-none placeholder:text-muted-foreground"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      New passphrase
-                    </label>
-                    <div className="mt-1.5 flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2.5">
-                      <input
-                        type="password"
-                        value={recoveryNewPass}
-                        onChange={(e) => setRecoveryNewPass(e.target.value)}
-                        placeholder="strong new passphrase"
-                        className="flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleRecoveryLogin}
-                    disabled={isLoading || !recoveryCode || !recoveryNewPass}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 px-5 py-3 text-sm font-semibold text-black transition-all cursor-pointer disabled:opacity-40"
-                  >
-                    {isLoading ? "Recovering…" : "Recover account"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowRecoveryLogin(false)}
-                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition underline underline-offset-4 cursor-pointer"
-                  >
-                    ← Back to standard sign in
-                  </button>
-                </div>
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </main>
@@ -1349,7 +957,7 @@ function Onboarding() {
             </button>
 
             {/* Action for Step 0, 1, 2 */}
-            {!isLogin && step < 3 && (
+            {step < 3 && (
               <button
                 type="button"
                 onClick={async () => {
@@ -1383,7 +991,7 @@ function Onboarding() {
             )}
 
             {/* Action for Step 3 (Recovery code saved confirmation) */}
-            {!isLogin && step === 3 && (
+            {step === 3 && (
               <button
                 type="button"
                 onClick={() => {
@@ -1399,31 +1007,13 @@ function Onboarding() {
             )}
 
             {/* Action for Step 4 (Passkey Setup / Enter Space) */}
-            {!isLogin && step === 4 && (
+            {step === 4 && (
               <button
                 type="button"
                 onClick={() => navigate({ to: "/social" })}
                 className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer active:scale-[0.98]"
               >
                 Enter Social Space
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            )}
-
-            {/* Action for Login View */}
-            {isLogin && !showMfaStep && !showRecoveryLogin && (
-              <button
-                id="login-submit-btn"
-                type="button"
-                onClick={handlePassphraseLogin}
-                disabled={
-                  isLoading ||
-                  loginHandle.length < 3 ||
-                  loginPassphrase.length < 3
-                }
-                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:brightness-110 text-black font-semibold px-6 sm:px-8 py-2.5 text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-40 active:scale-[0.98]"
-              >
-                {isLoading ? "Signing in…" : "Enter Social Space"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </button>
             )}

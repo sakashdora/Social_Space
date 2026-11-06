@@ -1,5 +1,18 @@
-import axios from "axios";
 import { env } from "../config/env.js";
+
+/** JSON POST with a hard timeout. Throws on non-2xx so callers treat it as a provider failure. */
+async function postJson(url, payload, { headers = {}, timeout = 30000 } = {}) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(timeout),
+  });
+  if (!response.ok) {
+    throw Object.assign(new Error(`AI provider responded with status ${response.status}.`), { status: 502 });
+  }
+  return { data: await response.json() };
+}
 
 const unavailable = () => Object.assign(new Error("AI service is unavailable. Configure a provider or try again later."), { status: 503 });
 const getAiApiKey = () => env.AI_API_KEY;
@@ -106,7 +119,7 @@ async function callGemini(prompt, systemInstruction, options = {}) {
     payload.response_format = options.responseFormat;
   }
 
-  const response = await axios.post(getAiApiUrl(), payload, {
+  const response = await postJson(getAiApiUrl(), payload, {
     headers: {
       Authorization: `Bearer ${getAiApiKey()}`,
       "Content-Type": "application/json"
@@ -140,7 +153,7 @@ async function callGrok(prompt, systemInstruction, options = {}) {
 
   console.log(`Orchestration: Calling ${name} API...`);
 
-  const response = await axios.post(url, payload, {
+  const response = await postJson(url, payload, {
     headers: {
       Authorization: `Bearer ${getGrokApiKey()}`,
       "Content-Type": "application/json"

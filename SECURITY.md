@@ -4,17 +4,17 @@ This document describes the source implementation, not a security certification 
 
 ## Accounts and authorization
 
-Passphrases use Argon2id. JWTs are checked against account bans and token versions. Sensitive actions require the current passphrase. Passkey verification uses configured origins and relying-party IDs; challenges are single-use and shared across instances. Shared challenges, including pending TOTP secrets, are encrypted at rest with the server encryption key. Recovery-code redemption claims the code atomically. Rate-limit storage failures reject protected requests.
+Passphrases are stored as salted PBKDF2-HMAC-SHA256 hashes (600,000 iterations, WebCrypto). Accounts created before the Cloudflare move keep their Argon2id hashes until their next successful sign-in, which upgrades them. JWTs are checked against account bans and token versions. Sensitive actions require the current passphrase. Passkey verification uses configured origins and relying-party IDs; challenges are single-use and shared across instances. Shared challenges, including pending TOTP secrets, are encrypted at rest with the server encryption key. Recovery-code redemption claims the code atomically. Rate-limit storage failures reject protected requests.
 
-Production secrets belong only in the server environment. Database tables use RLS with no browser Data API policies. The Express API uses a privileged database connection and must enforce every ownership and audience rule itself.
+Production secrets are stored only as Cloudflare Worker secrets (`wrangler secret put`). The D1 database has no public API; only the Worker can reach it, so the Worker enforces every ownership and audience rule itself. Session tokens are HS256 JWTs verified with a constant-time comparison; only HS256 is accepted.
 
 ## Posts and uploads
 
 Anonymous posts hide their owner from API responses; the database still retains ownership for deletion and permissions. This is pseudonymity from other users, not anonymity from the operator.
 
-New media must have an owned, server-issued upload reservation and pass confirmation before publication. File size and decoded content are checked. Images are re-encoded; clips are remuxed to remove file metadata. These operations do not remove faces, voices, locations visible in frames, or all identifying content. Face detection can miss people; preview and review images yourself.
+New media must have an owned, server-issued upload reservation and pass confirmation before publication. The container is identified from its magic bytes, not the declared MIME type, and the byte count must match the reservation. JPEG, PNG and WebP images have EXIF, XMP, text and comment segments removed. MP4 and MOV clips are checked for a readable duration against the account limit (60 s free, 600 s premium). Video metadata is not stripped on the Worker, and WebM or Ogg media cannot be duration-checked, so it is refused. These operations do not remove faces, voices, locations visible in frames, or all identifying content. Face detection can miss people; preview and review images yourself.
 
-Media is stored in a private bucket. Feed responses issue short-lived media capabilities so image/video elements can load restricted posts. A copied capability remains usable for up to 15 minutes; signed storage downloads last up to 60 seconds, bounded by post/media expiry. Deleting or expiring a post prevents new capabilities from being redeemed. Already-issued storage URLs and downloaded copies cannot be recalled instantly.
+Media is stored in a private bucket. Feed responses issue short-lived media capabilities so image/video elements can load restricted posts. A copied capability remains usable for up to 15 minutes. Chat attachments use tickets of at most 60 seconds, bounded by message expiry. The Worker streams objects from R2; storage URLs are never exposed to the browser. Deleting or expiring a post prevents new capabilities from being redeemed. Already-issued tickets and downloaded copies cannot be recalled instantly.
 
 ## Direct messages
 
@@ -26,7 +26,7 @@ Chat retention is enforced on reads. Physical deletion is asynchronous. New chat
 
 ## Cleanup and moderation
 
-Storage deletion jobs survive account deletion and retry failures. Processing/staging objects wait until their upload authorization expires before final cleanup. Vercel's daily job controls physical cleanup timing; runtime checks hide expired content sooner.
+Storage deletion jobs survive account deletion and retry failures. Processing/staging objects wait until their upload authorization expires before final cleanup. A daily Cloudflare Cron Trigger controls physical cleanup timing; runtime checks hide expired content sooner.
 
 Reports and appeals are visible to their submitter and configured moderators. Queue status changes record reviews; they do not automatically suspend accounts or remove posts. Automated moderation can be wrong and falls back to basic text rules without providers. Do not claim automated detection of all prohibited content or legal reporting.
 

@@ -1,0 +1,73 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  api:
+    name: Worker API and D1 migrations
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run generate
+
+      - name: Apply D1 migrations
+        working-directory: backend
+        run: npx wrangler d1 migrations apply social-space --remote
+
+      - name: Deploy Worker
+        working-directory: backend
+        run: npx wrangler deploy
+
+  web:
+    name: Frontend on Cloudflare Pages
+    needs: api
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build:web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      - name: Scan the browser bundle for credentials
+        run: npm run check:secrets -- --dist
+
+      - name: Publish to Pages
+        run: npx wrangler pages deploy frontend/dist/client --project-name=social-space --branch=main

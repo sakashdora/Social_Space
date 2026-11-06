@@ -85,17 +85,14 @@ export async function sendChatMessage(req, res) {
     if (envelope.v !== 2 || typeof envelope.ciphertext !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(envelope.ciphertext) || typeof envelope.iv !== "string" || Buffer.from(envelope.iv, "base64").length !== 12) return fail(res, "Invalid encrypted message.", 400);
     if (envelope.senderKey !== sender.user.chatPublicKey || envelope.recipientKey !== peer?.user.chatPublicKey) return fail(res, "Chat keys changed. Refresh and send again.", 409);
     const expiresAt = new Date(Date.now() + thread.deleteAfterSeconds * 1000);
-    const message = await prisma.$transaction(async tx => {
-      if (req.body.mediaId) {
-        await tx.$queryRaw`SELECT id FROM "Media" WHERE id = ${req.body.mediaId} FOR UPDATE`;
-        const media = await tx.media.findFirst({ where: { id: req.body.mediaId, userId: req.user.id, threadId, purpose: "chat", status: "ready", expiresAt: { gt: new Date() }, message: null } });
-        if (!media) throw Object.assign(new Error("Attachment is unavailable or belongs to another message."), { status: 403 });
-        await tx.media.update({ where: { id: media.id }, data: { expiresAt } });
-      }
-      const created = await tx.message.create({ data: { threadId, senderId: req.user.id, body: req.body.body, mediaId: req.body.mediaId || null, expiresAt } });
-      await tx.thread.update({ where: { id: threadId }, data: { updatedAt: new Date() } });
-      return created;
-    });
+    if (req.body.mediaId) {
+      // Message.mediaId is unique, so an attachment can only ever be sent once.
+      const media = await prisma.media.findFirst({ where: { id: req.body.mediaId, userId: req.user.id, threadId, purpose: "chat", status: "ready", expiresAt: { gt: new Date() }, message: null } });
+      if (!media) throw Object.assign(new Error("Attachment is unavailable or belongs to another message."), { status: 403 });
+      await prisma.media.update({ where: { id: media.id }, data: { expiresAt } });
+    }
+    const message = await prisma.message.create({ data: { threadId, senderId: req.user.id, body: req.body.body, mediaId: req.body.mediaId || null, expiresAt } });
+    await prisma.thread.update({ where: { id: threadId }, data: { updatedAt: new Date() } });
     safeWaitUntil(notifyChat(threadId, thread.participants.map(p => p.userId)));
     return res.status(201).json(messageView(message, req.user.id));
   } catch (error) { return fail(res, error.status ? error.message : "Could not send message.", error.status || 500); }

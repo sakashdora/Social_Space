@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { createPost, getFeed, getPostDetails, deletePost, getTrendingTopics, voteOnPoll } from "../controllers/posts.controller.js";
 import { createComment, getComments } from "../controllers/comments.controller.js";
 import { requireAuth, optionalAuth } from "../middleware/auth.middleware.js";

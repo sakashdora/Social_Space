@@ -9,8 +9,7 @@
  *   POST /v1/auth/mfa/totp/disable   → requires passphrase re-auth (requireStepUp)
  */
 
-import { generateSecret, generateURI, verify } from "otplib";
-import QRCode from "qrcode";
+import { generateSecret, generateUri, verifyTotp } from "../utils/totp.js";
 import prisma from "../config/prisma.js";
 import { encrypt } from "../utils/crypto.js";
 import { store } from "../config/challengeStore.js";
@@ -26,19 +25,17 @@ const TOTP_PENDING_TTL_SECONDS = 10 * 60;
 export async function setupTotp(req, res) {
   try {
     const secret = generateSecret();
-    const otpauthUrl = generateURI({
+    const otpauthUrl = generateUri({
       secret,
       label: req.user.handle,
       issuer: env.TOTP_ISSUER,
     });
-    const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
 
     // Store pending secret with TTL (not in DB) — expires in 10 minutes
     await store.set(`totp:pending:${req.user.id}`, { secret }, TOTP_PENDING_TTL_SECONDS);
 
     return res.status(200).json({
-      qrCodeDataUrl,
-      otpauthUrl, // for manual entry in authenticator apps
+      otpauthUrl, // rendered as a QR code in the browser; also usable for manual entry
       message: "Scan the QR code in your authenticator app, then call /enable with a test code.",
     });
   } catch (error) {
@@ -70,8 +67,7 @@ export async function enableTotp(req, res) {
       });
     }
 
-    const result = await verify({ secret: pending.secret, token: totpCode });
-    if (!result.valid) {
+    if (!verifyTotp(pending.secret, totpCode)) {
       return res.status(401).json({
         error: {
           message: "Invalid TOTP code. Make sure your authenticator app time is synced.",

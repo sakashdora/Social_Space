@@ -149,7 +149,7 @@ export async function verifyLogin(req, res) {
     // Update counter in DB
     await prisma.passkey.update({
       where: { id: passkeyRecord.id },
-      data: { counter: newCounter, lastUsedAt: new Date() },
+      data: { counter: BigInt(newCounter), lastUsedAt: new Date() },
     });
 
     await prisma.user.update({ where: { id: passkeyRecord.user.id }, data: { lastActiveAt: new Date(), pendingDeletionAt: null } });

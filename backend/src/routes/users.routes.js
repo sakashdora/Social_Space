@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { requireAuth, optionalAuth } from "../middleware/auth.middleware.js";
 import { pgRateLimit } from "../config/rateLimiters.js";
 import prisma from "../config/prisma.js";

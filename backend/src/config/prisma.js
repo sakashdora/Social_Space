@@ -1,10 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis;
-
-// Preserve PrismaClient instance across warm serverless container invocations
-const prisma = globalForPrisma.prisma || new PrismaClient();
-
-globalForPrisma.prisma = prisma;
-
-export default prisma;
+/**
+ * src/config/prisma.js
+ *
+ * Compatibility entry point: controllers import the request-bound Prisma client
+ * from here. The implementation lives in ./db.js.
+ */
+export { default, db, setDatabase, getClient } from "./db.js";

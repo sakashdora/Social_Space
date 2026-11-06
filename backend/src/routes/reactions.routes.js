@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { toggleReaction } from "../controllers/reactions.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validateBody } from "../middleware/validation.middleware.js";

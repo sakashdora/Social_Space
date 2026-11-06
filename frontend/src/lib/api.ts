@@ -507,22 +507,6 @@ export async function toggleReaction({
 }
 
 /**
- * Fetch RSS News feed.
- */
-export async function fetchNews(topic = "") {
-  let url = `${API_BASE}/api/rss`;
-  if (topic) {
-    const params = new URLSearchParams();
-    params.append("topic", topic);
-    url += `?${params.toString()}`;
-  }
-  const res = await fetch(url, {
-    headers: getHeaders(),
-  });
-  return handleResponse(res);
-}
-
-/**
  * Grok AI Helpers
  */
 export async function generateArticle(topic: string, context = "") {
@@ -639,8 +623,8 @@ export interface UploadMediaResult {
 }
 
 /**
- * Uploads media directly to Supabase Storage via presigned upload URL,
- * then calls /api/media/confirm for server-authoritative ffprobe check & ffmpeg thumbnail generation.
+ * Uploads media through a short-lived, single-purpose upload URL issued by the API,
+ * then calls /api/media/confirm, which verifies the real file format and duration on the server.
  */
 export async function uploadMedia(
   file: File,
@@ -669,7 +653,7 @@ export async function uploadMedia(
   });
   const initData = await handleResponse(initRes);
 
-  // Step 2: Direct storage upload to Supabase
+  // Step 2: Upload the raw bytes to the API-issued upload URL
   if (!initData.signedUrl) throw new Error("Storage upload is unavailable.");
   if (initData.signedUrl) {
     const uploadRes = await fetch(initData.signedUrl, {
@@ -686,7 +670,7 @@ export async function uploadMedia(
 
   onProgress?.("processing");
 
-  // Step 3: Server-authoritative confirmation (ffprobe duration + ffmpeg thumbnail)
+  // Step 3: Server-authoritative confirmation (format and duration checks)
   const confirmRes = await fetch(`${API_BASE}/api/media/confirm`, {
     method: "POST",
     headers: getHeaders(),

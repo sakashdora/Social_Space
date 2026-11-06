@@ -17,7 +17,6 @@ import {
   clearThreadKeyCache,
   decryptChatMessage,
 } from "@/lib/api";
-import { useChatRealtime } from "@/hooks/useChatRealtime";
 import { useAuth } from "@/hooks/useAuth";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,7 +46,6 @@ function MessagesLayout() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showKeyResetDialog, setShowKeyResetDialog] = useState(false);
   const { user, isAuthenticated: authed } = useAuth();
-  const realtime = useChatRealtime(authed);
 
   const { data: me } = useQuery({
     queryKey: ["me"],
@@ -139,7 +137,8 @@ function MessagesLayout() {
     queryKey: ["chats"],
     queryFn: fetchChats,
     enabled: authed,
-    refetchInterval: authed ? (realtime ? 30000 : 5000) : false,
+    // Messages refresh by polling; every read is authorised and expiry-checked server-side.
+    refetchInterval: authed ? 5000 : false,
     refetchIntervalInBackground: false,
   });
 

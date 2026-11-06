@@ -1,133 +1,111 @@
 /**
  * src/config/env.js
  *
- * Centralized environment configuration loader and boot-time validator.
- * Loads variables from .env and performs strict validations on startup.
- * Throws immediately if critical production secrets are missing, insecure,
- * or left as development placeholders.
+ * Runtime configuration for the Cloudflare Worker.
+ *
+ * Workers have no process.env: configuration arrives as bindings on every
+ * request (vars from wrangler.toml, secrets from `wrangler secret put`, and the
+ * D1 / R2 bindings). `loadRuntimeEnv()` copies the non-binding values into the
+ * shared `env` object and validates production secrets. It is called at the
+ * top of every request, so modules can read `env.X` lazily.
+ *
+ * Secrets are never logged, never returned to clients, and never bundled into
+ * the frontend (only VITE_* variables reach the browser).
  */
 
-import dotenv from "dotenv";
-dotenv.config();
-
-const KNOWN_DEV_PLACEHOLDERS = [
-  "CHANGE_IN_PROD",
-  "CHANGE-IN-PROD",
-  "YOUR_",
-  "REPLACE_WITH",
-  "veil_shine_jwt_secret_key",
+// Matched case-insensitively against the trimmed value.
+const KNOWN_PLACEHOLDERS = [
+  "change_in_prod",
+  "change-in-prod",
+  "your_",
+  "replace",
   "veil-dev-",
   "0000000000000000000000000000000000000000000000000000000000000000",
 ];
 
-function isPlaceholder(value) {
-  if (!value || typeof value !== "string") return true;
-  const v = value.trim();
-  if (v.length === 0) return true;
-  return KNOWN_DEV_PLACEHOLDERS.some((p) => v.includes(p));
-}
-
 const REQUIRED_SECRETS = {
   JWT_SECRET: 32,
-  ENCRYPTION_KEY: 64,       // Exactly 64 hex chars (32 bytes)
+  ENCRYPTION_KEY: 64, // exactly 64 hex characters (32 bytes)
   RECOVERY_CODE_SECRET: 32,
-  SUPABASE_SERVICE_ROLE_KEY: 32,
+  CRON_SECRET: 32,
 };
 
-const errors = [];
-const warnings = [];
-
-const isProd = process.env.NODE_ENV === "production";
-
-// 1. Validate secrets
-for (const [name, minLen] of Object.entries(REQUIRED_SECRETS)) {
-  const value = process.env[name];
-
-  if (!value || value.trim().length === 0) {
-    const msg = `  ✗ ${name} is missing or empty.`;
-    if (name === "SUPABASE_SERVICE_ROLE_KEY" && !isProd) {
-      warnings.push(msg.replace("✗", "⚠"));
-    } else {
-      errors.push(msg);
-    }
-    continue;
-  }
-
-  if (isPlaceholder(value)) {
-    errors.push(`  ✗ ${name} contains a known dev placeholder.`);
-    continue;
-  }
-
-  if (value.trim().length < minLen) {
-    const msg = `  ✗ ${name} is too short (${value.length} chars; minimum ${minLen}).`;
-    if (isProd) {
-      errors.push(msg);
-    } else {
-      warnings.push(msg.replace("✗", "⚠"));
-    }
-  }
-}
-
-// Check ENCRYPTION_KEY structure specifically (must be valid 32-byte AES hex key)
-const encKey = process.env.ENCRYPTION_KEY;
-if (encKey && !/^[0-9a-fA-F]{64}$/.test(encKey.trim())) {
-  errors.push("  ✗ ENCRYPTION_KEY must be exactly 64 hexadecimal characters (32 bytes).");
-}
-
-if (!process.env.SUPABASE_URL) {
-  (isProd ? errors : warnings).push("SUPABASE_URL is missing; media storage is unavailable.");
-}
-if (isProd && !process.env.FRONTEND_ORIGIN && !process.env.VERCEL_URL) {
-  errors.push("FRONTEND_ORIGIN must contain the exact production frontend origin.");
-}
-if (process.env.FRONTEND_ORIGIN?.includes("*")) {
-  errors.push("FRONTEND_ORIGIN must list exact origins; wildcards are not allowed.");
-}
-if (isProd && (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)) {
-  warnings.push("Redis is not configured; authentication challenges use PostgreSQL.");
-}
-
-if (warnings.length > 0) {
-  console.warn("[config/env] ⚠  WARNINGS:");
-  warnings.forEach((w) => console.warn(w));
-}
-
-if (errors.length > 0) {
-  console.error("[config/env] FATAL — Invalid or missing secrets:");
-  errors.forEach((e) => console.error(e));
-  console.error("\n  See backend/.env.example for the full list of required variables.");
-  throw new Error(
-    `Server startup aborted: ${errors.length} validation error(s). See console above.`
-  );
-}
-
-console.log("[config/env] ✓ All required environment secrets validated successfully.");
-
-// Export sanitized and typed config properties
+/** Shared, mutable configuration. Populated by loadRuntimeEnv(). */
 export const env = {
-  PORT: parseInt(process.env.PORT || "3000", 10),
-  NODE_ENV: process.env.NODE_ENV || "development",
-  DATABASE_URL: process.env.DATABASE_URL,
-  DIRECT_URL: process.env.DIRECT_URL,
-  AI_API_KEY: process.env.AI_API_KEY,
-  AI_API_URL: process.env.AI_API_URL || "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
-  AI_MODEL: process.env.AI_MODEL || "gemini-2.5-flash",
-  GROK_API_KEY: process.env.GROK_API_KEY,
-  JWT_SECRET: process.env.JWT_SECRET,
-  ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
-  RECOVERY_CODE_SECRET: process.env.RECOVERY_CODE_SECRET,
-  WEBAUTHN_RP_NAME: process.env.WEBAUTHN_RP_NAME || "Social Space",
-  WEBAUTHN_RP_ID: process.env.WEBAUTHN_RP_ID || "localhost",
-  WEBAUTHN_ORIGIN: process.env.WEBAUTHN_ORIGIN || "http://localhost:5173",
-  FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || (isProd ? "" : "http://localhost:5173"),
-  TOTP_ISSUER: process.env.TOTP_ISSUER || "Social Space",
-  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
-  // Fix C: No hard-coded fallback — SUPABASE_URL must be explicitly set.
-  // In dev, warn if missing (handled above). In prod, this is a startup error.
-  SUPABASE_URL: process.env.SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  // Storage bucket name — defaults to "veil-media" (the production bucket).
-  // Override to "staging" in dev or test if you want to isolate uploads.
-  SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET || "veil-media",
+  NODE_ENV: "production",
+  JWT_SECRET: "",
+  ENCRYPTION_KEY: "",
+  RECOVERY_CODE_SECRET: "",
+  CRON_SECRET: "",
+  WEBAUTHN_RP_NAME: "Social Space",
+  WEBAUTHN_RP_ID: "localhost",
+  WEBAUTHN_ORIGIN: "http://localhost:5173",
+  FRONTEND_ORIGIN: "",
+  TOTP_ISSUER: "Social Space",
+  AI_API_KEY: "",
+  AI_API_URL: "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+  AI_MODEL: "gemini-2.5-flash",
+  GROK_API_KEY: "",
+  MODERATOR_HANDLES: "",
+  MEDIA_BUCKET_NAME: "veil-media",
+  // Set to "false" only in tests or air-gapped deployments.
+  HIBP_ENABLED: "true",
 };
+
+const STRING_VARS = Object.keys(env);
+
+function isPlaceholder(value) {
+  const v = value.trim().toLowerCase();
+  return v.length === 0 || KNOWN_PLACEHOLDERS.some((p) => v.includes(p));
+}
+
+/**
+ * Copies bindings into `env` and validates them. Throws a generic error that
+ * lists variable NAMES only, never their values.
+ *
+ * @param {Record<string, unknown>} bindings the Worker `env` object
+ */
+export function loadRuntimeEnv(bindings = {}) {
+  for (const key of STRING_VARS) {
+    const value = bindings[key];
+    if (typeof value === "string") env[key] = value;
+  }
+
+  const errors = [];
+  for (const [name, minLength] of Object.entries(REQUIRED_SECRETS)) {
+    const value = env[name];
+    if (!value || value.trim().length === 0) {
+      errors.push(`${name} is missing`);
+      continue;
+    }
+    if (isPlaceholder(value)) {
+      errors.push(`${name} contains a placeholder value`);
+      continue;
+    }
+    if (value.trim().length < minLength) {
+      errors.push(`${name} is shorter than ${minLength} characters`);
+    }
+  }
+  if (env.ENCRYPTION_KEY && !/^[0-9a-fA-F]{64}$/.test(env.ENCRYPTION_KEY.trim())) {
+    errors.push("ENCRYPTION_KEY must be 64 hexadecimal characters");
+  }
+  if (env.FRONTEND_ORIGIN.includes("*")) {
+    errors.push("FRONTEND_ORIGIN must list exact origins; wildcards are not allowed");
+  }
+  if (errors.length > 0) {
+    throw new Error(`Server configuration invalid: ${errors.join("; ")}.`);
+  }
+  return env;
+}
+
+/** Exact, normalised origins allowed for CORS and WebAuthn. */
+export function configuredOrigins(value = env.FRONTEND_ORIGIN) {
+  return value
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/+$/, "").toLowerCase())
+    .filter(Boolean);
+}
+
+export function isProduction() {
+  return env.NODE_ENV === "production";
+}

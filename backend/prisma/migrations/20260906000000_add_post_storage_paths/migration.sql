@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "storagePath" TEXT;
-ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "thumbStoragePath" TEXT;

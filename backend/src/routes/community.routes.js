@@ -1,13 +1,14 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { z } from "zod";
 import prisma from "../config/prisma.js";
 import { requireAuth, requireStepUp } from "../middleware/auth.middleware.js";
 import { validateBody } from "../middleware/validation.middleware.js";
 import { pgRateLimit } from "../config/rateLimiters.js";
+import { env } from "../config/env.js";
 
 const router = Router();
 const route = fn => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
-export const isModerator = handle => (process.env.MODERATOR_HANDLES || "").split(",").map(v => v.trim().toLowerCase()).filter(Boolean).includes(handle);
+export const isModerator = handle => (env.MODERATOR_HANDLES || "").split(",").map(v => v.trim().toLowerCase()).filter(Boolean).includes(handle);
 router.use(requireAuth);
 const reportSchema = z.object({ target: z.string().trim().min(1).max(500), category: z.string().trim().min(1).max(100), reason: z.string().trim().min(1).max(5000) });
 const appealSchema = z.object({ reference: z.string().trim().min(1).max(120), reason: z.string().trim().min(1).max(5000) });

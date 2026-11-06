@@ -1,0 +1,13 @@
+# Copy to backend/.dev.vars for local development (`npm run dev`).
+# .dev.vars is git-ignored. Production secrets go through `npx wrangler secret put NAME`.
+# Generate random values with:  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+JWT_SECRET=replace-with-64-hex-characters
+RECOVERY_CODE_SECRET=replace-with-64-hex-characters
+CRON_SECRET=replace-with-64-hex-characters
+# Exactly 64 hex characters (32 bytes) for AES-256-GCM.
+ENCRYPTION_KEY=replace-with-64-hex-characters
+
+# Optional AI providers. Leave empty to disable AI features.
+AI_API_KEY=
+GROK_API_KEY=

@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/write-security-headers.mjs",
     "build:dev": "vite build --mode development",
     "start": "vite preview --host 0.0.0.0 --port 3000",
     "preview": "vite preview",
@@ -47,7 +47,6 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@simplewebauthn/browser": "^13.3.0",
-    "@supabase/supabase-js": "2.110.1",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "^1.170.16",
@@ -61,6 +60,7 @@
     "framer-motion": "^12.42.2",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -83,6 +83,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@types/node": "^22.16.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/react-syntax-highlighter": "^15.5.13",

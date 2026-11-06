@@ -1,7 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Home,
-  Rss,
   PlusCircle,
   MessageSquare,
   UserRound,
@@ -19,13 +18,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const items: readonly {
-  to: "/" | "/news" | "/social" | "/messages" | "/video" | "/profile";
+  to: "/" | "/social" | "/messages" | "/video" | "/profile";
   label: string;
   icon: typeof Home;
   badge?: number;
 }[] = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/news", label: "News", icon: Rss },
   { to: "/social", label: "Social", icon: MessageSquare },
   { to: "/messages", label: "Messages", icon: MessageCircle },
   { to: "/video", label: "Video", icon: Video },
@@ -165,7 +163,7 @@ export function AppNav() {
               "max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))",
           }}
         >
-          {items.slice(0, 3).map((it) => {
+          {items.slice(0, 2).map((it) => {
             const active =
               it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
             const Icon = it.icon;
@@ -197,7 +195,7 @@ export function AppNav() {
             <PlusCircle className="h-5 w-5" />
           </Link>
 
-          {items.slice(3).map((it) => {
+          {items.slice(2).map((it) => {
             const active = pathname.startsWith(it.to);
             const Icon = it.icon;
             return (

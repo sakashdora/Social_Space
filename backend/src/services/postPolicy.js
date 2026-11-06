@@ -1,6 +1,17 @@
 import prisma from "../config/prisma.js";
 import { postMediaUrl } from "../utils/mediaTickets.js";
 
+/** Parses a JSON-encoded list column (SQLite has no scalar lists). */
+export function parseList(value) {
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export const unexpired = (now = new Date()) => ({ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] });
 
 // A circle is the author's current followed accounts, as described in the UI.
@@ -14,7 +25,8 @@ export function visiblePosts(userId, now = new Date()) {
         { audience: { in: ["everyone", "anonymous_feed"] } },
         ...(userId ? [
           { ownerId: userId },
-          { audience: "selected", allowedUserIds: { has: userId } },
+          // allowedUserIds is a JSON array of UUIDs; the quoted UUID cannot match a substring of another id.
+          { audience: "selected", allowedUserIds: { contains: `"${userId}"` } },
           { audience: "circle", owner: { following: { some: { followingId: userId } } } },
         ] : []),
       ] },
@@ -48,7 +60,7 @@ export function serializePost(post, viewerId) {
     userHasReacted: post.reactions?.some(r => r.userId === viewerId && r.reactionType === "heart") ?? false,
     sharedPostId: post.sharedPost?.id ?? null,
     sharedPost: post.sharedPost ? serializePost(post.sharedPost, viewerId) : null,
-    pollOptions: post.pollOptions?.map((text, index) => ({ text, votes: post.pollVotes?.filter(v => v.optionIndex === index).length ?? 0 })) ?? [],
+    pollOptions: parseList(post.pollOptions).map((text, index) => ({ text, votes: post.pollVotes?.filter(v => v.optionIndex === index).length ?? 0 })),
     votedOption: post.pollVotes?.find(v => v.userId === viewerId)?.optionIndex ?? null,
   };
 }

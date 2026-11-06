@@ -103,7 +103,7 @@ export async function changePassphrase(req, res) {
 export async function deleteAccount(req, res) {
   try {
     await logSecurityEvent(req.user.id, "ACCOUNT_DELETED", req);
-    await prisma.$transaction(tx => deleteAccountData(tx, req.user.id), { timeout: 15000 });
+    await deleteAccountData(req.user.id);
     safeWaitUntil(drainStorageDeletions());
     return res.status(200).json({ message: "Account deleted. Stored media cleanup is queued and retried automatically." });
   } catch (error) {
@@ -148,7 +148,7 @@ export async function getSecurityEvents(req, res) {
   }
 }
 
-import crypto from "crypto";
+// P-256 ECDH SPKI keys are validated with WebCrypto (no node:crypto KeyObject needed).
 
 /**
  * GET /v1/auth/me
@@ -207,17 +207,14 @@ export async function updateChatPublicKey(req, res) {
     }
 
     try {
-      const pubKeyBuffer = Buffer.from(chatPublicKey, "base64");
-      const keyObj = crypto.createPublicKey({
-        key: pubKeyBuffer,
-        format: "der",
-        type: "spki"
-      });
-      if (keyObj.asymmetricKeyType !== "ec" || keyObj.asymmetricKeyDetails?.namedCurve !== "prime256v1") {
-        return res.status(400).json({
-          error: { message: "Only Elliptic Curve (EC) public keys are allowed.", code: "BAD_REQUEST" }
-        });
-      }
+      // importKey rejects anything that is not a P-256 ECDH SPKI key.
+      await globalThis.crypto.subtle.importKey(
+        "spki",
+        Buffer.from(chatPublicKey, "base64"),
+        { name: "ECDH", namedCurve: "P-256" },
+        true,
+        [],
+      );
     } catch (err) {
       return res.status(400).json({
         error: { message: "Invalid SPKI public key structure.", code: "BAD_REQUEST" }

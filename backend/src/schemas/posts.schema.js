@@ -9,7 +9,7 @@ import { z } from "zod";
 export const createPostSchema = z.object({
   audience: z.enum(["everyone", "circle", "selected", "anonymous_feed"]).default("everyone"),
   lifetime: z.enum(["24h", "7d", "30d", "forever"]).default("forever"),
-  selectedHandles: z.array(z.string().trim().toLowerCase().regex(/^[a-z0-9_]+$/).max(32)).max(50).default([]).transform(v => [...new Set(v)]),
+  selectedHandles: z.array(z.string().trim().toLowerCase().regex(/^[a-z0-9-]+$/).max(32)).max(50).default([]).transform(v => [...new Set(v)]),
   engagement: z.object({ allowReplies: z.boolean().optional(), allowReactions: z.boolean().optional(), allowReposts: z.boolean().optional(), anonymousReplies: z.boolean().optional() }).optional(),
   isAiModifiedMedia: z.boolean().default(false),
   pollOptions: z.array(z.string().trim().min(1).max(100)).max(6).default([]).refine(v => v.length === 0 || (v.length >= 2 && new Set(v).size === v.length), "Use 2–6 distinct poll options."),

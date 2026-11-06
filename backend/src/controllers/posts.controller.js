@@ -46,7 +46,7 @@ async function analyzeAndModeratePost(postId, content) {
 }
 
 
-import { findVisiblePost, visiblePosts, publicAuthor, publicMedia, serializePost, unexpired } from "../services/postPolicy.js";
+import { findVisiblePost, visiblePosts, publicAuthor, publicMedia, serializePost, unexpired, parseList } from "../services/postPolicy.js";
 
 const includePost = (viewerId) => ({
   user: { select: publicAuthor }, media: { select: publicMedia },
@@ -85,25 +85,21 @@ export async function createPost(req, res) {
       return res.status(400).json({ error: "Choose valid recipient handles for a selected audience." });
     }
     const days = { "24h": 1, "7d": 7, "30d": 30 };
-    const post = await prisma.$transaction(async tx => {
-      // Serialize attachment with media/account deletion and quota changes.
-      if (mediaId) {
-        await tx.$queryRaw`SELECT id FROM "Media" WHERE id = ${mediaId} FOR UPDATE`;
-        const owned = await tx.media.findFirst({ where: {
-          id: mediaId, userId: req.user.id, status: "ready", purpose: "post", ...unexpired(),
-        } });
-        if (!owned) throw Object.assign(new Error("Media is unavailable or does not belong to you."), { status: 403 });
-      }
-      return tx.post.create({ data: {
-        ownerId: req.user.id, userId: mode === "full" || audience === "anonymous_feed" ? null : req.user.id,
-        content, category, mediaId: mediaId || null, sharedPostId: sharedPostId || null,
-        audience, allowedUserIds: recipients.map(u => u.id),
-        expiresAt: days[lifetime] ? new Date(Date.now() + days[lifetime] * 86400000) : null,
-        allowReplies: engagement.allowReplies ?? true, allowReactions: engagement.allowReactions ?? true,
-        allowReposts: engagement.allowReposts ?? true, anonymousReplies: engagement.anonymousReplies ?? false,
-        isAiModifiedMedia, pollOptions,
-      }, include: includePost(req.user.id) });
-    });
+    if (mediaId) {
+      const owned = await prisma.media.findFirst({ where: {
+        id: mediaId, userId: req.user.id, status: "ready", purpose: "post", ...unexpired(),
+      } });
+      if (!owned) throw Object.assign(new Error("Media is unavailable or does not belong to you."), { status: 403 });
+    }
+    const post = await prisma.post.create({ data: {
+      ownerId: req.user.id, userId: mode === "full" || audience === "anonymous_feed" ? null : req.user.id,
+      content, category, mediaId: mediaId || null, sharedPostId: sharedPostId || null,
+      audience, allowedUserIds: JSON.stringify(recipients.map(u => u.id)),
+      expiresAt: days[lifetime] ? new Date(Date.now() + days[lifetime] * 86400000) : null,
+      allowReplies: engagement.allowReplies ?? true, allowReactions: engagement.allowReactions ?? true,
+      allowReposts: engagement.allowReposts ?? true, anonymousReplies: engagement.anonymousReplies ?? false,
+      isAiModifiedMedia, pollOptions: JSON.stringify(pollOptions),
+    }, include: includePost(req.user.id) });
     if (content) safeWaitUntil(analyzeAndModeratePost(post.id, content));
     return res.status(201).json((await formatPosts([post], req.user.id))[0]);
   } catch (error) {
@@ -150,7 +146,8 @@ export async function voteOnPoll(req, res) {
   const post = await findVisiblePost(req.params.id, req.user.id);
   const index = req.body.optionIndex;
   if (!post) return res.status(404).json({ error: "Post not found." });
-  if (!Number.isInteger(index) || index < 0 || index >= post.pollOptions.length) return res.status(400).json({ error: "Choose a valid poll option." });
+  const options = parseList(post.pollOptions);
+  if (!Number.isInteger(index) || index < 0 || index >= options.length) return res.status(400).json({ error: "Choose a valid poll option." });
   await prisma.pollVote.upsert({ where: { postId_userId: { postId: post.id, userId: req.user.id } },
     create: { postId: post.id, userId: req.user.id, optionIndex: index }, update: { optionIndex: index } });
   return getPostDetails(req, res);

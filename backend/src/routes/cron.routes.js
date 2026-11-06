@@ -1,39 +1,30 @@
-import { Router } from "express";
+/**
+ * src/routes/cron.routes.js
+ *
+ * Manual trigger for the retention job. The scheduled Worker handler runs the
+ * same job on the cron trigger; this endpoint requires the CRON_SECRET bearer.
+ */
+
+import { Router } from "../http/express-lite.js";
 import { runRetentionCleanup } from "../services/cron.service.js";
+import { env } from "../config/env.js";
 import { timingSafeEqual } from "node:crypto";
 
 const router = Router();
 
-/**
- * GET /api/cron/retention
- * POST /api/cron/retention
- *
- * Route target for Vercel Cron Jobs.
- * Vercel automatically sends `x-vercel-cron: 1` header on scheduled invocations.
- */
 async function handleRetentionCron(req, res) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return res.status(503).json({ error: "Retention authentication is not configured." });
+  if (!env.CRON_SECRET) return res.status(503).json({ error: "Retention authentication is not configured." });
   const actual = Buffer.from(req.headers.authorization || "");
-  const expected = Buffer.from(`Bearer ${cronSecret}`);
+  const expected = Buffer.from(`Bearer ${env.CRON_SECRET}`);
   if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
     return res.status(401).json({ error: "Unauthorized cron trigger" });
   }
-
   try {
-    await runRetentionCleanup();
-    return res.status(200).json({
-      status: "success",
-      message: "Retention cleanup executed successfully",
-      timestamp: new Date().toISOString()
-    });
+    const result = await runRetentionCleanup();
+    return res.status(200).json({ status: "success", result, timestamp: new Date().toISOString() });
   } catch (err) {
-    console.error("[Cron Route] Retention cleanup error:", err.message);
-    return res.status(500).json({
-      status: "error",
-      error: err.message,
-      timestamp: new Date().toISOString()
-    });
+    console.error("[Cron Route] Retention cleanup error:", err?.message);
+    return res.status(500).json({ status: "error", timestamp: new Date().toISOString() });
   }
 }
 

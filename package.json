@@ -1,6 +1,6 @@
 {
   "name": "veil-social",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -8,32 +8,30 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "npm run dev --prefix backend",
-    "dev:backend": "npm run dev --prefix backend",
-    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev",
     "install:all": "npm ci",
-    "test": "npm run test:crypto && npm test --workspace backend",
+    "generate": "npm --prefix backend run generate",
     "typecheck": "npm run typecheck --workspace frontend",
     "lint": "npm run lint --workspace frontend",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "build": "npm --prefix backend run build && npm --prefix frontend run build && node scripts/copy-build.js",
-    "build:backend": "npm --prefix backend run build",
-    "build:frontend": "npm --prefix frontend run build",
-    "start": "npm --prefix backend run start",
-    "start:backend": "npm --prefix backend run start",
-    "start:frontend": "npm --prefix frontend run start",
-    "vercel-build": "node scripts/vercel-build.js",
-    "prisma:generate": "npm --prefix backend run build",
-    "test:crypto": "node --experimental-strip-types --test scripts/test-crypto.mjs"
+    "test": "npm run test:crypto && npm test --workspace backend",
+    "test:crypto": "node --experimental-strip-types --test scripts/test-crypto.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "build": "npm --prefix backend run generate && npm --prefix frontend run build",
+    "build:web": "npm --prefix frontend run build",
+    "deploy:api": "npm --prefix backend run deploy",
+    "deploy:web": "npm --prefix frontend run build && npx wrangler pages deploy frontend/dist/client --project-name=social-space",
+    "check": "npm run typecheck && npm run lint && npm run check:secrets && npm test && npm run build"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "devDependencies": {
-    "embedded-postgres": "18.4.0-beta.17",
     "fake-indexeddb": "^6.2.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "vite": "^8.0.16"
-  }
+    "vite": "^8.0.16",
+    "wrangler": "^4.158.0"
+  },
+  "description": "Social Space: anonymous social network on Cloudflare (Pages + Workers + D1 + R2)."
 }

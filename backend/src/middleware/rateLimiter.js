@@ -1,9 +1,9 @@
 ﻿/**
- * rateLimiter.js -- Per-account progressive lockout (Postgres via Prisma)
+ * rateLimiter.js -- Per-account progressive lockout (D1 via Prisma)
  *
  * --- IP-based rate limiting -----------------------------------------------
- * IP limiters have been migrated to Postgres-backed rate-limiter-flexible.
- * See: src/config/rateLimiters.js + src/config/pgPool.js
+ * IP and user limiters are fixed-window counters stored in D1.
+ * See: src/config/rateLimiters.js
  *
  * Import pgRateLimit from rateLimiters.js in your routes:
  *   import { pgRateLimit } from "../config/rateLimiters.js";

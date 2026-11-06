@@ -1,35 +1,48 @@
-import { Redis } from "@upstash/redis";
-import { env } from "./env.js";
+/**
+ * src/config/challengeStore.js
+ *
+ * Short-lived authentication challenges (MFA sign-in, passkey ceremonies, TOTP
+ * enrolment). Values are encrypted at rest with AES-256-GCM and stored in D1.
+ * `take()` is single-use: the row is claimed with a conditional delete, so two
+ * concurrent verifications cannot both succeed.
+ */
+
 import prisma from "./prisma.js";
 import { encrypt, decrypt } from "../utils/crypto.js";
 
-const redis = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({ url: env.UPSTASH_REDIS_REST_URL, token: env.UPSTASH_REDIS_REST_TOKEN }) : null;
-const decode = value => {
-  const stored = typeof value === "string" ? JSON.parse(value) : value;
-  // Existing short-lived challenges can finish during a rolling deployment.
-  return stored?.encryptedValue ? JSON.parse(decrypt(stored.encryptedValue)) : stored;
+const wrap = (value) => JSON.stringify({ encryptedValue: encrypt(JSON.stringify(value)) });
+
+const unwrap = (stored) => {
+  if (!stored) return null;
+  const parsed = JSON.parse(stored);
+  return parsed?.encryptedValue ? JSON.parse(decrypt(parsed.encryptedValue)) : parsed;
 };
 
 export const store = {
   async set(key, value, ttlSeconds) {
-    const encrypted = { encryptedValue: encrypt(JSON.stringify(value)) };
-    if (redis) return redis.set(key, JSON.stringify(encrypted), { ex: ttlSeconds });
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
-    await prisma.authChallenge.upsert({ where: { key }, create: { key, value: encrypted, expiresAt }, update: { value: encrypted, expiresAt } });
+    const data = { value: wrap(value), expiresAt };
+    await prisma.authChallenge.upsert({ where: { key }, create: { key, ...data }, update: data });
   },
+
   async get(key) {
-    if (redis) return decode(await redis.get(key));
     const entry = await prisma.authChallenge.findUnique({ where: { key } });
-    return entry && entry.expiresAt > new Date() ? decode(entry.value) : null;
+    if (!entry || entry.expiresAt <= new Date()) return null;
+    return unwrap(entry.value);
   },
+
   async del(key) {
-    if (redis) return redis.del(key);
     await prisma.authChallenge.deleteMany({ where: { key } });
   },
+
+  /** Atomically claims and returns the challenge, or null if missing, expired or already used. */
   async take(key) {
-    if (redis) return decode(await redis.getdel(key));
-    const entries = await prisma.$queryRaw`DELETE FROM "AuthChallenge" WHERE "key" = ${key} AND "expiresAt" > (NOW() AT TIME ZONE 'UTC') RETURNING "value"`;
-    return decode(entries[0]?.value ?? null);
+    const entry = await prisma.authChallenge.findUnique({ where: { key } });
+    if (!entry) return null;
+    const claimed = await prisma.authChallenge.deleteMany({
+      where: { key, expiresAt: { gt: new Date() } },
+    });
+    if (claimed.count !== 1) return null;
+    return unwrap(entry.value);
   },
 };

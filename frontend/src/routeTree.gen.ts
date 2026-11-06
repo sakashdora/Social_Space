@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComposeRouteImport } from './routes/compose'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as NewsRouteImport } from './routes/news'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SafetyRouteImport } from './routes/safety'
@@ -31,14 +31,14 @@ const ComposeRoute = ComposeRouteImport.update({
   path: '/compose',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NewsRoute = NewsRouteImport.update({
-  id: '/news',
-  path: '/news',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -80,8 +80,8 @@ const MessagesThreadIdRoute = MessagesThreadIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/compose': typeof ComposeRoute
+  '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
-  '/news': typeof NewsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/safety': typeof SafetyRoute
@@ -93,7 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/compose': typeof ComposeRoute
-  '/news': typeof NewsRoute
+  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/safety': typeof SafetyRoute
@@ -106,8 +106,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/compose': typeof ComposeRoute
+  '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
-  '/news': typeof NewsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/safety': typeof SafetyRoute
@@ -121,8 +121,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/compose'
+    | '/login'
     | '/messages'
-    | '/news'
     | '/onboarding'
     | '/profile'
     | '/safety'
@@ -134,7 +134,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/compose'
-    | '/news'
+    | '/login'
     | '/onboarding'
     | '/profile'
     | '/safety'
@@ -146,8 +146,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/compose'
+    | '/login'
     | '/messages'
-    | '/news'
     | '/onboarding'
     | '/profile'
     | '/safety'
@@ -160,8 +160,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComposeRoute: typeof ComposeRoute
+  LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
-  NewsRoute: typeof NewsRoute
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   SafetyRoute: typeof SafetyRoute
@@ -185,18 +185,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComposeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/messages': {
       id: '/messages'
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/news': {
-      id: '/news'
-      path: '/news'
-      fullPath: '/news'
-      preLoaderRoute: typeof NewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -268,8 +268,8 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComposeRoute: ComposeRoute,
+  LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
-  NewsRoute: NewsRoute,
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   SafetyRoute: SafetyRoute,

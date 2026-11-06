@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../http/express-lite.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { realtimeSession } from "../services/realtime.service.js";
 import { pgRateLimit } from "../config/rateLimiters.js";

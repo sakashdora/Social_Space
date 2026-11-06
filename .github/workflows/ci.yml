@@ -1,32 +1,48 @@
 name: Verify
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
 permissions:
   contents: read
+
 jobs:
-  check:
+  verify:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: veil_test
-          POSTGRES_PASSWORD: test_only_password
-          POSTGRES_DB: veil_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U veil_test -d veil_test"
-          --health-interval 5s --health-timeout 5s --health-retries 10
-    env:
-      TEST_DATABASE_URL: postgresql://veil_test:test_only_password@localhost:5432/veil_test
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+
+      - name: Scan for credentials
+        run: npm run check:secrets
+
+      - name: Typecheck frontend
+        run: npm run typecheck
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Unit and API tests (SQLite stand-in for D1, no network)
+        run: npm test
+
+      - name: Build frontend for Cloudflare Pages
+        run: npm run build:web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      - name: Scan the browser bundle for credentials
+        run: npm run check:secrets -- --dist
+
+      - name: Validate the Worker bundle compiles
+        working-directory: backend
+        run: |
+          npm run generate
+          npx wrangler deploy --dry-run --outdir ../.wrangler-ci

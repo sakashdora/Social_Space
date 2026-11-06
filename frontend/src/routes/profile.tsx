@@ -75,6 +75,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { startRegistration } from "@simplewebauthn/browser";
 import { motion, AnimatePresence } from "framer-motion";
+import QRCode from "qrcode";
 
 export const Route = createFileRoute("/profile")({
   validateSearch: (search: Record<string, unknown>): { premium?: boolean } => {
@@ -581,7 +582,18 @@ function Profile() {
   // ─── TOTP mutations ────────────────────────────────────────────────────────
   const setupTotpMut = useMutation({
     mutationFn: setupTotp,
-    onSuccess: (data) => setTotpQr(data.qrCodeDataUrl),
+    onSuccess: async (data) => {
+      try {
+        // Rendered locally so the secret never leaves the browser as an image.
+        setTotpQr(
+          await QRCode.toDataURL(data.otpauthUrl, { margin: 1, width: 220 }),
+        );
+      } catch {
+        setTotpSetupError(
+          "Could not draw the QR code. Use the manual setup key instead.",
+        );
+      }
+    },
     onError: (e: any) =>
       setTotpSetupError(e.message || "Failed to start TOTP setup."),
   });

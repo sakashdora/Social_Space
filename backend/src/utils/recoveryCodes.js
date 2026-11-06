@@ -11,9 +11,9 @@
  *   - Each 4-word code has ~44 bits of entropy — strong enough for a single-use code
  *   - Lowercase + dash format is consistent and easy to type
  *
- * WHY HMAC-SHA256 (not Argon2id) for hashing?
+ * WHY HMAC-SHA256 (not a slow password hash) for hashing?
  *   - At redemption time we scan up to 8 hashes looking for a match
- *   - Argon2id at 64 MiB / 3 rounds = ~200ms per hash → 1.6 seconds total
+ *   - A slow KDF per code would cost seconds of Worker CPU per attempt
  *   - HMAC-SHA256 with a secret key provides equivalent security (secret acts as salt)
  *   - Constant-time comparison via crypto.timingSafeEqual prevents timing attacks
  */

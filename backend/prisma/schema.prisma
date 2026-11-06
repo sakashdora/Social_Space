@@ -1,11 +1,21 @@
+// Cloudflare D1 (SQLite). Prisma 7 + @prisma/adapter-d1 runs this schema inside Workers.
+// Two generated clients: "workerd" for the Worker bundle, "nodejs" for Node-based tests.
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  runtime      = "workerd"
+}
+
+generator nodeClient {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma-node"
+  moduleFormat = "esm"
+  runtime      = "nodejs"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
 }
 
 model User {
@@ -75,7 +85,7 @@ model SecurityEvent {
   createdAt             DateTime @default(now())
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, createdAt])
 }
 
 model LoginAttempt {
@@ -92,14 +102,14 @@ model Post {
   ownerId           String?
   owner             User?           @relation("PostOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   audience          String          @default("everyone")
-  allowedUserIds    String[]        @default([])
+  allowedUserIds    String          @default("[]") // JSON array of user ids
   expiresAt         DateTime?
   allowReplies      Boolean         @default(true)
   allowReactions    Boolean         @default(true)
   allowReposts      Boolean         @default(true)
   anonymousReplies  Boolean         @default(false)
   isAiModifiedMedia Boolean         @default(false)
-  pollOptions       String[]        @default([])
+  pollOptions       String          @default("[]") // JSON array of option labels
   pollVotes         PollVote[]
   content           String
   category          String
@@ -120,9 +130,9 @@ model Post {
   reactions         Reaction[]
   media             Media?          @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
-  @@index([category, isDeleted, createdAt(sort: Desc)])
-  @@index([userId, createdAt(sort: Desc)])
-  @@index([ownerId, createdAt(sort: Desc)])
+  @@index([category, isDeleted, createdAt])
+  @@index([userId, createdAt])
+  @@index([ownerId, createdAt])
   @@index([expiresAt])
 }
 
@@ -141,7 +151,7 @@ model Comment {
   moderationLogs  ModerationLog[]
   reactions       Reaction[]
 
-  @@index([postId, isDeleted, createdAt(sort: Asc)])
+  @@index([postId, isDeleted, createdAt])
 }
 
 model Reaction {
@@ -209,15 +219,8 @@ model Message {
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
   thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
-  @@index([threadId, createdAt(sort: Asc)])
+  @@index([threadId, createdAt])
   @@index([expiresAt])
-}
-
-enum MediaType {
-  IMAGE
-  VIDEO
-  AUDIO
-  FILE
 }
 
 model Media {
@@ -232,8 +235,8 @@ model Media {
   thread            Thread?    @relation(fields: [threadId], references: [id], onDelete: Cascade)
   message           Message?
 
-  type              MediaType
-  storagePath       String     // path within Supabase bucket, e.g. "media/{userId}/{mediaId}.webp"
+  type              String     // IMAGE | VIDEO | AUDIO | FILE
+  storagePath       String     // object key in the R2 bucket, e.g. "media/{mediaId}.webp"
   thumbnailPath     String?    // path to video thumbnail, e.g. "media/{userId}/{mediaId}_thumb.jpg"
   bucket            String     @default("veil-media")
 
@@ -280,7 +283,7 @@ model SafetyReport {
   reason String
   status String @default("received")
   createdAt DateTime @default(now())
-  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, createdAt])
 }
 
 model Appeal {
@@ -291,7 +294,7 @@ model Appeal {
   reason String
   status String @default("received")
   createdAt DateTime @default(now())
-  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, createdAt])
 }
 
 model WaitlistEntry {
@@ -313,19 +316,18 @@ model StorageDeletion {
 // Shared fallback when Redis is not configured; safe across serverless instances.
 model AuthChallenge {
   key String @id
-  value Json
+  value String // JSON text containing the encrypted payload
   expiresAt DateTime
   @@index([expiresAt])
 }
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
-// Managed by rate-limiter-flexible (RateLimiterPostgres driver).
-// Schema is owned here for visibility; the driver handles counter upserts.
-// Stale rows (expire < now()) are purged by the retention cron every 10 minutes.
+// Fixed-window counters maintained by src/config/rateLimiters.js.
+// Stale rows (expire < now) are purged by the scheduled retention job.
 model RateLimitCounter {
   key       String   @id
   points    Int      @default(0)
-  expire    BigInt                    // Unix epoch ms — window expiry timestamp
+  expire    BigInt   // Unix epoch ms: window expiry timestamp
   createdAt DateTime @default(now())
 
   @@index([expire])

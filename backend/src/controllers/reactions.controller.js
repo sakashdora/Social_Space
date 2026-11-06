@@ -9,15 +9,22 @@ export async function toggleReaction(req, res) {
     const post = await findVisiblePost(postId || comment?.postId || "", req.user.id);
     if (!post || (commentId && !comment)) return res.status(404).json({ error: "Reaction target not found." });
     if (!post.allowReactions) return res.status(403).json({ error: "Reactions are disabled for this post." });
-    const key = req.user.id + ":" + (postId || commentId) + ":" + reactionType;
-    const reacted = await prisma.$transaction(async tx => {
-      await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
-      const where = { userId: req.user.id, postId: postId || null, commentId: commentId || null, reactionType };
-      const existing = await tx.reaction.findFirst({ where });
-      if (existing) { await tx.reaction.delete({ where: { id: existing.id } }); return false; }
-      await tx.reaction.create({ data: where });
-      return true;
-    });
+    // The unique (user, target, type) index arbitrates concurrent toggles.
+    const where = { userId: req.user.id, postId: postId || null, commentId: commentId || null, reactionType };
+    const existing = await prisma.reaction.findFirst({ where });
+    let reacted;
+    if (existing) {
+      await prisma.reaction.deleteMany({ where: { id: existing.id } });
+      reacted = false;
+    } else {
+      try {
+        await prisma.reaction.create({ data: where });
+        reacted = true;
+      } catch (error) {
+        if (error?.code !== "P2002") throw error;
+        reacted = true; // another request created it first
+      }
+    }
     return res.status(200).json({ reacted });
   } catch (error) {
     console.error("Reaction failed:", error.message);

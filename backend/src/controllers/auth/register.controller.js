@@ -14,6 +14,7 @@ import {
 } from "../../utils/crypto.js";
 import { generateRecoveryCodes } from "../../utils/recoveryCodes.js";
 import { logSecurityEvent } from "../../utils/securityLogger.js";
+import crypto from "node:crypto";
 
 /**
  * POST /v1/auth/register
@@ -63,7 +64,7 @@ export async function register(req, res) {
       });
     }
 
-    // Hash passphrase with Argon2id
+    // Hash passphrase (PBKDF2-HMAC-SHA256, see utils/crypto.js)
     const recoveryHash = await hashPassphrase(passphrase);
 
     // Generate 8 BIP39 recovery codes
@@ -72,16 +73,16 @@ export async function register(req, res) {
     // Random avatar
     const avatarUrl = `/assets/avatars/avatar-${Math.floor(Math.random() * 8) + 1}.png`;
 
-    // Create user + recovery codes in a transaction
-    const user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: { handle: cleanHandle, recoveryHash, avatarUrl },
-      });
-      await tx.recoveryCode.createMany({
-        data: hashedCodes.map((codeHash) => ({ userId: newUser.id, codeHash })),
-      });
-      return newUser;
-    });
+    // User and recovery codes commit atomically as one D1 batch.
+    const userId = crypto.randomUUID();
+    const [user] = await prisma.$transaction([
+      prisma.user.create({
+        data: { id: userId, handle: cleanHandle, recoveryHash, avatarUrl },
+      }),
+      prisma.recoveryCode.createMany({
+        data: hashedCodes.map((codeHash) => ({ userId, codeHash })),
+      }),
+    ]);
 
     await logSecurityEvent(user.id, "ACCOUNT_CREATED", req);
 
@@ -93,6 +94,11 @@ export async function register(req, res) {
       recoveryCodes: rawCodes,
     });
   } catch (error) {
+    if (error?.code === "P2002") {
+      return res.status(409).json({
+        error: { message: "Handle already taken. Choose another.", code: "HANDLE_TAKEN" },
+      });
+    }
     console.error("Register error:", error);
     return res.status(500).json({
       error: {
